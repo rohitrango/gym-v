@@ -3,6 +3,18 @@
 from gym_v.envs.registration import register
 
 register(
+    id="ReasoningGym/Sudoku-v0",
+    entry_point="gym_v.envs.reasongym.sudoku:ReasoningGymSudokuEnv",
+    max_episode_steps=2,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        include_oracle_in_info=False,
+        cell_px=64,
+        padding=24,
+    ),
+)
+
+register(
     id="TextArena/Crosswords-v0",
     entry_point="gym_v.envs.textarena.crosswords:TextArenaCrosswordsEnv",
     max_episode_steps=100,
