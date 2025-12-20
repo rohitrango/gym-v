@@ -5,8 +5,8 @@ from __future__ import annotations
 import ast
 import shutil
 import sys
-import tkinter as tk
 from textwrap import dedent
+import tkinter as tk
 from typing import Any
 
 import click
