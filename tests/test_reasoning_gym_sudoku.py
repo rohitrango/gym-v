@@ -1,5 +1,5 @@
-import unittest
 from pathlib import Path
+import unittest
 
 try:
     import gym_v

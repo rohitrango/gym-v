@@ -6,8 +6,8 @@ from importlib import resources
 from textwrap import dedent
 from typing import Any, Literal
 
-import textarena as ta
 from PIL import Image, ImageDraw, ImageFont
+import textarena as ta
 
 from gym_v import Env, Observation, get_logger
 

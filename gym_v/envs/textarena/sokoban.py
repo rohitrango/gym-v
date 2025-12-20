@@ -8,8 +8,8 @@ from textwrap import dedent
 from typing import Any
 
 import numpy as np
-import textarena as ta
 from PIL import Image
+import textarena as ta
 
 from gym_v import Env, Observation, get_logger
 
