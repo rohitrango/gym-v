@@ -17,7 +17,7 @@ logger = get_logger()
 class TextArenaWordSearchEnv(Env):
     """Crosswords puzzle game using TextArena's Crosswords environment."""
 
-    assets_dir = resources.files("gym_v.envs.textarena") / "assets"
+    assets_dir = resources.files("gym_v.envs") / "assets"
 
     def __init__(
         self,

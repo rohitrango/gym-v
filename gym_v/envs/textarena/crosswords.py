@@ -26,7 +26,7 @@ class TextArenaCrosswordsEnv(Env):
         cell_size: Size of each cell in pixels for rendering
     """
 
-    assets_dir = resources.files("gym_v.envs.textarena") / "assets"
+    assets_dir = resources.files("gym_v.envs") / "assets"
 
     def __init__(
         self,

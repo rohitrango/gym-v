@@ -28,7 +28,7 @@ class TextArenaPegJumpEnv(Env):
         peg_size: Size of each peg in pixels for rendering
     """
 
-    assets_dir = resources.files("gym_v.envs.textarena") / "assets"
+    assets_dir = resources.files("gym_v.envs") / "assets"
 
     def __init__(
         self,
