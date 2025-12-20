@@ -5,8 +5,8 @@ from __future__ import annotations
 from textwrap import dedent
 from typing import Any
 
-from PIL import Image, ImageDraw
 import textarena as ta
+from PIL import Image, ImageDraw
 
 from gym_v import Env, Observation, get_logger
 

@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from importlib import resources
 import math
+from importlib import resources
 from textwrap import dedent
 from types import MethodType
 from typing import Any
 
-from PIL import Image, ImageDraw, ImageFont
 import textarena as ta
+from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation, get_logger
 

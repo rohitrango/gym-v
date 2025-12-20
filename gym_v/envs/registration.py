@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
 import contextlib
 import copy
 import dataclasses
-from dataclasses import dataclass, field
 import difflib
 import importlib
 import importlib.metadata as metadata
 import json
 import re
+from collections import defaultdict
+from dataclasses import dataclass, field
 from types import ModuleType
 from typing import Any, Protocol
 
