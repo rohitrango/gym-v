@@ -59,6 +59,61 @@ register(
 )
 
 register(
+    id="ReasoningGym/KnightSwap-v0",
+    entry_point="gym_v.envs.reasongym.knight_swap:ReasoningGymKnightSwapEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=64,
+        padding=24,
+    ),
+)
+
+register(
+    id="ReasoningGym/MiniSudoku-v0",
+    entry_point="gym_v.envs.reasongym.mini_sudoku:ReasoningGymMiniSudokuEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=80,
+        padding=24,
+    ),
+)
+
+register(
+    id="ReasoningGym/Survo-v0",
+    entry_point="gym_v.envs.reasongym.survo:ReasoningGymSurvoEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=64,
+        padding=24,
+    ),
+)
+
+register(
+    id="ReasoningGym/Kakurasu-v0",
+    entry_point="gym_v.envs.reasongym.kakurasu:ReasoningGymKakurasuEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=56,
+        padding=40,
+    ),
+)
+
+register(
+    id="ReasoningGym/Tsumego-v0",
+    entry_point="gym_v.envs.reasongym.tsumego:ReasoningGymTsumegoEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=36,
+        padding=24,
+    ),
+)
+
+register(
     id="TextArena/Crosswords-v0",
     entry_point="gym_v.envs.textarena.crosswords:TextArenaCrosswordsEnv",
     max_episode_steps=100,
