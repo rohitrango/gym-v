@@ -10,15 +10,15 @@ from __future__ import annotations
 
 import argparse
 import base64
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import io
 import json
 import os
 import sys
 import time
+from typing import Any
 import urllib.error
 import urllib.request
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any
 
 SYSTEM_PROMPT = """You are a game player. You need to explore and figure out the game rules based on the current situation, then make a move.
 You must follow the following requirements:
