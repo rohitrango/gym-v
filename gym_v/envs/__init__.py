@@ -148,3 +148,16 @@ register(
         cell_size=60,
     ),
 )
+
+# Game-RL environments
+register(
+    id="GameRL/Snake-v0",
+    entry_point="gym_v.envs.gamerl.snake:SnakeEnv",
+    max_episode_steps=200,
+    kwargs=dict(
+        width=10,
+        height=10,
+        initial_snake_length=3,
+        cell_size=40,
+    ),
+)
