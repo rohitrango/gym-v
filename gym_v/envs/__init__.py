@@ -161,3 +161,13 @@ register(
         cell_size=40,
     ),
 )
+
+register(
+    id="GameRL/TicTacToe-v0",
+    entry_point="gym_v.envs.gamerl.tictactoe:TicTacToeEnv",
+    max_episode_steps=9,
+    kwargs=dict(
+        cell_size=100,
+        player_starts="O",
+    ),
+)
