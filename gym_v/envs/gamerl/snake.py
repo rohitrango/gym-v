@@ -1,7 +1,8 @@
-"""Snake game environment for gym-v."""
+"""Snake game based on GameRL."""
 
 from __future__ import annotations
 
+from importlib import resources
 from textwrap import dedent
 from typing import Any
 
@@ -12,7 +13,7 @@ from gym_v import Env, Observation, get_logger
 logger = get_logger()
 
 
-class SnakeEnv(Env):
+class GameRLSnakeEnv(Env):
     """Snake game environment.
 
     Control a snake to eat food and grow longer without hitting walls or itself.
@@ -23,6 +24,8 @@ class SnakeEnv(Env):
         initial_snake_length: Initial snake length (default 3)
         cell_size: Size of each cell in pixels for rendering (default 40)
     """
+
+    assets_dir = resources.files("gym_v.envs") / "assets"
 
     # Direction mappings
     DIRECTIONS = {
@@ -68,24 +71,9 @@ class SnakeEnv(Env):
         self._game_over: bool = False
 
     @property
-    def width(self) -> int:
-        return self._width
-
-    @property
-    def height(self) -> int:
-        return self._height
-
-    @property
     def description(self) -> str:
         return dedent("""
-            Snake Game: Control the snake to eat food and grow longer.
-
-            Available actions: up, down, left, right (or w, a, s, d)
-
-            Rules:
-            - The snake moves in the direction you choose
-            - Eating food (red) makes the snake grow longer
-            - Game ends if you hit a wall or the snake's own body
+            This is a Snake game. The yellow block is the head of the snake. The blue block is the body of the snake. The red block is the food. The coordinates (x, y) in the grid represent the matrix format, where x is the row index and y is the column index. The origin (0,0) is in the upper left of the grid. You need to control the snake that moves across the grid. Each step it can move up, down, left or right. The game ends if the snake head hits the bound of the grid or its own body.
         """).strip()
 
     def reset(
@@ -176,13 +164,12 @@ class SnakeEnv(Env):
         img = Image.new("RGB", (img_width, img_height), self.COLORS["grid"])
         draw = ImageDraw.Draw(img)
 
-        # Try to load a font, fall back to default if not available
-        try:
-            font_size = self._cell_size // 2
-            font = ImageFont.truetype(
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", font_size
-            )
-        except OSError:
+        # Try to load font
+        font_path = self.assets_dir / "DejaVuSans.ttf"
+        if font_path.exists():
+            font = ImageFont.truetype(str(font_path), self._cell_size // 2)
+        else:
+            logger.warning(f"Font file not found: {font_path}, using default font")
             font = ImageFont.load_default()
 
         # Draw coordinate labels
