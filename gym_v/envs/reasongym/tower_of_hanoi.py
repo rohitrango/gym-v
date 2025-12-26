@@ -287,26 +287,3 @@ class ReasoningGymTowerOfHanoiEnv(Env):
             )
 
         return img
-
-    def _get_state_text(self) -> str:
-        """Get text description of the initial state."""
-        num_pegs = self._metadata.get("num_pegs", 3)
-        num_disks = self._metadata.get("num_disks", 3)
-        start_peg = self._metadata.get("start_peg", 1)
-
-        # Build initial peg state
-        pegs_state: dict[int, list[int]] = {i: [] for i in range(1, num_pegs + 1)}
-        for disk in range(num_disks, 0, -1):
-            pegs_state[start_peg].append(disk)
-
-        # Format as text
-        lines = []
-        for peg_idx in range(1, num_pegs + 1):
-            disks = pegs_state.get(peg_idx, [])
-            if disks:
-                disk_str = ", ".join(str(d) for d in disks)
-                lines.append(f"Peg {peg_idx}: [{disk_str}]")
-            else:
-                lines.append(f"Peg {peg_idx}: []")
-
-        return "\n".join(lines)
