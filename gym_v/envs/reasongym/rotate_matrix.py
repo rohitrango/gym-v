@@ -1,4 +1,4 @@
-"""Sudoku single-turn environment backed by reasoning-gym."""
+"""Rotate Matrix single-turn environment backed by reasoning-gym."""
 
 from __future__ import annotations
 
@@ -14,11 +14,10 @@ from gym_v import Env, Observation, get_logger
 logger = get_logger()
 
 
-class ReasoningGymSudokuEnv(Env):
-    """Sudoku number placement puzzle using reasoning-gym's Sudoku dataset.
+class ReasoningGymRotateMatrixEnv(Env):
+    """Rotate Matrix puzzle using reasoning-gym's dataset.
 
-    The player fills a 9x9 grid with digits 1-9 such that each row, column, and
-    3x3 subgrid contains all digits without repetition.
+    The player rotates a matrix by specified degrees clockwise.
 
     Args:
         dataset_kwargs: Configuration parameters for the reasoning-gym dataset
@@ -31,7 +30,7 @@ class ReasoningGymSudokuEnv(Env):
     def __init__(
         self,
         dataset_kwargs: dict[str, Any] | None = None,
-        cell_px: int = 64,
+        cell_px: int = 48,
         padding: int = 24,
         **kwargs: Any,
     ):
@@ -45,68 +44,53 @@ class ReasoningGymSudokuEnv(Env):
         self._entry: dict[str, Any] | None = None
         self._entry_idx: int | None = None
         self._metadata: dict[str, Any] | None = None
-        self._puzzle: list[list[int]] | None = None
+        self._matrix: list[list[int]] | None = None
+        self._num_rotations: int = 0
         self._oracle_answer: str | None = None
 
     @property
     def description(self) -> str:
-        """Return description for Sudoku puzzle.
+        """Return description for Rotate Matrix puzzle.
 
         Original reasoning-gym question format:
         ```
-        Solve this Sudoku puzzle:
-        _ 2 3 4 5 6 7 8 9
-        4 5 6 7 8 9 1 2 _
-        7 8 9 1 2 3 4 5 6
-        ...
-        Respond with only your answer, formatted as the puzzle, a 9x9 grid with
-        numbers separated by spaces, and rows separated by newlines.
+        Given a square matrix, your job is to rotate it clockwise.
+
+        Your output should be a matrix in the same format as the input.
+
+        Rotate the matrix below by 540 degrees clockwise:
+        0 4 3
+        3 2 1
+        8 1 9
         ```
 
         Original reasoning-gym answer format:
         ```
-        1 2 3 4 5 6 7 8 9
-        4 5 6 7 8 9 1 2 3
-        7 8 9 1 2 3 4 5 6
-        2 3 4 5 6 7 8 9 1
-        5 6 7 8 9 1 2 3 4
-        8 9 1 2 3 4 5 6 7
-        3 4 5 6 7 8 9 1 2
-        6 7 8 9 1 2 3 4 5
-        9 1 2 3 4 5 6 7 8
+        9 1 8
+        1 2 3
+        3 4 0
         ```
-        (9x9 grid, numbers 1-9 separated by spaces, rows separated by newlines)
+        (Matrix with space-separated numbers, newlines between rows)
         """
-        return dedent("""
-            Solve this 9x9 Sudoku puzzle.
+        degrees = self._num_rotations * 90
 
-            In the image:
-            - Cells with numbers are pre-filled clues
-            - Empty cells need to be filled with digits 1-9
+        return dedent(f"""
+            Given a square matrix, your job is to rotate it clockwise by {degrees} degrees.
 
-            Output format: A 9x9 grid with numbers separated by spaces within rows,
-            and newlines separating rows. Example:
-            1 2 3 4 5 6 7 8 9
-            4 5 6 7 8 9 1 2 3
-            7 8 9 1 2 3 4 5 6
-            2 3 4 5 6 7 8 9 1
-            5 6 7 8 9 1 2 3 4
-            8 9 1 2 3 4 5 6 7
-            3 4 5 6 7 8 9 1 2
-            6 7 8 9 1 2 3 4 5
-            9 1 2 3 4 5 6 7 8
-            ...
+            Output format: Matrix with space-separated numbers, newlines between rows.
+            Example for a 2x2 result:
+            1 2
+            3 4
         """).strip()
 
     def _make_dataset(self, *, seed: int | None):
-        kwargs = self._dataset_kwargs
-        # reasoning-gym SudokuConfig supports seed/size
+        kwargs = self._dataset_kwargs.copy()
         if seed is not None and "seed" not in kwargs:
             kwargs["seed"] = seed
         if "size" not in kwargs:
             kwargs["size"] = 500
 
-        return create_dataset("sudoku", **kwargs)
+        return create_dataset("rotate_matrix", **kwargs)
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
@@ -118,16 +102,18 @@ class ReasoningGymSudokuEnv(Env):
         self._entry_idx = int(self.np_random.integers(0, len(self._dataset)))
         self._entry = self._dataset[self._entry_idx]
 
-        # reasoning-gym entries are expected to always provide these fields.
         self._oracle_answer = self._entry["answer"]
         self._metadata = self._entry.get("metadata", {})
-        self._puzzle = self._metadata.get("puzzle")
+        self._matrix = self._metadata.get("matrix", [])
+        self._num_rotations = self._metadata.get("num_rotations", 0)
 
-        logger.info("Reset ReasoningGym Sudoku.")
+        logger.info("Reset ReasoningGym Rotate Matrix.")
+
+        matrix_text = self._format_matrix(self._matrix)
 
         obs = Observation(
             image=self.render(),
-            text=self._dataset._board_to_string(self._puzzle),
+            text=matrix_text,
             metadata=self._metadata,
         )
         info = {
@@ -156,23 +142,39 @@ class ReasoningGymSudokuEnv(Env):
 
         return obs, reward, True, False, info
 
+    def _format_matrix(self, matrix: list[list[int]]) -> str:
+        if not matrix:
+            return ""
+        return "\n".join(" ".join(str(x) for x in row) for row in matrix)
+
     def render(self) -> Image.Image:
-        return self._render_sudoku_grid(
-            self._puzzle, cell_px=self._cell_px, padding=self._padding
+        return self._render_matrix_grid(
+            self._matrix,
+            self._num_rotations,
+            cell_px=self._cell_px,
+            padding=self._padding,
         )
 
-    def _render_sudoku_grid(
+    def _render_matrix_grid(
         self,
-        puzzle: list[list[int]],
-        cell_px: int = 64,
+        matrix: list[list[int]],
+        num_rotations: int,
+        cell_px: int = 48,
         padding: int = 24,
         bg: tuple[int, int, int] = (250, 250, 250),
-        fg: tuple[int, int, int] = (20, 20, 20),
-        grid: tuple[int, int, int] = (30, 30, 30),
+        cell_bg: tuple[int, int, int] = (240, 240, 250),
+        grid_color: tuple[int, int, int] = (150, 150, 150),
+        text_color: tuple[int, int, int] = (30, 30, 30),
     ) -> Image.Image:
-        n = 9
-        size = padding * 2 + cell_px * n
-        img = Image.new("RGB", (size, size), bg)
+        if not matrix:
+            return Image.new("RGB", (200, 200), bg)
+
+        rows = len(matrix)
+        cols = len(matrix[0]) if matrix else 0
+
+        width = padding * 2 + cell_px * cols
+        height = padding * 2 + cell_px * rows
+        img = Image.new("RGB", (width, height), bg)
         draw = ImageDraw.Draw(img)
 
         font_path = self.assets_dir / "DejaVuSans.ttf"
@@ -182,28 +184,35 @@ class ReasoningGymSudokuEnv(Env):
             logger.warning(f"Font file not found: {font_path}, using default font")
             font = ImageFont.load_default()
 
-        # Cells background
-        draw.rectangle([0, 0, size - 1, size - 1], outline=grid, width=2)
+        # Draw cells
+        for r in range(rows):
+            for c in range(cols):
+                x = padding + c * cell_px
+                y = padding + r * cell_px
 
-        # Grid lines (thick lines every 3)
-        for i in range(n + 1):
-            x = padding + i * cell_px
-            y = padding + i * cell_px
-            w = 3 if i % 3 == 0 else 1
-            draw.line([(x, padding), (x, padding + n * cell_px)], fill=grid, width=w)
-            draw.line([(padding, y), (padding + n * cell_px, y)], fill=grid, width=w)
+                draw.rectangle(
+                    [x, y, x + cell_px - 1, y + cell_px - 1],
+                    fill=cell_bg,
+                    outline=grid_color,
+                    width=1,
+                )
 
-        # Digits
-        for r in range(n):
-            for c in range(n):
-                v = int(puzzle[r][c])
-                if v <= 0:
-                    continue
-                txt = str(v)
+                val = matrix[r][c] if r < len(matrix) and c < len(matrix[r]) else 0
+                txt = str(val)
                 bbox = draw.textbbox((0, 0), txt, font=font)
                 tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
-                cx = padding + c * cell_px + cell_px // 2
-                cy = padding + r * cell_px + cell_px // 2
-                draw.text((cx - tw // 2, cy - th // 2), txt, fill=fg, font=font)
+                draw.text(
+                    (x + cell_px // 2 - tw // 2, y + cell_px // 2 - th // 2),
+                    txt,
+                    fill=text_color,
+                    font=font,
+                )
+
+        # Draw outer border
+        draw.rectangle(
+            [padding - 1, padding - 1, width - padding, height - padding],
+            outline=(60, 60, 60),
+            width=2,
+        )
 
         return img

@@ -14,6 +14,204 @@ register(
 )
 
 register(
+    id="ReasoningGym/Maze-v0",
+    entry_point="gym_v.envs.reasongym.maze:ReasoningGymMazeEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=48,
+        padding=24,
+    ),
+)
+
+register(
+    id="ReasoningGym/NQueens-v0",
+    entry_point="gym_v.envs.reasongym.n_queens:ReasoningGymNQueensEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=64,
+        padding=24,
+    ),
+)
+
+register(
+    id="ReasoningGym/GameOfLife-v0",
+    entry_point="gym_v.envs.reasongym.game_of_life:ReasoningGymGameOfLifeEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=32,
+        padding=16,
+    ),
+)
+
+register(
+    id="ReasoningGym/TowerOfHanoi-v0",
+    entry_point="gym_v.envs.reasongym.tower_of_hanoi:ReasoningGymTowerOfHanoiEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        peg_width=150,
+        peg_height=250,
+        padding=40,
+    ),
+)
+
+register(
+    id="ReasoningGym/KnightSwap-v0",
+    entry_point="gym_v.envs.reasongym.knight_swap:ReasoningGymKnightSwapEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=64,
+        padding=24,
+    ),
+)
+
+register(
+    id="ReasoningGym/MiniSudoku-v0",
+    entry_point="gym_v.envs.reasongym.mini_sudoku:ReasoningGymMiniSudokuEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=80,
+        padding=24,
+    ),
+)
+
+register(
+    id="ReasoningGym/Survo-v0",
+    entry_point="gym_v.envs.reasongym.survo:ReasoningGymSurvoEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=64,
+        padding=24,
+    ),
+)
+
+register(
+    id="ReasoningGym/Kakurasu-v0",
+    entry_point="gym_v.envs.reasongym.kakurasu:ReasoningGymKakurasuEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=56,
+        padding=40,
+    ),
+)
+
+register(
+    id="ReasoningGym/Tsumego-v0",
+    entry_point="gym_v.envs.reasongym.tsumego:ReasoningGymTsumegoEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=36,
+        padding=24,
+    ),
+)
+
+register(
+    id="ReasoningGym/SpiralMatrix-v0",
+    entry_point="gym_v.envs.reasongym.spiral_matrix:ReasoningGymSpiralMatrixEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=48,
+        padding=24,
+    ),
+)
+
+register(
+    id="ReasoningGym/RotateMatrix-v0",
+    entry_point="gym_v.envs.reasongym.rotate_matrix:ReasoningGymRotateMatrixEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=48,
+        padding=24,
+    ),
+)
+
+register(
+    id="ReasoningGym/BinaryMatrix-v0",
+    entry_point="gym_v.envs.reasongym.binary_matrix:ReasoningGymBinaryMatrixEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=40,
+        padding=20,
+    ),
+)
+
+register(
+    id="ReasoningGym/LargestIsland-v0",
+    entry_point="gym_v.envs.reasongym.largest_island:ReasoningGymLargestIslandEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=40,
+        padding=24,
+    ),
+)
+
+register(
+    id="ReasoningGym/RottenOranges-v0",
+    entry_point="gym_v.envs.reasongym.rotten_oranges:ReasoningGymRottenOrangesEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=36,
+        padding=20,
+    ),
+)
+
+register(
+    id="ReasoningGym/ShortestPath-v0",
+    entry_point="gym_v.envs.reasongym.shortest_path:ReasoningGymShortestPathEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=48,
+        padding=24,
+    ),
+)
+
+register(
+    id="ReasoningGym/RectangleCount-v0",
+    entry_point="gym_v.envs.reasongym.rectangle_count:ReasoningGymRectangleCountEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=8,
+        padding=16,
+    ),
+)
+
+register(
+    id="ReasoningGym/CircuitLogic-v0",
+    entry_point="gym_v.envs.reasongym.circuit_logic:ReasoningGymCircuitLogicEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        padding=24,
+    ),
+)
+
+register(
+    id="ReasoningGym/Arc1D-v0",
+    entry_point="gym_v.envs.reasongym.arc_1d:ReasoningGymArc1DEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=28,
+        padding=24,
+    ),
+)
+
+register(
     id="TextArena/Crosswords-v0",
     entry_point="gym_v.envs.textarena.crosswords:TextArenaCrosswordsEnv",
     max_episode_steps=100,
