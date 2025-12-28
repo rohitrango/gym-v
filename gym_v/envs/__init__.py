@@ -416,15 +416,3 @@ register(
         padding=50,
     ),
 )
-
-register(
-    id="VGRP/LightUp-v0",
-    entry_point="gym_v.envs.vgrp.lightup:VGRPLightUpEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        size=5,
-        num_hints=0,
-        cell_px=60,
-        padding=30,
-    ),
-)

@@ -2,7 +2,6 @@
 
 from gym_v.envs.vgrp.battleships import VGRPBattleshipsEnv
 from gym_v.envs.vgrp.binairo import VGRPBinairoEnv
-from gym_v.envs.vgrp.lightup import VGRPLightUpEnv
 from gym_v.envs.vgrp.thermometers import VGRPThermometersEnv
 from gym_v.envs.vgrp.treesandtents import VGRPTreesAndTentsEnv
 
@@ -11,5 +10,4 @@ __all__ = [
     "VGRPThermometersEnv",
     "VGRPTreesAndTentsEnv",
     "VGRPBattleshipsEnv",
-    "VGRPLightUpEnv",
 ]

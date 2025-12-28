@@ -58,15 +58,17 @@ class VGRPThermometersEnv(Env):
             Solve this {self._size}x{self._size} Thermometers puzzle.
 
             In the image:
-            - Thermometer shapes are shown with bulbs (circles) at one end
+            - Thermometer shapes are shown with bulbs (red circles) at one end
             - Numbers on left show required filled cells per row
             - Numbers on top show required filled cells per column
 
             Rules:
-            1. Fill thermometers from the bulb (circular end) continuously
-            2. You cannot skip cells - must fill from bulb without gaps
-            3. Row and column counts must match the given clues
-            4. Only thermometer cells can be filled
+            1. Each thermometer can be filled 0 to full length (you choose how much to fill)
+            2. If filling, must start from the bulb (circular end) and fill continuously
+            3. You can: not fill at all, fill only the bulb, or fill from bulb continuously
+            4. You cannot skip cells - must fill from bulb without gaps
+            5. Row and column counts must match the given clues
+            6. Only thermometer cells can be filled
 
             Output format: A {self._size}x{self._size} grid with 's' (filled) or 'e' (empty)
             separated by spaces within rows, and newlines separating rows.

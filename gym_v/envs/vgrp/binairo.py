@@ -59,15 +59,13 @@ class VGRPBinairoEnv(Env):
             Fill this {self._size}x{self._size} Binairo grid with white (w) and black (b) circles.
 
             In the image:
-            - White circles (○) represent 'w'
-            - Black circles (●) represent 'b'
             - Empty cells need to be filled
 
             Rules:
             1. Each row and column must have exactly {self._size // 2} white and {self._size // 2} black circles
             2. No more than two consecutive circles of the same color in any row or column
 
-            Output format: A {self._size}x{self._size} grid with 'w' or 'b' separated by spaces within rows,
+            Output format: A {self._size}x{self._size} grid with 'w' for White circles or 'b' for Black circles separated by spaces within rows,
             and newlines separating rows. Example for 6x6:
             w b w b w b
             b w b w b w

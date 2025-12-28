@@ -58,7 +58,6 @@ class VGRPTreesAndTentsEnv(Env):
             Solve this {self._size}x{self._size} Trees and Tents puzzle.
 
             In the image:
-            - Trees (🌲) are shown as green triangles
             - Numbers on left show required tents per row
             - Numbers on top show required tents per column
 
