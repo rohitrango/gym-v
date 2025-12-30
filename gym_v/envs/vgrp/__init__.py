@@ -11,3 +11,16 @@ __all__ = [
     "VGRPTreesAndTentsEnv",
     "VGRPBattleshipsEnv",
 ]
+from gym_v.envs.vgrp.fieldexplore import VGRPFieldExploreEnv
+from gym_v.envs.vgrp.futoshiki import VGRPFutoshikiEnv
+from gym_v.envs.vgrp.hitori import VGRPHitoriEnv
+from gym_v.envs.vgrp.renzoku import VGRPRenzokuEnv
+from gym_v.envs.vgrp.starbattle import VGRPStarBattleEnv
+
+__all__ += [
+    "VGRPRenzokuEnv",
+    "VGRPFieldExploreEnv",
+    "VGRPFutoshikiEnv",
+    "VGRPHitoriEnv",
+    "VGRPStarBattleEnv",
+]

@@ -423,100 +423,6 @@ class FutoshikiPuzzleFactory(PuzzleFactory):
 
 
 # =============================================================================
-# Skyscraper Puzzle Factory
-# =============================================================================
-
-
-class ConstraintVisibility(Constraint):
-    def __init__(self) -> None:
-        super().__init__()
-
-    def calculate_visible_buildings(self, line: list[int]) -> int:
-        visible = 0
-        max_height = 0
-        for height in line:
-            if int(height) > max_height:
-                visible += 1
-                max_height = int(height)
-        return visible
-
-    def check(self, game_state: dict[str, Any]) -> bool:
-        board = game_state["board"]
-        clues = game_state["clues"]
-        size = len(board)
-
-        # Check all directions
-        for i in range(size):
-            # Top clues
-            if clues["top"][i] != 0:
-                col = [board[row][i] for row in range(size)]
-                if (
-                    0 not in col
-                    and self.calculate_visible_buildings(col) != clues["top"][i]
-                ):
-                    return False
-
-            # Bottom clues
-            if clues["bottom"][i] != 0:
-                col = [board[row][i] for row in range(size - 1, -1, -1)]
-                if (
-                    0 not in col
-                    and self.calculate_visible_buildings(col) != clues["bottom"][i]
-                ):
-                    return False
-
-            # Left clues
-            if clues["left"][i] != 0:
-                if (
-                    0 not in board[i]
-                    and self.calculate_visible_buildings(board[i]) != clues["left"][i]
-                ):
-                    return False
-
-            # Right clues
-            if clues["right"][i] != 0:
-                if (
-                    0 not in board[i]
-                    and self.calculate_visible_buildings(board[i][::-1])
-                    != clues["right"][i]
-                ):
-                    return False
-
-        return True
-
-
-class SkyscraperPuzzleFactory(PuzzleFactory):
-    def __init__(self, size: int) -> None:
-        super().__init__()
-        if size < 4 or size > 12:
-            raise ValueError("Grid size must be between 4 and 12")
-
-        self.game_name = "skyscraper"
-        self.size = size
-        self.constraints = [
-            ConstraintRowNoRepeat(),
-            ConstraintColNoRepeat(),
-            ConstraintVisibility(),
-        ]
-        self.all_possible_values = [i for i in range(1, size + 1)]
-        self.possible_hint_counts = [4, 5, 6, 7, 8, 9, 10, 11, 12]
-
-    def get_possible_values(
-        self, game_state: dict[str, Any], row: int, col: int
-    ) -> list[int]:
-        board = game_state["board"]
-        original_value = board[row][col]
-        possible_values = []
-
-        for value in self.all_possible_values:
-            board[row][col] = value
-            if self.check(game_state):
-                possible_values.append(value)
-        board[row][col] = original_value
-        return possible_values
-
-
-# =============================================================================
 # Hitori Puzzle Factory
 # =============================================================================
 
@@ -631,143 +537,6 @@ class HitoriPuzzleFactory(PuzzleFactory):
     ) -> list[int]:
         possible_values = []
         board = game_state["board"]
-        original_value = board[row][col]
-
-        for value in self.all_possible_values:
-            board[row][col] = value
-            if self.check(game_state):
-                possible_values.append(value)
-        board[row][col] = original_value
-        return possible_values
-
-
-# =============================================================================
-# Nonogram Puzzle Factory
-# =============================================================================
-
-
-class ConstraintBase:
-    def _check_line_hints(self, line, hints) -> bool:
-        # Convert line to runs of filled cells ('s' = filled, 'e' = empty, 0 = undefined)
-        runs = []  # Will store lengths of consecutive filled cells
-        count = 0  # Counter for current run length
-        current_run = []  # Track cells in current run for debugging/future use
-
-        if hints == [0]:
-            # the line should not contain 's'
-            return line.count("s") == 0
-
-        # First pass: Calculate runs of filled cells
-        for cell in line:
-            if cell == "s":  # Found a filled cell
-                count += 1
-                current_run.append(cell)
-            elif cell == "e":  # Found an empty cell
-                if count > 0:  # If we were counting a run
-                    runs.append(count)
-                    count = 0
-                current_run = []
-            else:  # cell is 0 (undefined)
-                if count > 0:
-                    current_run.append(cell)
-        # Don't forget to add the last run if it exists
-        if count > 0:
-            runs.append(count)
-
-        # Calculate cell statistics
-        filled_cells = line.count("s")  # Number of definitely filled cells
-        undefined_cells = line.count(0)  # Number of cells yet to be determined
-        required_cells = sum(
-            hints
-        )  # Total number of cells that should be filled according to hints
-
-        # Early failure: Check if we have enough cells to satisfy hints
-        if filled_cells + undefined_cells < required_cells:
-            return False
-
-        # For completely defined lines (no undefined cells)
-        if undefined_cells == 0:
-            # Simple comparison: runs must exactly match hints
-            if runs != hints:
-                return False
-        else:
-            # For partially defined lines, check if current definite runs are valid
-            definite_runs = []
-            count = 0
-            # Calculate runs that are definitely complete (bounded by empty cells or edges)
-            for cell in line:
-                if cell == "s":
-                    count += 1
-                elif (cell == "e" or cell == 0) and count > 0:
-                    definite_runs.append(count)
-                    count = 0
-                    if cell == 0:  # Stop at first undefined cell
-                        break
-            if count > 0:
-                definite_runs.append(count)
-
-            # Validate the definite runs we've found
-            if definite_runs:
-                # Can't have more runs than hints
-                if len(definite_runs) > len(hints):
-                    return False
-                # FIXME: Additional validation commented out
-                # Check if any run is longer than corresponding hint
-                # if any(definite_runs[j] > hints[j] for j in range(len(definite_runs))):
-                #     return False
-        return True
-
-
-class ConstraintRowHints(ConstraintBase):
-    def check(self, game_state: dict[str, Any]) -> bool:
-        board = game_state["board"]
-        hints = game_state.get("hints", None)
-        if not hints:
-            raise ValueError("Hints are not provided")
-
-        row_hints = hints["row_hints"]
-
-        for i, row in enumerate(board):
-            if not self._check_line_hints(row, row_hints[i]):
-                return False
-        return True
-
-
-class ConstraintColHints(ConstraintBase):
-    def check(self, game_state: dict[str, Any]) -> bool:
-        board = game_state["board"]
-        hints = game_state.get("hints", None)
-        if not hints:
-            raise ValueError("Hints are not provided")
-
-        col_hints = hints["col_hints"]
-        size = len(board)
-
-        for j in range(size):
-            col = [board[i][j] for i in range(size)]
-            if not self._check_line_hints(col, col_hints[j]):
-                return False
-        return True
-
-
-class NonogramPuzzleFactory(PuzzleFactory):
-    def __init__(self, size: int) -> None:
-        super().__init__()
-        self.game_name = "nonogram"
-        self.size = size
-
-        self.constraints = [ConstraintRowHints(), ConstraintColHints()]
-
-        self.all_possible_values = ["e", "s"]  # Consistent with paper
-
-    def get_possible_values(
-        self, game_state: dict[str, Any], row: int, col: int
-    ) -> list[str]:
-        board = game_state["board"]
-        if board[row][col] != 0:  # If cell is already filled
-            return []
-
-        possible_values = []
         original_value = board[row][col]
 
         for value in self.all_possible_values:
@@ -1451,167 +1220,151 @@ class BattleshipsPuzzleFactory(PuzzleFactory):
 
 
 # =============================================================================
-# Lightup Puzzle Factory
+# Renzoku Puzzle Factory
 # =============================================================================
 
 
-class ConstraintLightUpBulb(Constraint):
-    """Ensures that light bulbs don't illuminate each other.
-
-    This constraint checks that no two light bulbs ('s') can see each other in any straight line
-    (horizontally or vertically) without a wall between them. If two bulbs can see each other,
-    the constraint fails.
-    """
-
+class ConstraintAdjacency(Constraint):
     def __init__(self) -> None:
         super().__init__()
-        self.name = "constraint_lightup_bulb"
+        self.name = "constraint_adjacency"
 
     def check(self, game_state: dict[str, Any]) -> bool:
         board = game_state["board"]
         size = len(board)
 
+        # always use hints from the game state
+        hints = game_state.get("hints")
+
+        # Ensure hints have proper dimensions
+        if len(hints.get("row", [])) < size:
+            hints["row"] = [["0" for _ in range(size - 1)] for _ in range(size)]
+        if len(hints.get("col", [])) < size - 1:
+            hints["col"] = [["0" for _ in range(size)] for _ in range(size - 1)]
+
+        # convert board to int (if not 0)
+        # Note: In our implementation, board usually contains ints or 0.
+        # But for safety we can copy. But deepcopy is expensive.
+        # We can just access elements directly assuming they are int-compatible if != 0
+
+        # Check row adjacency hints
         for row in range(size):
+            for col in range(size - 1):
+                if hints["row"][row][col] == "1":
+                    val1 = board[row][col]
+                    val2 = board[row][col + 1]
+                    if val1 == 0 or val2 == 0:
+                        continue
+                    if abs(val1 - val2) != 1:
+                        return False
+
+        # Check column adjacency hints
+        for row in range(size - 1):
             for col in range(size):
-                if board[row][col] == "s":  # Check light sources
-                    # Check each direction
-                    for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-                        nx, ny = row + dx, col + dy
-                        while 0 <= nx < size and 0 <= ny < size:
-                            if board[nx][ny] == "w":  # Wall
-                                break
-                            if board[nx][ny] == "s":  # Another light
-                                return False
-                            # Skip undefined (0) and empty ('e') cells
-                            nx += dx
-                            ny += dy
+                if hints["col"][row][col] == "1":
+                    val1 = board[row][col]
+                    val2 = board[row + 1][col]
+                    if val1 == 0 or val2 == 0:
+                        continue
+                    if abs(val1 - val2) != 1:
+                        return False
+
         return True
 
 
-class ConstraintLightUpWall(Constraint):
-    """Ensures that numbered walls have the correct number of adjacent light bulbs.
+class RenzokuPuzzleFactory(PuzzleFactory):
+    def __init__(self, size: int) -> None:
+        super().__init__()
+        if size < 4 or size > 12:
+            raise ValueError("Grid size must be between 4 and 12")
 
-    This constraint verifies that each numbered wall has exactly the specified number of light
-    bulbs placed in orthogonally adjacent cells. The constraint fails if:
-    1. A numbered wall has more adjacent light bulbs than its number
-    2. A numbered wall cannot possibly reach its required number with the remaining undefined cells
-    """
+        self.game_name = "renzoku"
+        self.size = size
+        self.constraints = [
+            ConstraintRowNoRepeat(),
+            ConstraintColNoRepeat(),
+            ConstraintAdjacency(),
+        ]
+        self.all_possible_values = [i for i in range(1, size + 1)]
+
+    def get_possible_values(
+        self, game_state: dict[str, Any], row: int, col: int
+    ) -> list[int]:
+        possible_values = []
+        board = game_state["board"]
+        original_value = board[row][col]
+
+        for value in self.all_possible_values:
+            board[row][col] = value
+            if self.check(game_state):
+                possible_values.append(value)
+        board[row][col] = original_value
+        return possible_values
+
+
+# =============================================================================
+# FieldExplore Puzzle Factory
+# =============================================================================
+
+
+class ConstraintAdjacentNumbers(Constraint):
+    """Ensures revealed numbers match adjacent mine counts"""
 
     def __init__(self) -> None:
         super().__init__()
-        self.name = "constraint_lightup_wall"
+        self.name = "constraint_adjacent_numbers"
 
     def check(self, game_state: dict[str, Any]) -> bool:
         board = game_state["board"]
-
-        wall_numbers = game_state["wall_numbers"]
-
-        if not wall_numbers:
-            return True
-
         size = len(board)
 
-        for row in range(size):
-            for col in range(size):
-                if board[row][col] == "w" and wall_numbers[row][col] != -1:
-                    light_count = 0
-                    undefined_count = 0
+        for i in range(size):
+            for j in range(size):
+                if (
+                    isinstance(board[i][j], int) and board[i][j] != 0
+                ):  # If cell is a revealed number
+                    # Count adjacent mines and undefined cells
+                    i_start = max(0, i - 1)
+                    i_end = min(size, i + 2)
+                    j_start = max(0, j - 1)
+                    j_end = min(size, j + 2)
 
-                    for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-                        nx, ny = row + dx, col + dy
-                        if 0 <= nx < size and 0 <= ny < size:
-                            if board[nx][ny] == "s":
-                                light_count += 1
-                            elif board[nx][ny] == 0:  # Count undefined cells
-                                undefined_count += 1
+                    adjacent_mines = sum(
+                        1
+                        for r in range(i_start, i_end)
+                        for c in range(j_start, j_end)
+                        if board[r][c] == "s"
+                    )
 
-                    # Fail if:
-                    # 1. We have too many definite lights, or
-                    # 2. We don't have enough potential lights (current + undefined) to reach the required number
+                    adjacent_undefined = sum(
+                        1
+                        for r in range(i_start, i_end)
+                        for c in range(j_start, j_end)
+                        if board[r][c] == 0
+                    )
+
+                    # Check if current mines <= number <= potential mines (current + undefined)
                     if (
-                        light_count > wall_numbers[row][col]
-                        or light_count + undefined_count < wall_numbers[row][col]
+                        adjacent_mines > board[i][j]
+                        or adjacent_mines + adjacent_undefined < board[i][j]
                     ):
                         return False
         return True
 
 
-class ConstraintLightUpIllumination(Constraint):
-    """Ensures that all non-wall cells are illuminated by at least one light bulb.
-
-    This constraint verifies that every empty cell ('e') is illuminated by at least one light bulb
-    or could potentially be illuminated by an undefined cell. For each empty cell, we check in all
-    four directions (up, down, left, right) until hitting a wall. If none of these directions
-    contain either a light bulb ('s') or an undefined cell (0), then the cell cannot be illuminated
-    in any valid solution.
-    """
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.name = "constraint_lightup_illumination"
-
-    def check(self, game_state: dict[str, Any]) -> bool:
-        board = game_state["board"]
-        size = len(board)
-
-        # For each empty cell ('e'), check if it can be illuminated
-        for row in range(size):
-            for col in range(size):
-                if board[row][col] == "e":
-                    can_be_illuminated = False
-
-                    # Check all four directions until hitting a wall
-                    for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-                        nx, ny = row + dx, col + dy
-                        while 0 <= nx < size and 0 <= ny < size:
-                            if (
-                                board[nx][ny] == "w"
-                            ):  # Hit a wall, stop checking this direction
-                                break
-                            if (
-                                board[nx][ny] == "s" or board[nx][ny] == 0
-                            ):  # Found light or potential light
-                                can_be_illuminated = True
-                                break
-                            nx += dx
-                            ny += dy
-
-                        if can_be_illuminated:  # If we found a light source, no need to check other directions
-                            break
-
-                    if (
-                        not can_be_illuminated
-                    ):  # If no direction had a light or potential light
-                        return False
-
-        return True
-
-
-class LightUpPuzzleFactory(PuzzleFactory):
+class FieldExplorePuzzleFactory(PuzzleFactory):
     def __init__(self, size: int) -> None:
         super().__init__()
-        if size < 3:
-            raise ValueError("Size must be at least 3")
-
-        self.game_name = "lightup"
+        self.game_name = "fieldexplore"
         self.size = size
-
-        self.constraints = [
-            ConstraintLightUpBulb(),
-            ConstraintLightUpWall(),
-            ConstraintLightUpIllumination(),
-        ]
-
-        self.all_possible_values = ["s", "e"]  # 's' for source/light, 'e' for empty
+        self.constraints = [ConstraintAdjacentNumbers()]
+        self.all_possible_values = ["s", "e"]  # True for 's', False for 'e'
 
     def get_possible_values(
         self, game_state: dict[str, Any], row: int, col: int
-    ) -> list[int]:
-        board = game_state["board"]
-        if board[row][col] in [-1, 1, 2, 3, 4]:  # Wall or numbered wall
-            return []
-
+    ) -> list[str]:
         possible_values = []
+        board = game_state["board"]
         original_value = board[row][col]
 
         for value in self.all_possible_values:

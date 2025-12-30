@@ -19,6 +19,11 @@ VGRP_ENVS = {
     "VGRP/Thermometers-v0": "thermometers",
     "VGRP/TreesAndTents-v0": "treesandtents",
     "VGRP/Battleships-v0": "battleships",
+    "VGRP/Renzoku-v0": "renzoku",
+    "VGRP/FieldExplore-v0": "fieldexplore",
+    "VGRP/Futoshiki-v0": "futoshiki",
+    "VGRP/Hitori-v0": "hitori",
+    "VGRP/StarBattle-v0": "starbattle",
 }
 
 

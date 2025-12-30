@@ -176,7 +176,9 @@ class VGRPBattleshipsEnv(Env):
         )
         terminated = True
         truncated = False
-        info = {}
+        info = {
+            "oracle_answer": self._board_to_text(self._solution_board),
+        }
         return obs, reward, terminated, truncated, info
 
     def _check_solution(self, answer_board: list[list[str]]) -> bool:
