@@ -22,7 +22,8 @@ repos:
     hooks:
       - id: codespell
         args:
-          - --ignore-words-list=reacher,ure,referenc,wile,ontact,manuel,sitl
+          - --ignore-words-list=reacher,ure,referenc,wile,ontact,manuel,sitl,ore
+          - --skip=gym_v/envs/assets/words.txt
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.8.4

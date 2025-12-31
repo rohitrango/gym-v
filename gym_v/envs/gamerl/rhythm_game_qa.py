@@ -1,0 +1,514 @@
+"""Rhythm Game QA environment based on GameRL."""
+
+from __future__ import annotations
+
+from importlib import resources
+import random
+from textwrap import dedent
+from typing import Any
+
+from PIL import Image, ImageDraw, ImageFont
+
+from gym_v import Env, Observation, get_logger
+
+logger = get_logger()
+
+
+class GameRLRhythmGameQAEnv(Env):
+    """Rhythm Game QA environment.
+
+    A rhythm game where blocks fall from top to bottom at 1 cell/second.
+    Players select a column and click blocks that reach the first row to score points.
+
+    Block types:
+    - Click (yellow): 10 points
+    - Reverse (green): 15 points, reverses the game left-right
+    - Snake (pink head, blue body, grey tail): score = length * (2*length + 7)
+
+    Args:
+        grid_size: Grid dimensions (rows, cols), default based on difficulty
+        difficulty: Puzzle difficulty ('Easy', 'Medium', 'Hard')
+        cell_size: Size of each cell in pixels (default 40)
+        question_type: Type of question to ask
+    """
+
+    assets_dir = resources.files("gym_v.envs") / "assets"
+
+    QUESTION_TYPES = [
+        {
+            "id": "block_type",
+            "name": "Block Type at Position",
+            "level": "Easy",
+            "answer_format": "multiple_choice",
+            "qa_type": "Target Perception",
+        },
+        {
+            "id": "snake_length",
+            "name": "Snake Length After Time",
+            "level": "Medium",
+            "answer_format": "multiple_choice",
+            "qa_type": "State Prediction",
+        },
+        {
+            "id": "column_score",
+            "name": "Score for Column",
+            "level": "Medium",
+            "answer_format": "fill_in_blank",
+            "qa_type": "State Prediction",
+        },
+    ]
+
+    GRID_SIZES = {
+        "Easy": (15, 4),
+        "Medium": (15, 6),
+        "Hard": (20, 6),
+    }
+
+    # Colors
+    YELLOW = (255, 255, 0)
+    GREEN = (0, 255, 0)
+    BLUE = (0, 0, 255)
+    PINK = (255, 105, 180)
+    GREY = (128, 128, 128)
+    WHITE = (255, 255, 255)
+    BLACK = (0, 0, 0)
+
+    BLOCK_TYPES = {
+        "yellow": ("Click", 10),
+        "green": ("Reverse", 15),
+        "blue": ("Snake Body", 0),
+        "pink": ("Snake Head", 0),
+        "grey": ("Snake Tail", 0),
+    }
+
+    GAME_RULES = dedent("""
+        Rhythm Game Rules:
+        - Blocks fall at 1 cell/second from top to bottom
+        - Select a column and click blocks that reach row 1 to score
+        - Click blocks (yellow): 10 points each
+        - Reverse blocks (green): 15 points, then grid reverses left-right
+        - Snake blocks: pink head + blue body + grey tail
+          Score = length * (2*length + 7)
+          Must click ALL cells of the snake to score
+        - Coordinates: (row, col) with row 1 at bottom, col 1 at left
+    """).strip()
+
+    def __init__(
+        self,
+        grid_size: tuple[int, int] | None = None,
+        difficulty: str | None = None,
+        cell_size: int = 40,
+        question_type: str | None = None,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+
+        if difficulty is None:
+            difficulty = random.choice(["Easy", "Medium", "Hard"])
+        self._difficulty = difficulty
+        self._grid_size = (
+            grid_size if grid_size is not None else self.GRID_SIZES[difficulty]
+        )
+        self._cell_size = cell_size
+        self._question_type = question_type
+
+        # Game state
+        self._grid: list[list[str]] = []
+        self._blocks: list[dict[str, Any]] = []
+        self._current_question: dict[str, Any] = {}
+
+    @property
+    def description(self) -> str:
+        base_desc = dedent(f"""
+            This is a Rhythm Game QA environment.
+
+            {self.GAME_RULES}
+
+            Question Types:
+            - Block Type at Position: Identify block type at given coordinates
+            - Snake Length After Time: Find snake length after falling N seconds
+            - Score for Column: Calculate total score for selecting a column
+
+            The system will present you with a game state and ask a specific question.
+        """).strip()
+
+        # Add question and answer format if question has been generated
+        if hasattr(self, "_current_question") and self._current_question:
+            desc = base_desc + "\n\n" + self._current_question["question"]
+            desc += """
+
+**Answer Format:**
+Reply with only the answer (number or option number).
+
+Examples:
+- For multiple choice: 1, 2, 3, etc.
+- For numbers: 42, 100, etc.
+
+Do not include any explanation or extra text.
+"""
+            return desc.strip()
+
+        return base_desc
+
+    def reset(
+        self, *, seed: int | None = None, options: dict[str, Any] | None = None
+    ) -> tuple[Observation, dict[str, Any]]:
+        super().reset(seed=seed)
+
+        # Generate puzzle
+        self._generate_puzzle()
+
+        # Select question type
+        if self._question_type is None:
+            question_type = random.choice(self.QUESTION_TYPES)["id"]
+        else:
+            question_type = self._question_type
+
+        # Generate question
+        if question_type == "block_type":
+            self._current_question = self._generate_block_type_question()
+        elif question_type == "snake_length":
+            self._current_question = self._generate_snake_length_question()
+        elif question_type == "column_score":
+            self._current_question = self._generate_column_score_question()
+        else:
+            raise ValueError(f"Unknown question type: {question_type}")
+
+        logger.info(
+            f"Reset Rhythm Game QA ({self._grid_size[0]}x{self._grid_size[1]}, "
+            f"question: {question_type})."
+        )
+
+        obs = Observation(image=self.render(), text=self._current_question["question"])
+
+        info = {
+            "oracle_answer": self._current_question["answer"],
+            "question_type": question_type,
+        }
+
+        return obs, info
+
+    def inner_step(
+        self, action: str
+    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
+        info: dict[str, Any] = {}
+        reward = 0.0
+        terminated = True
+        truncated = False
+
+        # Check answer
+        correct = self._check_answer(action.strip())
+
+        if correct:
+            reward = 1.0
+            response = "Correct!"
+        else:
+            reward = 0.0
+            response = (
+                f"Incorrect. The correct answer is: {self._current_question['answer']}"
+            )
+
+        info = {
+            "correct": correct,
+            "user_answer": action.strip(),
+            "oracle_answer": self._current_question["answer"],
+        }
+
+        obs = Observation(image=self.render(), text=response)
+        return obs, reward, terminated, truncated, info
+
+    def render(self) -> Image.Image:
+        """Render the rhythm game grid."""
+        rows, cols = self._grid_size
+        margin_x, margin_y = 40, 40
+        img_width = cols * self._cell_size + 2 * margin_x
+        img_height = rows * self._cell_size + 2 * margin_y
+
+        img = Image.new("RGB", (img_width, img_height), self.WHITE)
+        draw = ImageDraw.Draw(img)
+
+        try:
+            font = ImageFont.truetype(str(self.assets_dir / "DejaVuSans.ttf"), 16)
+        except Exception:
+            font = ImageFont.load_default()
+
+        # Draw grid lines
+        for i in range(rows + 1):
+            y = margin_y + i * self._cell_size
+            draw.line(
+                [(margin_x, y), (margin_x + cols * self._cell_size, y)],
+                fill=self.BLACK,
+                width=2,
+            )
+
+        for j in range(cols + 1):
+            x = margin_x + j * self._cell_size
+            draw.line(
+                [(x, margin_y), (x, margin_y + rows * self._cell_size)],
+                fill=self.BLACK,
+                width=2,
+            )
+
+        # Draw row labels (bottom to top)
+        for i in range(rows):
+            row_num = rows - i
+            y = margin_y + i * self._cell_size + self._cell_size // 2
+            draw.text(
+                (margin_x // 2, y),
+                str(row_num),
+                fill=self.BLACK,
+                font=font,
+                anchor="mm",
+            )
+
+        # Draw column labels
+        for j in range(cols):
+            col_num = j + 1
+            x = margin_x + j * self._cell_size + self._cell_size // 2
+            draw.text(
+                (x, margin_y // 2),
+                str(col_num),
+                fill=self.BLACK,
+                font=font,
+                anchor="mm",
+            )
+
+        # Draw blocks
+        for block in self._blocks:
+            row, col = block["row"], block["col"]
+            color = block["color"]
+            # Convert to screen coordinates (row 1 is at bottom)
+            screen_row = rows - row
+            x = margin_x + (col - 1) * self._cell_size
+            y = margin_y + screen_row * self._cell_size
+
+            # Draw block
+            padding = 3
+            draw.rectangle(
+                [
+                    x + padding,
+                    y + padding,
+                    x + self._cell_size - padding,
+                    y + self._cell_size - padding,
+                ],
+                fill=color,
+                outline=self.BLACK,
+                width=1,
+            )
+
+        return img
+
+    def _generate_puzzle(self):
+        """Generate random rhythm game blocks."""
+        rows, cols = self._grid_size
+        self._grid = [["" for _ in range(cols)] for _ in range(rows)]
+        self._blocks = []
+
+        total_blocks = (rows * cols) // 2
+        click_count = int(total_blocks * 0.5)
+        reverse_count = int(total_blocks * 0.3)
+        snake_count = total_blocks - click_count - reverse_count
+
+        occupied = set()
+
+        # Add snake blocks first
+        for _ in range(snake_count):
+            self._add_snake_block(occupied)
+
+        # Add click blocks
+        for _ in range(click_count):
+            self._add_single_block(occupied, self.YELLOW, "yellow")
+
+        # Add reverse blocks
+        for _ in range(reverse_count):
+            self._add_single_block(occupied, self.GREEN, "green")
+
+    def _add_single_block(self, occupied: set, color: tuple, color_name: str):
+        """Add a single block (click or reverse)."""
+        rows, cols = self._grid_size
+        for _ in range(100):  # Try 100 times
+            col = random.randint(1, cols)
+            row = random.randint(1, rows)
+            if (row, col) not in occupied:
+                occupied.add((row, col))
+                self._blocks.append(
+                    {"row": row, "col": col, "color": color, "type": color_name}
+                )
+                break
+
+    def _add_snake_block(self, occupied: set):
+        """Add a snake block."""
+        rows, cols = self._grid_size
+        length = random.randint(2, 5)
+
+        for _ in range(100):  # Try 100 times
+            col = random.randint(1, cols)
+            start_row = random.randint(1, rows - length + 1)
+
+            # Check if all positions are free
+            positions = [(start_row + i, col) for i in range(length)]
+            if all(pos not in occupied for pos in positions):
+                # Add snake blocks
+                for i, (row, _) in enumerate(positions):
+                    if i == 0:
+                        # Head (at bottom of snake)
+                        self._blocks.append(
+                            {"row": row, "col": col, "color": self.PINK, "type": "pink"}
+                        )
+                    elif i == length - 1:
+                        # Tail (at top of snake)
+                        self._blocks.append(
+                            {"row": row, "col": col, "color": self.GREY, "type": "grey"}
+                        )
+                    else:
+                        # Body
+                        self._blocks.append(
+                            {"row": row, "col": col, "color": self.BLUE, "type": "blue"}
+                        )
+                    occupied.add((row, col))
+                break
+
+    def _generate_block_type_question(self) -> dict[str, Any]:
+        """Generate question about block type at a position."""
+        rows, cols = self._grid_size
+        row = random.randint(1, rows)
+        col = random.randint(1, cols)
+
+        # Find block at position
+        block = next(
+            (b for b in self._blocks if b["row"] == row and b["col"] == col), None
+        )
+        if block:
+            block_type, _ = self.BLOCK_TYPES[block["type"]]
+        else:
+            block_type = "Non-type"
+
+        options = [
+            "Non-type",
+            "Click",
+            "Reverse",
+            "Snake Head",
+            "Snake Body",
+            "Snake Tail",
+        ]
+        correct_idx = options.index(block_type) + 1
+
+        options_text = "\n".join([f"{i+1}. {opt}" for i, opt in enumerate(options)])
+
+        question = f"""{self.GAME_RULES}
+
+Question: Which type of block is at row {row}, column {col}?
+
+Options:
+{options_text}"""
+
+        return {"question": question, "answer": str(correct_idx), "options": options}
+
+    def _generate_snake_length_question(self) -> dict[str, Any]:
+        """Generate question about snake length after time."""
+        # Find snake heads
+        snake_heads = [b for b in self._blocks if b["type"] == "pink" and b["row"] > 1]
+
+        if not snake_heads:
+            # Fallback to block_type question
+            return self._generate_block_type_question()
+
+        head_block = random.choice(snake_heads)
+        row_before, col = head_block["row"], head_block["col"]
+
+        # Calculate snake length
+        length = self._find_snake_length(row_before, col)
+
+        # Random time
+        time_k = random.randint(1, row_before - 1)
+        row_after = row_before - time_k
+
+        options = ["2", "3", "4", "5"]
+        correct_idx = options.index(str(length)) + 1 if str(length) in options else 1
+
+        options_text = "\n".join([f"{i+1}. {opt}" for i, opt in enumerate(options)])
+
+        question = f"""{self.GAME_RULES}
+
+Question: Without selecting any column, what is the length of the snake block headed by ({row_after}, {col}) after {time_k} second(s)?
+
+Options:
+{options_text}"""
+
+        return {"question": question, "answer": str(correct_idx), "options": options}
+
+    def _generate_column_score_question(self) -> dict[str, Any]:
+        """Generate question about total score for a column."""
+        cols = self._grid_size[1]
+        col = random.randint(1, cols)
+
+        # Calculate score for this column
+        score = self._calculate_column_score(col)
+
+        question = f"""{self.GAME_RULES}
+
+Question: If you select column {col} to click, what is your total score?
+
+(Enter the total score as a number)"""
+
+        return {"question": question, "answer": str(score)}
+
+    def _find_snake_length(self, head_row: int, col: int) -> int:
+        """Find the length of a snake starting at head_row."""
+        length = 1  # Head
+        current_row = head_row + 1
+
+        while True:
+            block = next(
+                (
+                    b
+                    for b in self._blocks
+                    if b["row"] == current_row
+                    and b["col"] == col
+                    and b["type"] in ["blue", "grey"]
+                ),
+                None,
+            )
+            if block:
+                length += 1
+                if block["type"] == "grey":  # Tail
+                    break
+                current_row += 1
+            else:
+                break
+
+        return length
+
+    def _calculate_column_score(self, col: int) -> int:
+        """Calculate total score for selecting a column."""
+        score = 0
+        row = 1
+
+        while row <= self._grid_size[0]:
+            block = next(
+                (b for b in self._blocks if b["row"] == row and b["col"] == col), None
+            )
+
+            if block:
+                block_type = block["type"]
+                if block_type == "yellow":  # Click
+                    score += 10
+                    row += 1
+                elif block_type == "green":  # Reverse (skip for simplicity)
+                    score += 15
+                    break  # Stop after reverse
+                elif block_type == "pink":  # Snake head
+                    length = self._find_snake_length(row, col)
+                    score += length * (2 * length + 7)
+                    row += length
+                else:
+                    row += 1
+            else:
+                row += 1
+
+        return score
+
+    def _check_answer(self, action: str) -> bool:
+        """Check if answer is correct."""
+        correct_answer = self._current_question["answer"]
+        return action.strip().lower() == correct_answer.strip().lower()

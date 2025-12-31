@@ -367,3 +367,429 @@ register(
     max_episode_steps=1,
     kwargs=dict(),
 )
+
+register(
+    id="GameRL/Pacman-v0",
+    entry_point="gym_v.envs.gamerl.pacman:GameRLPacmanEnv",
+    max_episode_steps=500,
+    kwargs=dict(
+        grid_size=16,
+        wall_ratio=0.1,
+        cell_size=25,
+    ),
+)
+
+register(
+    id="GameRL/Tetris-v0",
+    entry_point="gym_v.envs.gamerl.tetris:GameRLTetrisEnv",
+    max_episode_steps=1000,
+    kwargs=dict(
+        rows=12,
+        cols=8,
+        cell_size=30,
+    ),
+)
+
+register(
+    id="GameRL/SpaceInvaders-v0",
+    entry_point="gym_v.envs.gamerl.space_invaders:GameRLSpaceInvadersEnv",
+    max_episode_steps=200,
+    kwargs=dict(
+        enemy_rows=4,
+        enemy_cols=6,
+        enemy_area_rows=8,
+        cell_width=50,
+        cell_height=40,
+    ),
+)
+
+register(
+    id="GameRL/Maze-v0",
+    entry_point="gym_v.envs.gamerl.maze:GameRLMazeEnv",
+    max_episode_steps=200,
+    kwargs=dict(
+        size="small",
+        cell_size=40,
+    ),
+)
+
+register(
+    id="GameRL/Lifegame-v0",
+    entry_point="gym_v.envs.gamerl.lifegame:GameRLLifegameEnv",
+    max_episode_steps=1000,
+    kwargs=dict(
+        grid_size=30,
+        cell_size=20,
+        random_init=True,
+        init_density=0.3,
+    ),
+)
+
+register(
+    id="GameRL/LangtonAnt-v0",
+    entry_point="gym_v.envs.gamerl.langton_ant:GameRLLangtonAntEnv",
+    max_episode_steps=1000,
+    kwargs=dict(
+        grid_size=15,
+        cell_size=30,
+        init_black_ratio=0.1,
+    ),
+)
+
+register(
+    id="GameRL/Minesweeper-v0",
+    entry_point="gym_v.envs.gamerl.minesweeper:GameRLMinesweeperEnv",
+    max_episode_steps=500,
+    kwargs=dict(
+        rows=8,
+        cols=8,
+        mines=10,
+        cell_size=60,
+    ),
+)
+
+register(
+    id="GameRL/Sudoku-v0",
+    entry_point="gym_v.envs.gamerl.sudoku:GameRLSudokuEnv",
+    max_episode_steps=1000,
+    kwargs=dict(
+        size=9,
+        difficulty="medium",
+        cell_size=50,
+    ),
+)
+
+# Game-RL Q&A environments (single-turn)
+register(
+    id="GameRL/Snake-QA-v0",
+    entry_point="gym_v.envs.gamerl.snake_qa:GameRLSnakeQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        width=10,
+        height=10,
+        initial_snake_length=(10, 20),
+        cell_size=40,
+    ),
+)
+
+register(
+    id="GameRL/Maze-QA-v0",
+    entry_point="gym_v.envs.gamerl.maze_qa:GameRLMazeQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        size="small",
+        cell_size=40,
+    ),
+)
+
+register(
+    id="GameRL/Maze3D-QA-v0",
+    entry_point="gym_v.envs.gamerl.maze_3d_qa:GameRL3dMazeQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        grid_size=(8, 8, 7),
+    ),
+)
+
+register(
+    id="GameRL/Lifegame-QA-v0",
+    entry_point="gym_v.envs.gamerl.lifegame_qa:GameRLLifegameQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        grid_size=None,
+        cell_size=30,
+    ),
+)
+
+register(
+    id="GameRL/Freecell-QA-v0",
+    entry_point="gym_v.envs.gamerl.freecell_qa:GameRLFreecellQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        cascade_number=None,
+    ),
+)
+
+register(
+    id="GameRL/Hue-QA-v0",
+    entry_point="gym_v.envs.gamerl.hue_qa:GameRLHueQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        board_size=None,
+        num_lines=None,
+        cell_size=60,
+    ),
+)
+
+register(
+    id="GameRL/Jewel2-QA-v0",
+    entry_point="gym_v.envs.gamerl.jewel2_qa:GameRLJewel2QAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        size=5,
+        question_type=None,
+    ),
+)
+
+register(
+    id="GameRL/LangtonAnt-QA-v0",
+    entry_point="gym_v.envs.gamerl.langton_ant_qa:GameRLLangtonAntQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        grid_size=None,
+        cell_size=30,
+    ),
+)
+
+register(
+    id="GameRL/Minesweeper-QA-v0",
+    entry_point="gym_v.envs.gamerl.minesweeper_qa:GameRLMinesweeperQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        difficulty=None,
+        cell_size=60,
+    ),
+)
+
+register(
+    id="GameRL/Minecraft-QA-v0",
+    entry_point="gym_v.envs.gamerl.minecraft_qa:GameRLMinecraftQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        space_ub=(5, 5, 5),
+    ),
+)
+
+register(
+    id="GameRL/Sudoku-QA-v0",
+    entry_point="gym_v.envs.gamerl.sudoku_qa:GameRLSudokuQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        size=None,
+        cell_size=50,
+    ),
+)
+
+register(
+    id="GameRL/Pacman-QA-v0",
+    entry_point="gym_v.envs.gamerl.pacman_qa:GameRLPacmanQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        grid_size=16,
+        wall_ratio=0.1,
+        cell_size=25,
+    ),
+)
+
+register(
+    id="GameRL/RhythmGame-QA-v0",
+    entry_point="gym_v.envs.gamerl.rhythm_game_qa:GameRLRhythmGameQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        grid_size=None,
+        difficulty=None,
+        cell_size=40,
+    ),
+)
+
+register(
+    id="GameRL/RubiksCube-QA-v0",
+    entry_point="gym_v.envs.gamerl.rubiks_cube_qa:GameRLRubiksCubeQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        num_moves=None,
+    ),
+)
+
+register(
+    id="GameRL/Sokoban-QA-v0",
+    entry_point="gym_v.envs.gamerl.sokoban_qa:GameRLSokobanQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        size=5,
+        num_boxes=1,
+    ),
+)
+
+register(
+    id="GameRL/SpiderSolitaire-QA-v0",
+    entry_point="gym_v.envs.gamerl.spider_solitaire_qa:GameRLSpiderSolitaireQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        num_waste=10,
+        circular=False,
+        open=False,
+        question_type=None,
+    ),
+)
+
+register(
+    id="GameRL/Tangram-QA-v0",
+    entry_point="gym_v.envs.gamerl.tangram_qa:GameRLTangramQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        grid_size=None,
+        num_seeds=None,
+        num_pieces_to_remove=None,
+    ),
+)
+
+register(
+    id="GameRL/Tetris-QA-v0",
+    entry_point="gym_v.envs.gamerl.tetris_qa:GameRLTetrisQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        rows=12,
+        cols=8,
+        cell_size=30,
+    ),
+)
+
+register(
+    id="GameRL/TicTacToe-QA-v0",
+    entry_point="gym_v.envs.gamerl.tictactoe_qa:GameRLTicTacToeQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+    ),
+)
+
+register(
+    id="GameRL/UltraTicTacToe-QA-v0",
+    entry_point="gym_v.envs.gamerl.ultra_tictactoe_qa:GameRLUltraTicTacToeQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        plot_level="Easy",
+        question_type=None,
+    ),
+)
+
+register(
+    id="GameRL/TuringMachine2d-QA-v0",
+    entry_point="gym_v.envs.gamerl.turing_machine_2d_qa:GameRL2dTuringMachineQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        grid_size=None,
+        num_states=2,
+        num_symbols=2,
+        max_steps=8,
+        cell_size=50,
+    ),
+)
+
+register(
+    id="GameRL/Tents-QA-v0",
+    entry_point="gym_v.envs.gamerl.tents_qa:GameRLTentsQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        grid_size=None,
+        num_trees=None,
+        cell_size=50,
+    ),
+)
+
+register(
+    id="GameRL/SpaceInvaders-QA-v0",
+    entry_point="gym_v.envs.gamerl.space_invaders_qa:GameRLSpaceInvadersQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        enemy_rows=4,
+        enemy_cols=6,
+        enemy_area_rows=8,
+        cell_width=50,
+        cell_height=40,
+    ),
+)
+
+register(
+    id="GameRL/StarBattle-QA-v0",
+    entry_point="gym_v.envs.gamerl.star_battle_qa:GameRLStarBattleQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        grid_size=6,
+        stars_per_region=1,
+        cell_size=50,
+    ),
+)
+
+register(
+    id="GameRL/WordSearch-QA-v0",
+    entry_point="gym_v.envs.gamerl.word_search_qa:GameRLWordSearchQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        grid_size=None,
+        cell_size=50,
+    ),
+)
+
+register(
+    id="GameRL/Zuma-QA-v0",
+    entry_point="gym_v.envs.gamerl.zuma_qa:GameRLZumaQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        curve_type=None,
+        num_balls=None,
+        ball_radius=0.3,
+    ),
+)
+
+register(
+    id="GameRL/3DReconstruction-QA-v0",
+    entry_point="gym_v.envs.gamerl.threed_reconstruction_qa:GameRL3DReconstructionQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        plot_level="Easy",
+        question_type=None,
+    ),
+)
+
+register(
+    id="GameRL/ChessRanger-QA-v0",
+    entry_point="gym_v.envs.gamerl.chess_ranger_qa:GameRLChessRangerQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        num_pieces=6,
+        question_type=None,
+    ),
+)
+
+register(
+    id="GameRL/PyramidChess-QA-v0",
+    entry_point="gym_v.envs.gamerl.pyramidchess_qa:GameRLPyramidChessQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        plot_level="Easy",
+        question_type=None,
+    ),
+)
+
+register(
+    id="GameRL/Klondike-QA-v0",
+    entry_point="gym_v.envs.gamerl.klondike_qa:GameRLKlondikeQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+    ),
+)

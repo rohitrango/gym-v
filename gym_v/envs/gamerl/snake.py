@@ -73,7 +73,7 @@ class GameRLSnakeEnv(Env):
     @property
     def description(self) -> str:
         return dedent("""
-            This is a Snake game. The yellow block is the head of the snake. The blue block is the body of the snake. The red block is the food. The coordinates (x, y) in the grid represent the matrix format, where x is the row index and y is the column index. The origin (0,0) is in the upper left of the grid. You need to control the snake that moves across the grid. Each step it can move up, down, left or right. The game ends if the snake head hits the bound of the grid or its own body.
+            This is a Snake game. The yellow block is the head of the snake. The blue block is the body of the snake. The red block is the food. The coordinates (x, y) in the grid represent the matrix format, where x is the row index and y is the column index. The origin (0,0) is in the upper left of the grid. You need to control the snake that moves across the grid. Each step it can move up, down, right or left. The game ends if the snake head hits the bound of the grid or its own body.
         """).strip()
 
     def reset(
