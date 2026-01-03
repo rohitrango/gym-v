@@ -462,7 +462,7 @@ register(
 # Game-RL Q&A environments (single-turn)
 register(
     id="GameRL/Snake-QA-v0",
-    entry_point="gym_v.envs.gamerl.snake_qa:GameRLSnakeQAEnv",
+    entry_point="gym_v.envs.gamerl.snake:GameRLSnakeQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
@@ -475,7 +475,7 @@ register(
 
 register(
     id="GameRL/Maze-QA-v0",
-    entry_point="gym_v.envs.gamerl.maze_qa:GameRLMazeQAEnv",
+    entry_point="gym_v.envs.gamerl.maze:GameRLMazeQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
@@ -486,7 +486,7 @@ register(
 
 register(
     id="GameRL/Maze3D-QA-v0",
-    entry_point="gym_v.envs.gamerl.maze_3d_qa:GameRL3dMazeQAEnv",
+    entry_point="gym_v.envs.gamerl.maze_3d:GameRL3dMazeQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
@@ -496,7 +496,7 @@ register(
 
 register(
     id="GameRL/Lifegame-QA-v0",
-    entry_point="gym_v.envs.gamerl.lifegame_qa:GameRLLifegameQAEnv",
+    entry_point="gym_v.envs.gamerl.lifegame:GameRLLifegameQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
@@ -507,7 +507,7 @@ register(
 
 register(
     id="GameRL/Freecell-QA-v0",
-    entry_point="gym_v.envs.gamerl.freecell_qa:GameRLFreecellQAEnv",
+    entry_point="gym_v.envs.gamerl.freecell:GameRLFreecellQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
@@ -517,7 +517,7 @@ register(
 
 register(
     id="GameRL/Hue-QA-v0",
-    entry_point="gym_v.envs.gamerl.hue_qa:GameRLHueQAEnv",
+    entry_point="gym_v.envs.gamerl.hue:GameRLHueQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
@@ -529,7 +529,7 @@ register(
 
 register(
     id="GameRL/Jewel2-QA-v0",
-    entry_point="gym_v.envs.gamerl.jewel2_qa:GameRLJewel2QAEnv",
+    entry_point="gym_v.envs.gamerl.jewel2:GameRLJewel2QAEnv",
     max_episode_steps=1,
     kwargs=dict(
         size=5,
@@ -539,7 +539,7 @@ register(
 
 register(
     id="GameRL/LangtonAnt-QA-v0",
-    entry_point="gym_v.envs.gamerl.langton_ant_qa:GameRLLangtonAntQAEnv",
+    entry_point="gym_v.envs.gamerl.langton_ant:GameRLLangtonAntQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
@@ -550,7 +550,7 @@ register(
 
 register(
     id="GameRL/Minesweeper-QA-v0",
-    entry_point="gym_v.envs.gamerl.minesweeper_qa:GameRLMinesweeperQAEnv",
+    entry_point="gym_v.envs.gamerl.minesweeper:GameRLMinesweeperQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
@@ -561,7 +561,7 @@ register(
 
 register(
     id="GameRL/Minecraft-QA-v0",
-    entry_point="gym_v.envs.gamerl.minecraft_qa:GameRLMinecraftQAEnv",
+    entry_point="gym_v.envs.gamerl.minecraft:GameRLMinecraftQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
@@ -571,7 +571,7 @@ register(
 
 register(
     id="GameRL/Sudoku-QA-v0",
-    entry_point="gym_v.envs.gamerl.sudoku_qa:GameRLSudokuQAEnv",
+    entry_point="gym_v.envs.gamerl.sudoku:GameRLSudokuQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
@@ -582,7 +582,7 @@ register(
 
 register(
     id="GameRL/Pacman-QA-v0",
-    entry_point="gym_v.envs.gamerl.pacman_qa:GameRLPacmanQAEnv",
+    entry_point="gym_v.envs.gamerl.pacman:GameRLPacmanQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
@@ -594,7 +594,7 @@ register(
 
 register(
     id="GameRL/RhythmGame-QA-v0",
-    entry_point="gym_v.envs.gamerl.rhythm_game_qa:GameRLRhythmGameQAEnv",
+    entry_point="gym_v.envs.gamerl.rhythm_game:GameRLRhythmGameQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
@@ -606,7 +606,7 @@ register(
 
 register(
     id="GameRL/RubiksCube-QA-v0",
-    entry_point="gym_v.envs.gamerl.rubiks_cube_qa:GameRLRubiksCubeQAEnv",
+    entry_point="gym_v.envs.gamerl.rubiks_cube:GameRLRubiksCubeQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
@@ -616,7 +616,7 @@ register(
 
 register(
     id="GameRL/Sokoban-QA-v0",
-    entry_point="gym_v.envs.gamerl.sokoban_qa:GameRLSokobanQAEnv",
+    entry_point="gym_v.envs.gamerl.sokoban:GameRLSokobanQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
@@ -627,7 +627,7 @@ register(
 
 register(
     id="GameRL/SpiderSolitaire-QA-v0",
-    entry_point="gym_v.envs.gamerl.spider_solitaire_qa:GameRLSpiderSolitaireQAEnv",
+    entry_point="gym_v.envs.gamerl.spider_solitaire:GameRLSpiderSolitaireQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         num_waste=10,
@@ -639,7 +639,7 @@ register(
 
 register(
     id="GameRL/Tangram-QA-v0",
-    entry_point="gym_v.envs.gamerl.tangram_qa:GameRLTangramQAEnv",
+    entry_point="gym_v.envs.gamerl.tangram:GameRLTangramQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
@@ -651,7 +651,7 @@ register(
 
 register(
     id="GameRL/Tetris-QA-v0",
-    entry_point="gym_v.envs.gamerl.tetris_qa:GameRLTetrisQAEnv",
+    entry_point="gym_v.envs.gamerl.tetris:GameRLTetrisQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
@@ -663,7 +663,7 @@ register(
 
 register(
     id="GameRL/TicTacToe-QA-v0",
-    entry_point="gym_v.envs.gamerl.tictactoe_qa:GameRLTicTacToeQAEnv",
+    entry_point="gym_v.envs.gamerl.tictactoe:GameRLTicTacToeQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
@@ -672,7 +672,7 @@ register(
 
 register(
     id="GameRL/UltraTicTacToe-QA-v0",
-    entry_point="gym_v.envs.gamerl.ultra_tictactoe_qa:GameRLUltraTicTacToeQAEnv",
+    entry_point="gym_v.envs.gamerl.ultra_tictactoe:GameRLUltraTicTacToeQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         plot_level="Easy",
@@ -682,7 +682,7 @@ register(
 
 register(
     id="GameRL/TuringMachine2d-QA-v0",
-    entry_point="gym_v.envs.gamerl.turing_machine_2d_qa:GameRL2dTuringMachineQAEnv",
+    entry_point="gym_v.envs.gamerl.turing_machine_2d:GameRL2dTuringMachineQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
@@ -696,7 +696,7 @@ register(
 
 register(
     id="GameRL/Tents-QA-v0",
-    entry_point="gym_v.envs.gamerl.tents_qa:GameRLTentsQAEnv",
+    entry_point="gym_v.envs.gamerl.tents:GameRLTentsQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
@@ -708,7 +708,7 @@ register(
 
 register(
     id="GameRL/SpaceInvaders-QA-v0",
-    entry_point="gym_v.envs.gamerl.space_invaders_qa:GameRLSpaceInvadersQAEnv",
+    entry_point="gym_v.envs.gamerl.space_invaders:GameRLSpaceInvadersQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
@@ -722,7 +722,7 @@ register(
 
 register(
     id="GameRL/StarBattle-QA-v0",
-    entry_point="gym_v.envs.gamerl.star_battle_qa:GameRLStarBattleQAEnv",
+    entry_point="gym_v.envs.gamerl.star_battle:GameRLStarBattleQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
@@ -734,7 +734,7 @@ register(
 
 register(
     id="GameRL/WordSearch-QA-v0",
-    entry_point="gym_v.envs.gamerl.word_search_qa:GameRLWordSearchQAEnv",
+    entry_point="gym_v.envs.gamerl.word_search:GameRLWordSearchQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
@@ -745,7 +745,7 @@ register(
 
 register(
     id="GameRL/Zuma-QA-v0",
-    entry_point="gym_v.envs.gamerl.zuma_qa:GameRLZumaQAEnv",
+    entry_point="gym_v.envs.gamerl.zuma:GameRLZumaQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
@@ -757,7 +757,7 @@ register(
 
 register(
     id="GameRL/3DReconstruction-QA-v0",
-    entry_point="gym_v.envs.gamerl.threed_reconstruction_qa:GameRL3DReconstructionQAEnv",
+    entry_point="gym_v.envs.gamerl.threed_reconstruction:GameRL3DReconstructionQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         plot_level="Easy",
@@ -767,7 +767,7 @@ register(
 
 register(
     id="GameRL/ChessRanger-QA-v0",
-    entry_point="gym_v.envs.gamerl.chess_ranger_qa:GameRLChessRangerQAEnv",
+    entry_point="gym_v.envs.gamerl.chess_ranger:GameRLChessRangerQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         num_pieces=6,
@@ -777,7 +777,7 @@ register(
 
 register(
     id="GameRL/PyramidChess-QA-v0",
-    entry_point="gym_v.envs.gamerl.pyramidchess_qa:GameRLPyramidChessQAEnv",
+    entry_point="gym_v.envs.gamerl.pyramidchess:GameRLPyramidChessQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         plot_level="Easy",
@@ -787,7 +787,7 @@ register(
 
 register(
     id="GameRL/Klondike-QA-v0",
-    entry_point="gym_v.envs.gamerl.klondike_qa:GameRLKlondikeQAEnv",
+    entry_point="gym_v.envs.gamerl.klondike:GameRLKlondikeQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
