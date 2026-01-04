@@ -11,9 +11,157 @@ from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation, get_logger
 
-from .vgrp_logic import TreesAndTentsPuzzleFactory, generate_puzzle
+from .utils import generate_puzzle
+from .vgrp_base import Constraint, PuzzleFactory
 
 logger = get_logger()
+
+
+class ConstraintRowTents(Constraint):
+    def __init__(self) -> None:
+        super().__init__()
+        self.name = "constraint_row_tents"
+
+    def check(self, game_state: dict[str, Any]) -> bool:
+        board = game_state["board"]
+        clues = game_state.get("clues", None)
+        if not clues:
+            return True
+        for i, row in enumerate(board):
+            if 0 not in row:
+                if row.count("tt") != clues["row_clues"][i]:
+                    return False
+            else:
+                if row.count("tt") > clues["row_clues"][i]:
+                    return False
+        return True
+
+
+class ConstraintColTents(Constraint):
+    def __init__(self) -> None:
+        super().__init__()
+        self.name = "constraint_col_tents"
+
+    def check(self, game_state: dict[str, Any]) -> bool:
+        board = game_state["board"]
+        clues = game_state.get("clues", None)
+        if not clues:
+            return True
+        size = len(board)
+        for j in range(size):
+            col = [board[i][j] for i in range(size)]
+            if 0 not in col:
+                if col.count("tt") != clues["col_clues"][j]:
+                    return False
+            else:
+                if col.count("tt") > clues["col_clues"][j]:
+                    return False
+        return True
+
+
+class ConstraintTentTree(Constraint):
+    def __init__(self) -> None:
+        super().__init__()
+        self.name = "constraint_tent_tree"
+
+    def check(self, game_state: dict[str, Any]) -> bool:
+        board = game_state["board"]
+        size = len(board)
+        for i in range(size):
+            for j in range(size):
+                if board[i][j] == "tt":
+                    adjacent_trees = []
+                    for di, dj in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                        ni, nj = i + di, j + dj
+                        if 0 <= ni < size and 0 <= nj < size:
+                            if board[ni][nj] == "tr":
+                                adjacent_trees.append((ni, nj))
+                    if len(adjacent_trees) != 1:
+                        return False
+        for i in range(size):
+            for j in range(size):
+                if board[i][j] == "tr":
+                    adjacent_tents = 0
+                    adjacent_non_allocated = 0
+                    for di, dj in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                        ni, nj = i + di, j + dj
+                        if 0 <= ni < size and 0 <= nj < size:
+                            if board[ni][nj] == "tt":
+                                adjacent_tents += 1
+                            elif board[ni][nj] == 0:
+                                adjacent_non_allocated += 1
+                    if adjacent_tents > 1:
+                        return False
+                    if adjacent_tents == 0 and adjacent_non_allocated == 0:
+                        return False
+        return True
+
+
+class ConstraintAdjacentTents(Constraint):
+    def __init__(self) -> None:
+        super().__init__()
+        self.name = "constraint_adjacent_tents"
+
+    def check(self, game_state: dict[str, Any]) -> bool:
+        board = game_state["board"]
+        size = len(board)
+        for i in range(size):
+            for j in range(size):
+                if board[i][j] == "tt":
+                    for di in [-1, 0, 1]:
+                        for dj in [-1, 0, 1]:
+                            if di == 0 and dj == 0:
+                                continue
+                            ni, nj = i + di, j + dj
+                            if 0 <= ni < size and 0 <= nj < size:
+                                if board[ni][nj] == "tt":
+                                    return False
+        return True
+
+
+class ConstraintTentTreeCount(Constraint):
+    def __init__(self) -> None:
+        super().__init__()
+        self.name = "constraint_tent_tree_count"
+
+    def check(self, game_state: dict[str, Any]) -> bool:
+        board = game_state["board"]
+        num_trees = sum(row.count("tr") for row in board)
+        num_tents = sum(row.count("tt") for row in board)
+        num_unallocated = sum(row.count(0) for row in board)
+        if num_unallocated == 0:
+            return num_tents == num_trees
+        return (num_tents + num_unallocated) >= num_trees
+
+
+class TreesAndTentsPuzzleFactory(PuzzleFactory):
+    def __init__(self, size: int) -> None:
+        super().__init__()
+        self.game_name = "treesandtents"
+        self.size = size
+        self.constraints = [
+            ConstraintRowTents(),
+            ConstraintColTents(),
+            ConstraintTentTree(),
+            ConstraintAdjacentTents(),
+            ConstraintTentTreeCount(),
+        ]
+        self.all_possible_values = ["tt", "e"]
+
+    def get_possible_values(
+        self, game_state: dict[str, Any], row: int, col: int
+    ) -> list[str]:
+        board = game_state["board"]
+        if board[row][col] != 0:
+            return []
+        possible = []
+        original_value = board[row][col]
+        for value in self.all_possible_values:
+            board[row][col] = value
+            if self.check(game_state):
+                possible.append(value)
+        board[row][col] = original_value
+        return possible
 
 
 class VGRPTreesAndTentsEnv(Env):

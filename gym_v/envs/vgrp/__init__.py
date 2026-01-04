@@ -1,5 +1,3 @@
-"""VGRP-Bench puzzle environments for gym-v."""
-
 from gym_v.envs.vgrp.battleships import VGRPBattleshipsEnv
 from gym_v.envs.vgrp.binairo import VGRPBinairoEnv
 from gym_v.envs.vgrp.futoshiki import VGRPFutoshikiEnv

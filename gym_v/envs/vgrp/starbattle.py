@@ -11,9 +11,129 @@ from PIL import Image, ImageDraw
 
 from gym_v import Env, Observation, get_logger
 
-from .vgrp_logic import StarBattlePuzzleFactory, generate_puzzle
+from .utils import generate_puzzle
+from .vgrp_base import Constraint, PuzzleFactory
 
 logger = get_logger()
+
+
+class ConstraintRowStar(Constraint):
+    def __init__(self) -> None:
+        super().__init__()
+        self.name = "constraint_row_star"
+
+    def check(self, game_state: dict[str, Any]) -> bool:
+        board = game_state["board"]
+        for row in board:
+            if 0 not in row:
+                if sum(1 for cell in row if cell == "s") != 1:
+                    return False
+            else:
+                if sum(1 for cell in row if cell == "s") > 1:
+                    return False
+        return True
+
+
+class ConstraintColStar(Constraint):
+    def __init__(self) -> None:
+        super().__init__()
+        self.name = "constraint_col_star"
+
+    def check(self, game_state: dict[str, Any]) -> bool:
+        board = game_state["board"]
+        size = len(board)
+        for col in range(size):
+            col_values = [board[row][col] for row in range(size)]
+            if 0 not in col_values:
+                if sum(1 for val in col_values if val == "s") != 1:
+                    return False
+            else:
+                if sum(1 for val in col_values if val == "s") > 1:
+                    return False
+        return True
+
+
+class ConstraintRegionStar(Constraint):
+    def __init__(self) -> None:
+        super().__init__()
+        self.name = "constraint_region_star"
+
+    def check(self, game_state: dict[str, Any]) -> bool:
+        board = game_state["board"]
+        regions = game_state["regions"]
+        size = len(board)
+        region_counts = {}
+        for i in range(size):
+            for j in range(size):
+                if board[i][j] == "s":
+                    region = regions[i][j]
+                    region_counts[region] = region_counts.get(region, 0) + 1
+                    if region_counts[region] > 1:
+                        return False
+        for region_num in set(cell for row in regions for cell in row):
+            region_cells = [
+                (i, j)
+                for i in range(size)
+                for j in range(size)
+                if regions[i][j] == region_num
+            ]
+            if all(board[i][j] != 0 for i, j in region_cells):
+                if region_counts.get(region_num, 0) != 1:
+                    return False
+        return True
+
+
+class ConstraintAdjacentStar(Constraint):
+    def __init__(self) -> None:
+        super().__init__()
+        self.name = "constraint_adjacent_star"
+
+    def check(self, game_state: dict[str, Any]) -> bool:
+        board = game_state["board"]
+        size = len(board)
+        for row in range(size):
+            for col in range(size):
+                if board[row][col] == "s":
+                    for dr in [-1, 0, 1]:
+                        for dc in [-1, 0, 1]:
+                            if dr == 0 and dc == 0:
+                                continue
+                            new_row, new_col = row + dr, col + dc
+                            if (
+                                0 <= new_row < size
+                                and 0 <= new_col < size
+                                and board[new_row][new_col] == "s"
+                            ):
+                                return False
+        return True
+
+
+class StarBattlePuzzleFactory(PuzzleFactory):
+    def __init__(self, size: int, num_stars: int = 1) -> None:
+        super().__init__()
+        self.game_name = "starbattle"
+        self.size = size
+        self.constraints = [
+            ConstraintRowStar(),
+            ConstraintColStar(),
+            ConstraintAdjacentStar(),
+            ConstraintRegionStar(),
+        ]
+        self.all_possible_values = ["s", "e"]
+
+    def get_possible_values(
+        self, game_state: dict[str, Any], row: int, col: int
+    ) -> list[str]:
+        board = game_state["board"]
+        if board[row][col] in ["s", "e"]:
+            return []
+        possible = []
+        for val in ["s", "e"]:
+            board[row][col] = val
+            if self.check(game_state):
+                possible.append(val)
+            board[row][col] = 0
+        return possible
 
 
 class VGRPStarBattleEnv(Env):

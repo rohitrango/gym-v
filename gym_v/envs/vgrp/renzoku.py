@@ -11,9 +11,82 @@ from PIL import Image, ImageDraw
 
 from gym_v import Env, Observation, get_logger
 
-from .vgrp_logic import RenzokuPuzzleFactory, generate_puzzle
+from .utils import generate_puzzle
+from .vgrp_base import (
+    Constraint,
+    ConstraintColNoRepeat,
+    ConstraintRowNoRepeat,
+    PuzzleFactory,
+)
 
 logger = get_logger()
+
+
+class ConstraintAdjacency(Constraint):
+    def __init__(self) -> None:
+        super().__init__()
+        self.name = "constraint_adjacency"
+
+    def check(self, game_state: dict[str, Any]) -> bool:
+        board = game_state["board"]
+        size = len(board)
+        hints = game_state.get("hints")
+        if not hints:
+            return True
+
+        if len(hints.get("row", [])) < size:
+            hints["row"] = [["0" for _ in range(size - 1)] for _ in range(size)]
+        if len(hints.get("col", [])) < size - 1:
+            hints["col"] = [["0" for _ in range(size)] for _ in range(size - 1)]
+
+        # Check row adjacency
+        for row in range(size):
+            for col in range(size - 1):
+                if hints["row"][row][col] == "1":
+                    val1 = board[row][col]
+                    val2 = board[row][col + 1]
+                    if val1 == 0 or val2 == 0:
+                        continue
+                    if abs(val1 - val2) != 1:
+                        return False
+
+        # Check col adjacency
+        for row in range(size - 1):
+            for col in range(size):
+                if hints["col"][row][col] == "1":
+                    val1 = board[row][col]
+                    val2 = board[row + 1][col]
+                    if val1 == 0 or val2 == 0:
+                        continue
+                    if abs(val1 - val2) != 1:
+                        return False
+        return True
+
+
+class RenzokuPuzzleFactory(PuzzleFactory):
+    def __init__(self, size: int) -> None:
+        super().__init__()
+        self.game_name = "renzoku"
+        self.size = size
+        self.constraints = [
+            ConstraintRowNoRepeat(),
+            ConstraintColNoRepeat(),
+            ConstraintAdjacency(),
+        ]
+        self.all_possible_values = [i for i in range(1, size + 1)]
+
+    def get_possible_values(
+        self, game_state: dict[str, Any], row: int, col: int
+    ) -> list[int]:
+        possible_values = []
+        board = game_state["board"]
+        original_value = board[row][col]
+        for value in self.all_possible_values:
+            board[row][col] = value
+            if self.check(game_state):
+                possible_values.append(value)
+        board[row][col] = original_value
+        return possible_values
 
 
 class VGRPRenzokuEnv(Env):
