@@ -2,6 +2,7 @@
 
 from gym_v.envs.registration import register
 
+# ReasoningGym environments
 register(
     id="ReasoningGym/Sudoku-v0",
     entry_point="gym_v.envs.reasongym.sudoku:ReasoningGymSudokuEnv",
@@ -211,6 +212,7 @@ register(
     ),
 )
 
+# TextArena environments
 register(
     id="TextArena/Crosswords-v0",
     entry_point="gym_v.envs.textarena.crosswords:TextArenaCrosswordsEnv",
@@ -365,7 +367,11 @@ register(
     id="Offline/SingleTurn-v0",
     entry_point="gym_v.envs.offline.single_turn:OfflineSingleTurnEnv",
     max_episode_steps=1,
-    kwargs=dict(),
+    kwargs=dict(
+        grader="exact_match",
+        description=None,
+        shuffle=True,
+    ),
 )
 
 # VGRP-Bench environments
