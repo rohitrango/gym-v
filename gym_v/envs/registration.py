@@ -17,6 +17,7 @@ from typing import Any, Protocol
 
 from gym_v import Env
 from gym_v.logger import get_logger
+from gym_v.wrappers import OrderEnforcing, PassiveEnvChecker
 
 logger = get_logger()
 
@@ -30,6 +31,7 @@ __all__ = [
     "registry",
     "current_namespace",
     "EnvSpec",
+    "WrapperSpec",
     # Functions
     "register",
     "make",
@@ -46,11 +48,24 @@ class EnvCreator(Protocol):
 
 
 @dataclass
+class WrapperSpec:
+    """A specification for recording wrapper configs."""
+
+    name: str
+    entry_point: str
+    kwargs: dict[str, Any] | None
+
+
+@dataclass
 class EnvSpec:
     """A specification for creating environments."""
 
     id: str
     entry_point: EnvCreator | str | None = field(default=None)
+
+    # Wrappers
+    order_enforce: bool = field(default=True)
+    disable_env_checker: bool = field(default=False)
 
     # Environment arguments
     max_episode_steps: int | None = field(default=None)
@@ -60,6 +75,9 @@ class EnvSpec:
     namespace: str | None = field(init=False)
     name: str = field(init=False)
     version: int | None = field(init=False)
+
+    # applied wrappers
+    additional_wrappers: tuple[WrapperSpec, ...] = field(default_factory=tuple)
 
     def __post_init__(self):
         """Calls after the spec is created to extract the namespace, name and version from the environment id."""
@@ -116,8 +134,18 @@ class EnvSpec:
         """
         parsed_env_spec = json.loads(json_env_spec)
 
+        applied_wrapper_specs: list[WrapperSpec] = []
+        for wrapper_spec_json in parsed_env_spec.pop("additional_wrappers"):
+            try:
+                applied_wrapper_specs.append(WrapperSpec(**wrapper_spec_json))
+            except Exception as e:
+                raise ValueError(
+                    f"An issue occurred when trying to make {wrapper_spec_json} a WrapperSpec"
+                ) from e
+
         try:
             env_spec = EnvSpec(**parsed_env_spec)
+            env_spec.additional_wrappers = tuple(applied_wrapper_specs)
         except Exception as e:
             raise ValueError(
                 f"An issue occurred when trying to make {parsed_env_spec} an EnvSpec"
@@ -147,6 +175,27 @@ class EnvSpec:
 
         if print_all or self.max_episode_steps is not None:
             output += f"\nmax_episode_steps={self.max_episode_steps}"
+        if print_all or self.order_enforce is not True:
+            output += f"\norder_enforce={self.order_enforce}"
+        if print_all or self.disable_env_checker is not False:
+            output += f"\ndisable_env_checker={self.disable_env_checker}"
+
+        if print_all or self.additional_wrappers:
+            wrapper_output: list[str] = []
+            for wrapper_spec in self.additional_wrappers:
+                if include_entry_points:
+                    wrapper_output.append(
+                        f"\n\tname={wrapper_spec.name}, entry_point={wrapper_spec.entry_point}, kwargs={wrapper_spec.kwargs}"
+                    )
+                else:
+                    wrapper_output.append(
+                        f"\n\tname={wrapper_spec.name}, kwargs={wrapper_spec.kwargs}"
+                    )
+
+            if len(wrapper_output) == 0:
+                output += "\nadditional_wrappers=[]"
+            else:
+                output += f"\nadditional_wrappers=[{','.join(wrapper_output)}\n]"
 
         if disable_print:
             return output
@@ -459,6 +508,9 @@ def register(
     id: str,
     entry_point: EnvCreator | str | None = None,
     max_episode_steps: int | None = None,
+    order_enforce: bool = True,
+    disable_env_checker: bool = False,
+    additional_wrappers: tuple[WrapperSpec, ...] = (),
     kwargs: dict | None = None,
 ):
     """Registers an environment in gym-v with an ``id`` to use with `gym_v.make` with the ``entry_point`` being a string or callable for creating the environment.
@@ -472,6 +524,10 @@ def register(
         id: The environment id
         entry_point: The entry point for creating the environment
         max_episode_steps: The maximum number of episodes steps before truncation.
+        order_enforce: If to enable the order enforcer wrapper to ensure users run functions in the correct order.
+            If ``True``, then the `gym_v.wrappers.OrderEnforcing` is applied to the environment.
+        disable_env_checker: If to disable the `gym_v.wrappers.PassiveEnvChecker` to the environment.
+        additional_wrappers: Additional wrappers to apply the environment.
         kwargs: arbitrary keyword arguments which are passed to the environment constructor on initialisation.
     """
     assert entry_point is not None, "`entry_point` must be provided"
@@ -498,7 +554,10 @@ def register(
         id=full_env_id,
         entry_point=entry_point,
         max_episode_steps=max_episode_steps,
+        order_enforce=order_enforce,
+        disable_env_checker=disable_env_checker,
         kwargs=kwargs,
+        additional_wrappers=additional_wrappers,
     )
     _check_spec_register(new_spec)
 
@@ -510,6 +569,7 @@ def register(
 def make(
     id: str | EnvSpec,
     max_episode_steps: int | None = None,
+    disable_env_checker: bool | None = None,
     **kwargs: Any,
 ) -> Env:
     """Creates an environment previously registered with `gym_v.register` or a `EnvSpec`.
@@ -520,6 +580,8 @@ def make(
         id: A string for the environment id or a `EnvSpec`. Optionally if using a string, a module to import can be included, e.g. ``'module:Env-v0'``.
             This is equivalent to importing the module first to register the environment followed by making the environment.
         max_episode_steps: Maximum length of an episode.
+        disable_env_checker: If to add `gym_v.wrappers.PassiveEnvChecker`, ``None`` will default to the
+            `EnvSpec` ``disable_env_checker`` value otherwise use this value will be used.
         kwargs: Additional arguments to pass to the environment constructor.
 
     Returns:
@@ -530,6 +592,11 @@ def make(
     """
     if isinstance(id, EnvSpec):
         env_spec = id
+        if not hasattr(env_spec, "additional_wrappers"):
+            logger.warn(
+                f"The env spec passed to `make` does not have a `additional_wrappers`, set it to an empty tuple. Env_spec={env_spec}"
+            )
+            env_spec.additional_wrappers = ()
     else:
         # For string id's, load the environment spec from the registry then make the environment spec
         assert isinstance(id, str)
@@ -559,7 +626,7 @@ def make(
     except TypeError as e:
         raise type(e)(  # noqa: B904
             f"{e} was raised from the environment creator for {env_spec.id} with kwargs ({env_spec_kwargs})"
-        )
+        ) from e
 
     if not isinstance(env, Env):
         raise TypeError(
@@ -571,10 +638,49 @@ def make(
         id=env_spec.id,
         entry_point=env_spec.entry_point,
         max_episode_steps=max_episode_steps,
+        order_enforce=False,
+        disable_env_checker=True,
         kwargs=env_spec_kwargs,
+        additional_wrappers=(),
     )
 
+    # Check if pre-wrapped wrappers
     assert env.spec is not None
+    num_prior_wrappers = len(env.spec.additional_wrappers)
+    # Only validate if env_spec expects at least num_prior_wrappers (entry points can add their own wrappers)
+    if (
+        num_prior_wrappers <= len(env_spec.additional_wrappers)
+        and env_spec.additional_wrappers[:num_prior_wrappers]
+        != env.spec.additional_wrappers
+    ):
+        for env_spec_wrapper_spec, recreated_wrapper_spec in zip(
+            env_spec.additional_wrappers[:num_prior_wrappers],
+            env.spec.additional_wrappers,
+            strict=True,
+        ):
+            raise ValueError(
+                f"The environment's wrapper spec {recreated_wrapper_spec} is different from the saved `EnvSpec` additional wrapper {env_spec_wrapper_spec}"
+            )
+
+    # Run the environment checker as the lowest level wrapper
+    if disable_env_checker is False or (
+        disable_env_checker is None and env_spec.disable_env_checker is False
+    ):
+        env = PassiveEnvChecker(env)
+
+    # Add the order enforcing wrapper
+    if env_spec.order_enforce:
+        env = OrderEnforcing(env)
+
+    for wrapper_spec in env_spec.additional_wrappers[num_prior_wrappers:]:
+        if wrapper_spec.kwargs is None:
+            raise ValueError(
+                f"{wrapper_spec.name} wrapper does not inherit from `gym_v.utils.RecordConstructorArgs`, therefore, the wrapper cannot be recreated."
+            )
+
+        env = load_env_creator(wrapper_spec.entry_point)(env=env, **wrapper_spec.kwargs)
+
+    return env
 
     return env
 
