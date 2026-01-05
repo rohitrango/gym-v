@@ -189,22 +189,10 @@ class Env:
 
 
 class Wrapper(Env):
-    """Wraps a :class:`gymnasium.Env` to allow a modular transformation of the :meth:`step` and :meth:`reset` methods.
-
-    This class is the base class of all wrappers to change the behavior of the underlying environment.
-    Wrappers that inherit from this class can modify the :attr:`action_space`, :attr:`observation_space`
-    and :attr:`metadata` attributes, without changing the underlying environment's attributes.
-    Moreover, the behavior of the :meth:`step` and :meth:`reset` methods can be changed by these wrappers.
-
-    Some attributes (:attr:`spec`, :attr:`render_mode`, :attr:`np_random`) will point back to the wrapper's environment
-    (i.e. to the corresponding attributes of :attr:`env`).
-
-    Note:
-        If you inherit from :class:`Wrapper`, don't forget to call ``super().__init__(env)``
-    """
+    """Wraps a `gym_v.Env` to allow a modular transformation of the `description`, `step` and `reset` methods."""
 
     def __init__(self, env: Env):
-        """Wraps an environment to allow a modular transformation of the :meth:`step` and :meth:`reset` methods.
+        """Wraps an environment to allow a modular transformation of the `description`, `step` and `reset` methods.
 
         Args:
             env: The environment to wrap
@@ -218,42 +206,47 @@ class Wrapper(Env):
 
         self._cached_spec: EnvSpec | None = None
 
+    @property
+    def description(self) -> str:
+        """Returns the `description` of the `env` that can be overwritten to change the returned data."""
+        return self.env.description
+
     def step(
         self, action: str
     ) -> tuple[Observation, SupportsFloat, bool, bool, dict[str, Any]]:
-        """Uses the :meth:`step` of the :attr:`env` that can be overwritten to change the returned data."""
+        """Uses the `step` of the `env` that can be overwritten to change the returned data."""
         return self.env.step(action)
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
-        """Uses the :meth:`reset` of the :attr:`env` that can be overwritten to change the returned data."""
+        """Uses the `reset` of the `env` that can be overwritten to change the returned data."""
         return self.env.reset(seed=seed, options=options)
 
     def render(self) -> Image.Image:
-        """Uses the :meth:`render` of the :attr:`env` that can be overwritten to change the returned data."""
+        """Uses the `render` of the `env` that can be overwritten to change the returned data."""
         return self.env.render()
 
     def close(self) -> None:
-        """Closes the wrapper and :attr:`env`."""
+        """Closes the wrapper and `env`."""
         return self.env.close()
 
     @property
     def np_random_seed(self) -> int | None:
-        """Returns the base environment's :attr:`np_random_seed`."""
+        """Returns the base environment's `np_random_seed`."""
         return self.env.np_random_seed
 
     @property
     def unwrapped(self) -> Env:
         """Returns the base environment of the wrapper.
 
-        This will be the bare :class:`gymnasium.Env` environment, underneath all layers of wrappers.
+        This will be the bare `gym_v.Env` environment, underneath all layers of wrappers.
         """
         return self.env.unwrapped
 
     @property
     def spec(self) -> EnvSpec | None:
-        """Returns the :attr:`Env` :attr:`spec` attribute with the `WrapperSpec` if the wrapper inherits from `EzPickle`."""
+        """Returns the `Env` `spec` attribute with the `WrapperSpec`."""
         if self._cached_spec is not None:
             return self._cached_spec
 
@@ -274,7 +267,6 @@ class Wrapper(Env):
                 kwargs=kwargs,
             )
 
-            # to avoid reference issues we deepcopy the prior environments spec and add the new information
             try:
                 env_spec = deepcopy(env_spec)
                 env_spec.additional_wrappers += (wrapper_spec,)
@@ -305,14 +297,7 @@ class Wrapper(Env):
             return self.env.has_wrapper_attr(name)
 
     def get_wrapper_attr(self, name: str) -> Any:
-        """Gets an attribute from the wrapper and lower environments if `name` doesn't exist in this object.
-
-        Args:
-            name: The variable name to get
-
-        Returns:
-            The variable with name in wrapper or lower environments
-        """
+        """Gets an attribute from the wrapper and lower environments if `name` doesn't exist in this object."""
         if hasattr(self, name):
             return getattr(self, name)
         else:
@@ -363,7 +348,7 @@ class Wrapper(Env):
 
     @property
     def metadata(self) -> dict[str, Any]:
-        """Returns the :attr:`Env` :attr:`metadata`."""
+        """Returns the `Env` `metadata`."""
         if self._metadata is None:
             return self.env.metadata
         return self._metadata
@@ -374,7 +359,7 @@ class Wrapper(Env):
 
     @property
     def np_random(self) -> np.random.Generator:
-        """Returns the :attr:`Env` :attr:`np_random` attribute."""
+        """Returns the `Env` `np_random` attribute."""
         return self.env.np_random
 
     @np_random.setter
@@ -392,15 +377,29 @@ class Wrapper(Env):
         )
 
 
-class ObservationWrapper(Wrapper):
-    """Modify observations from :meth:`Env.reset` and :meth:`Env.step` using :meth:`observation` function.
+class DescriptionWrapper(Wrapper):
+    """Superclass of wrappers that can modify the `description`."""
 
-    If you would like to apply a function to only the observation before
-    passing it to the learning code, you can simply inherit from :class:`ObservationWrapper` and overwrite the method
-    :meth:`observation` to implement that transformation. The transformation defined in that method must be
-    reflected by the :attr:`env` observation space. Otherwise, you need to specify the new observation space of the
-    wrapper by setting :attr:`self.observation_space` in the :meth:`__init__` method of your wrapper.
-    """
+    def __init__(self, env: Env):
+        """Constructor for the description wrapper.
+
+        Args:
+            env: Environment to be wrapped.
+        """
+        Wrapper.__init__(self, env)
+
+    @property
+    def description(self) -> str:
+        """Returns a modified description from `self.description`."""
+        return self._description(self.env.description)
+
+    def _description(self, description: str) -> str:
+        """Returns a modified description"""
+        raise NotImplementedError
+
+
+class ObservationWrapper(Wrapper):
+    """Modify observations from `Env.reset` and `Env.step` using `observation` function."""
 
     def __init__(self, env: Env):
         """Constructor for the observation wrapper.
@@ -413,14 +412,14 @@ class ObservationWrapper(Wrapper):
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
-        """Modifies the :attr:`env` after calling :meth:`reset`, returning a modified observation using :meth:`self.observation`."""
+        """Modifies the `env` after calling `reset`, returning a modified observation using `self.observation`."""
         obs, info = self.env.reset(seed=seed, options=options)
         return self.observation(obs), info
 
     def step(
         self, action: str
     ) -> tuple[Observation, SupportsFloat, bool, bool, dict[str, Any]]:
-        """Modifies the :attr:`env` after calling :meth:`step` using :meth:`self.observation` on the returned observations."""
+        """Modifies the `env` after calling `step` using `self.observation` on the returned observations."""
         observation, reward, terminated, truncated, info = self.env.step(action)
         return self.observation(observation), reward, terminated, truncated, info
 
@@ -428,7 +427,7 @@ class ObservationWrapper(Wrapper):
         """Returns a modified observation.
 
         Args:
-            observation: The :attr:`env` observation
+            observation: The `env` observation
 
         Returns:
             The modified observation
@@ -437,12 +436,7 @@ class ObservationWrapper(Wrapper):
 
 
 class RewardWrapper(Wrapper):
-    """Superclass of wrappers that can modify the returning reward from a step.
-
-    If you would like to apply a function to the reward that is returned by the base environment before
-    passing it to learning code, you can simply inherit from :class:`RewardWrapper` and overwrite the method
-    :meth:`reward` to implement that transformation.
-    """
+    """Superclass of wrappers that can modify the returning reward from a step."""
 
     def __init__(self, env: Env):
         """Constructor for the Reward wrapper.
@@ -455,7 +449,7 @@ class RewardWrapper(Wrapper):
     def step(
         self, action: str
     ) -> tuple[Observation, SupportsFloat, bool, bool, dict[str, Any]]:
-        """Modifies the :attr:`env` :meth:`step` reward using :meth:`self.reward`."""
+        """Modifies the `env` `step` reward using `self.reward`."""
         observation, reward, terminated, truncated, info = self.env.step(action)
         return observation, self.reward(reward), terminated, truncated, info
 
@@ -463,7 +457,7 @@ class RewardWrapper(Wrapper):
         """Returns a modified environment ``reward``.
 
         Args:
-            reward: The :attr:`env` :meth:`step` reward
+            reward: The `env` `step` reward
 
         Returns:
             The modified `reward`
@@ -472,18 +466,7 @@ class RewardWrapper(Wrapper):
 
 
 class ActionWrapper(Wrapper):
-    """Superclass of wrappers that can modify the action before :meth:`step`.
-
-    If you would like to apply a function to the action before passing it to the base environment,
-    you can simply inherit from :class:`ActionWrapper` and overwrite the method :meth:`action` to implement
-    that transformation. The transformation defined in that method must take values in the base environment’s
-    action space. However, its domain might differ from the original action space.
-    In that case, you need to specify the new action space of the wrapper by setting :attr:`action_space` in
-    the :meth:`__init__` method of your wrapper.
-
-    Among others, Gymnasium provides the action wrappers :class:`gymnasium.wrappers.ClipAction` and
-    :class:`gymnasium.wrappers.RescaleAction` for clipping and rescaling actions.
-    """
+    """Superclass of wrappers that can modify the action before `step`."""
 
     def __init__(self, env: Env):
         """Constructor for the action wrapper.
@@ -496,14 +479,14 @@ class ActionWrapper(Wrapper):
     def step(
         self, action: str
     ) -> tuple[Observation, SupportsFloat, bool, bool, dict[str, Any]]:
-        """Runs the :attr:`env` :meth:`env.step` using the modified ``action`` from :meth:`self.action`."""
+        """Runs the `env` `env.step` using the modified ``action`` from `self.action`."""
         return self.env.step(self.action(action))
 
     def action(self, action: str) -> str:
-        """Returns a modified action before :meth:`step` is called.
+        """Returns a modified action before `step` is called.
 
         Args:
-            action: The original :meth:`step` actions
+            action: The original `step` actions
 
         Returns:
             The modified actions

@@ -1,46 +1,14 @@
-from __future__ import annotations
+"""A set of functions for passively checking environment implementations."""
 
-from copy import deepcopy
 import inspect
-from typing import Any
 
 import numpy as np
 from PIL import Image
 
-from gym_v import Observation
+from gym_v.core import Observation
 from gym_v.logger import get_logger
 
 logger = get_logger()
-
-
-def np_random(seed: int | None = None) -> tuple[np.random.Generator, int]:
-    """Returns a NumPy random number generator (RNG) along with seed value from the inputted seed."""
-    if seed is not None and not (isinstance(seed, int) and 0 <= seed):
-        if isinstance(seed, int) is False:
-            raise ValueError(
-                f"Seed must be a python integer, actual type: {type(seed)}"
-            )
-        else:
-            raise ValueError(
-                f"Seed must be greater or equal to zero, actual value: {seed}"
-            )
-
-    seed_seq = np.random.SeedSequence(seed)
-    np_seed = seed_seq.entropy
-    rng = np.random.Generator(np.random.PCG64(seed_seq))
-    return rng, np_seed
-
-
-class RecordConstructorArgs:
-    """Records all arguments passed to constructor to `_saved_kwargs`."""
-
-    def __init__(self, *, _disable_deepcopy: bool = False, **kwargs: Any):
-        """Records all arguments passed to constructor to `_saved_kwargs`."""
-        # See class docstring for explanation
-        if not hasattr(self, "_saved_kwargs"):
-            if _disable_deepcopy is False:
-                kwargs = deepcopy(kwargs)
-            self._saved_kwargs: dict[str, Any] = kwargs
 
 
 def check_obs(obs, method_name: str):
@@ -57,7 +25,6 @@ def check_obs(obs, method_name: str):
 
 def env_step_passive_checker(env, action):
     """A passive check for the environment step, investigating the returning data then returning the data unchanged."""
-    # We don't check the action as for some environments then out-of-bounds values can be given
     result = env.step(action)
     assert isinstance(
         result, tuple
@@ -76,7 +43,6 @@ def env_step_passive_checker(env, action):
     elif len(result) == 5:
         obs, reward, terminated, truncated, info = result
 
-        # np.bool is actual python bool not np boolean type, therefore bool_ or bool8
         if not isinstance(terminated, bool | np.bool_):
             logger.warn(
                 f"Expects `terminated` signal to be a boolean, actual type: {type(terminated)}"
@@ -117,7 +83,7 @@ def env_reset_passive_checker(env, **kwargs):
     signature = inspect.signature(env.reset)
     if "seed" not in signature.parameters and "kwargs" not in signature.parameters:
         logger.deprecation(
-            "Current gymnasium version requires that `Env.reset` can be passed a `seed` instead of using `Env.seed` for resetting the environment random number generator."
+            "Current gym_v version requires that `Env.reset` can be passed a `seed` instead of using `Env.seed` for resetting the environment random number generator."
         )
     else:
         seed_param = signature.parameters.get("seed")
@@ -130,7 +96,7 @@ def env_reset_passive_checker(env, **kwargs):
 
     if "options" not in signature.parameters and "kwargs" not in signature.parameters:
         logger.deprecation(
-            "Current gymnasium version requires that `Env.reset` can be passed `options` to allow the environment initialisation to be passed additional information."
+            "Current gym_v version requires that `Env.reset` can be passed `options` to allow the environment initialisation to be passed additional information."
         )
 
     # Checks the result of env.reset with kwargs
@@ -153,8 +119,8 @@ def env_reset_passive_checker(env, **kwargs):
     return result
 
 
-def _check_render_return(render_mode, render_return):
-    """Produces warning if `render_return` doesn't match `render_mode`."""
+def _check_render_return(render_return):
+    """Produces warning if `render_return` doesn't match the expected type."""
 
     if not isinstance(render_return, Image.Image):
         logger.warn(
@@ -163,10 +129,9 @@ def _check_render_return(render_mode, render_return):
 
 
 def env_render_passive_checker(env):
-    """A passive check of the `Env.render` that the declared render modes/fps in the metadata of the environment is declared."""
+    """A passive check for the environment render, investigating the returning data then returning the data unchanged."""
 
     result = env.render()
-    if env.render_mode is not None:
-        _check_render_return(env.render_mode, result)
+    _check_render_return(result)
 
     return result

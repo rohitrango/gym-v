@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from copy import deepcopy
 from typing import TYPE_CHECKING, Any, SupportsFloat
 
@@ -23,21 +25,6 @@ class PassiveEnvChecker(Wrapper, RecordConstructorArgs):
     """A passive wrapper that surrounds the ``step``, ``reset`` and ``render`` functions to check they follow Gymnasium's API.
 
     This wrapper is automatically applied during make and can be disabled with `disable_env_checker`.
-    No vector version of the wrapper exists.
-
-    Example:
-        >>> import gymnasium as gym
-        >>> env = gym.make("CartPole-v1")
-        >>> env
-        <TimeLimit<OrderEnforcing<PassiveEnvChecker<CartPoleEnv<CartPole-v1>>>>>
-        >>> env = gym.make("CartPole-v1", disable_env_checker=True)
-        >>> env
-        <TimeLimit<OrderEnforcing<CartPoleEnv<CartPole-v1>>>>
-
-    Change logs:
-     * v0.24.1 - Initially added however broken in several ways
-     * v0.25.0 - Bugs was all fixed
-     * v0.29.0 - Removed warnings for infinite bounds for Box observation and action spaces and inregular bound shapes
     """
 
     def __init__(self, env: Env):
@@ -46,20 +33,8 @@ class PassiveEnvChecker(Wrapper, RecordConstructorArgs):
         Wrapper.__init__(self, env)
 
         if not isinstance(env, Env):
-            if str(env.__class__.__base__) == "<class 'gym.core.Env'>":
-                raise TypeError(
-                    "Gym is incompatible with Gymnasium, please update the environment class to `gymnasium.Env`. "
-                    "See https://gymnasium.farama.org/introduction/create_custom_env/ for more info."
-                )
-            else:
-                raise TypeError(
-                    f"The environment must inherit from the gymnasium.Env class, actual class: {type(env)}. "
-                    "See https://gymnasium.farama.org/introduction/create_custom_env/ for more info."
-                )
-
-        if not hasattr(env, "action_space"):
-            raise AttributeError(
-                "The environment must specify an action space. https://gymnasium.farama.org/introduction/create_custom_env/"
+            raise TypeError(
+                f"The environment must inherit from the gym_v.Env class, actual class: {type(env)}. "
             )
 
         self.checked_reset: bool = False
@@ -131,39 +106,14 @@ class PassiveEnvChecker(Wrapper, RecordConstructorArgs):
 
 
 class OrderEnforcing(Wrapper, RecordConstructorArgs):
-    """Will produce an error if ``step`` or ``render`` is called before ``reset``.
-
-    No vector version of the wrapper exists.
-
-    Example:
-        >>> import gymnasium as gym
-        >>> from gymnasium.wrappers import OrderEnforcing
-        >>> env = gym.make("CartPole-v1", render_mode="human")
-        >>> env = OrderEnforcing(env)
-        >>> env.step(0)
-        Traceback (most recent call last):
-            ...
-        gymnasium.error.ResetNeeded: Cannot call env.step() before calling env.reset()
-        >>> env.render()
-        Traceback (most recent call last):
-            ...
-        gymnasium.error.ResetNeeded: Cannot call `env.render()` before calling `env.reset()`, if this is an intended action, set `disable_render_order_enforcing=True` on the OrderEnforcer wrapper.
-        >>> _ = env.reset()
-        >>> env.render()
-        >>> _ = env.step(0)
-        >>> env.close()
-
-    Change logs:
-     * v0.22.0 - Initially added
-     * v0.24.0 - Added order enforcing for the render function
-    """
+    """Will produce an error if ``step`` or ``render`` is called before ``reset``."""
 
     def __init__(
         self,
         env: Env,
         disable_render_order_enforcing: bool = False,
     ):
-        """A wrapper that will produce an error if :meth:`step` is called before an initial :meth:`reset`.
+        """A wrapper that will produce an error if `step` is called before an initial `reset`.
 
         Args:
             env: The environment to wrap
