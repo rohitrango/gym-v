@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+import io
 import json
 from pathlib import Path
 import tempfile
@@ -13,22 +15,30 @@ import gym_v
 import gym_v.envs  # noqa: F401  # register built-in envs
 
 
+def _image_to_base64(img: Image.Image) -> str:
+    """Convert PIL Image to base64 string (OpenAI API format)."""
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+    return f"data:image/png;base64,{b64}"
+
+
 class TestOfflineSingleTurnEnv(unittest.TestCase):
     def _write_dataset(self, root: Path) -> Path:
-        img_path = root / "img.png"
-        Image.new("RGB", (32, 32), (255, 0, 0)).save(img_path)
+        img = Image.new("RGB", (32, 32), (255, 0, 0))
+        img_b64 = _image_to_base64(img)
 
         jsonl_path = root / "dataset.jsonl"
         rows = [
             {
                 "text": "Q1: What is 2+2?",
-                "image_path": str(img_path),
+                "image": img_b64,
                 "answer": "4",
                 "metadata": {"id": 1},
             },
             {
                 "text": "Q2: Capital of France?",
-                "image_path": str(img_path),
+                "image": img_b64,
                 "answer": "Paris",
                 "metadata": {"id": 2},
             },
@@ -45,8 +55,9 @@ class TestOfflineSingleTurnEnv(unittest.TestCase):
 
             env = gym_v.make(
                 "Offline/SingleTurn-v0",
-                dataset_path=str(dataset_path),
-                sampling="shuffle",
+                datasource_type="jsonl",
+                datasource_kwargs={"data_path": str(dataset_path)},
+                shuffle=True,
                 grader="exact_match",
             )
 
@@ -77,8 +88,9 @@ class TestOfflineSingleTurnEnv(unittest.TestCase):
 
             env = gym_v.make(
                 "Offline/SingleTurn-v0",
-                dataset_path=str(dataset_path),
-                sampling="shuffle",
+                datasource_type="jsonl",
+                datasource_kwargs={"data_path": str(dataset_path)},
+                shuffle=True,
                 grader="exact_match",
             )
 
