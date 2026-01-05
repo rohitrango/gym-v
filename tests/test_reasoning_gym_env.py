@@ -80,7 +80,7 @@ class TestReasoningGym(unittest.TestCase):
         obs.image.save(output_dir / "0_reset.png")
 
         # 2. Print description and obs.text
-        oracle = getattr(env, "_oracle_answer", None)
+        oracle = env.get_wrapper_attr("_oracle_answer")
         self.assertIsInstance(oracle, str)
         self.assertGreater(len(oracle), 0)
 

@@ -73,7 +73,7 @@ def main(env_id: str, env_args: tuple[str, ...]):
     width = shutil.get_terminal_size(fallback=(80, 20)).columns
     logger.info(
         dedent(f"""
-        {f" Step info(step_count={env._current_episode_steps}) ".center(width, "=")}
+        {f" Step info(step_count={env.get_wrapper_attr('_current_episode_steps')}) ".center(width, "=")}
         observation (text): {obs.text}
         info: {info}
         {"=" * width}""")
@@ -122,7 +122,7 @@ def main(env_id: str, env_args: tuple[str, ...]):
         width = shutil.get_terminal_size(fallback=(80, 20)).columns
         logger.info(
             dedent(f"""
-            {f" Step info(step_count={env._current_episode_steps}) ".center(width, "=")}
+            {f" Step info(step_count={env.get_wrapper_attr('_current_episode_steps')}) ".center(width, "=")}
             observation (text): {obs.text}
             reward: {reward}
             terminated: {terminated}

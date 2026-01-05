@@ -1,7 +1,14 @@
 from importlib.metadata import version
 
 from gym_v import utils
-from gym_v.core import Env, Observation
+from gym_v.core import (
+    ActionWrapper,
+    Env,
+    Observation,
+    ObservationWrapper,
+    RewardWrapper,
+    Wrapper,
+)
 from gym_v.envs.registration import (
     make,
     pprint_registry,
@@ -17,6 +24,10 @@ __version__ = version("gym-v")
 __all__ = [
     "Observation",
     "Env",
+    "Wrapper",
+    "ObservationWrapper",
+    "RewardWrapper",
+    "ActionWrapper",
     "get_logger",
     "set_level",
     "make",
