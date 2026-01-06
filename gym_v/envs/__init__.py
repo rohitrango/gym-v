@@ -995,3 +995,14 @@ register(
         num_players=1,
     ),
 )
+
+# Perception environments
+register(
+    id="Perception/ChartToTable-v0",
+    entry_point="gym_v.envs.perception.chart_to_table:PerceptionChartToTableEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        img_size=(640, 480),
+        max_categories=8,
+    ),
+)
