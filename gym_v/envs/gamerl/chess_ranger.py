@@ -651,6 +651,20 @@ class GameRLChessRangerQAEnv(Env):
     def description(self) -> str:
         return f"Chess Ranger QA\n\n{self.GAME_RULES}"
 
+    def _get_state_text(self) -> str:
+        """Generate text description of current chess board state."""
+        pieces = self._board.get_piece_positions()
+
+        text = "Chess Ranger Puzzle\n"
+        text += "Board: 8x8 chess board\n"
+        text += f"Pieces: {len(pieces)}\n\n"
+
+        text += "Current Board Position:\n"
+        for piece_name, position in pieces:
+            text += f"  {piece_name} at {position}\n"
+
+        return text.strip()
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
@@ -684,8 +698,23 @@ class GameRLChessRangerQAEnv(Env):
         board_image = ChessBoardImage(self._fen)
         image = board_image.get_image()
 
-        obs = Observation(image=image, text=self._current_question["question"])
-        return obs, {}
+        # Generate text state
+        text_state = self._get_state_text()
+
+        obs = Observation(
+            image=image,
+            text=text_state,
+            metadata={
+                "question": self._current_question["question"],
+            },
+        )
+
+        info = {
+            "oracle_answer": self._current_question["answer"],
+            "question_type": self.QUESTION_TYPES[q_type]["id"],
+        }
+
+        return obs, info
 
     def inner_step(
         self, action: str
@@ -713,20 +742,21 @@ class GameRLChessRangerQAEnv(Env):
 
     def _generate_steps_to_solve_question(self) -> dict:
         """Type 0: How many steps are needed to solve the puzzle?"""
-        # Solve the puzzle
-        solver = Solver(self._board)
-        solution = solver.solve()
+        # Solve the puzzle using a copy (solver modifies the board!)
+        board_copy_for_solve = Board(self._fen)
+        solver = Solver(board_copy_for_solve)
+        moves = solver.solve()  # Returns list or None
 
-        if solution is None:
+        if moves is None:
             # Regenerate puzzle if not solvable (should not happen)
             piece_types = ["P", "R", "B", "N", "Q", "K"]
             self._fen = generate_random_puzzle(piece_types, self.num_pieces)
             self._board = Board(self._fen)
             return self._generate_steps_to_solve_question()
 
-        num_steps = len(solution)
+        num_steps = len(moves)  # Use length of moves list
 
-        # Get current board situation
+        # Get current board situation (from original board, not modified one)
         pieces_positions = self._board.get_piece_positions()
         analysis = "The current board situation is: "
         for piece_name, position in pieces_positions:

@@ -114,7 +114,7 @@ class GameRLTangramQAEnv(Env):
         grid_size: int | None = None,
         num_seeds: int | None = None,
         num_pieces_to_remove: int | None = None,
-        question_type: str | None = None,
+        question_type: int | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -174,6 +174,24 @@ Do not include any explanation or extra text.
 
         return base_desc
 
+    def _get_state_text(self) -> str:
+        """Generate text description of current Tangram state."""
+        text = "Tangram Puzzle State\n"
+        text += f"Grid Size: {self._grid_size}x{self._grid_size}\n\n"
+
+        text += "Main Board:\n"
+        text += f"  Pieces on board: {len(self._pieces)}\n"
+        for piece_id, cells in enumerate(self._pieces, 1):
+            text += f"  Piece {piece_id}: {len(cells)} cells\n"
+
+        if self._removed_pieces:
+            text += f"\nRemoved Pieces: {len(self._removed_pieces)}\n"
+            for _idx, piece_id in enumerate(self._removed_pieces, 1):
+                piece = self._pieces[piece_id - 1]
+                text += f"  Removed Piece {piece_id}: {len(piece['cells'])} cells\n"
+
+        return text.strip()
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
@@ -184,9 +202,16 @@ Do not include any explanation or extra text.
 
         # Select question type
         if self._question_type is None:
-            question_type = random.choice(self.QUESTION_TYPES)["id"]
+            question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
         else:
-            question_type = self._question_type
+            question_type_idx = self._question_type
+
+        # Validate question type index
+        if not (0 <= question_type_idx < len(self.QUESTION_TYPES)):
+            raise ValueError(f"Invalid question type index: {question_type_idx}")
+
+        # Get question type ID from index
+        question_type = self.QUESTION_TYPES[question_type_idx]["id"]
 
         # Generate question
         if question_type == "piece_count":
@@ -206,7 +231,17 @@ Do not include any explanation or extra text.
             f"Reset Tangram QA ({self._grid_size}x{self._grid_size}, question: {question_type})."
         )
 
-        obs = Observation(image=self.render(), text=self._current_question["question"])
+        # Generate text state
+        text_state = self._get_state_text()
+
+        obs = Observation(
+            image=self.render(),
+            text=text_state,
+            metadata={
+                "question": self._current_question["question"],
+                "options": self._current_question.get("options"),
+            },
+        )
 
         info = {
             "oracle_answer": self._current_question["answer"],

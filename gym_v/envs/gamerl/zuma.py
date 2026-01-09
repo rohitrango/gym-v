@@ -93,7 +93,7 @@ class GameRLZumaQAEnv(Env):
 
     def __init__(
         self,
-        question_type: str | None = None,
+        question_type: int | None = None,
         curve_type: str | None = None,
         num_balls: int | None = None,
         ball_radius: float = 0.3,
@@ -127,6 +127,7 @@ class GameRLZumaQAEnv(Env):
         self._question: str = ""
         self._answer: str = ""
         self._analysis: str = ""
+        self._options: list[str] = []
         self._selected_question_type: str = ""
 
     @property
@@ -165,6 +166,37 @@ Do not include any explanation or extra text.
 
         return base_rules.strip()
 
+    def _get_state_text(self) -> str:
+        """Generate text description of current Zuma game state.
+
+        Returns a text representation with ball positions and colors.
+        """
+        # List all balls in order along the track
+        ball_sequence = [ball["color"] for ball in self._balls]
+
+        # Create a visual representation
+        if ball_sequence:
+            balls_str = " -> ".join(ball_sequence)
+        else:
+            balls_str = "No balls on track"
+
+        # Color counts
+        color_counts = {}
+        for ball in self._balls:
+            color = ball["color"]
+            color_counts[color] = color_counts.get(color, 0) + 1
+
+        counts_str = ", ".join(
+            [f"{color}: {count}" for color, count in sorted(color_counts.items())]
+        )
+
+        return f"""Zuma Game State
+Total balls: {len(self._balls)}
+Ball sequence (frog to hole): {balls_str}
+Color counts: {counts_str if counts_str else "None"}
+Frog position: ({self._frog_pos['x']:.2f}, {self._frog_pos['y']:.2f})
+Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
@@ -173,11 +205,16 @@ Do not include any explanation or extra text.
 
         # Select question type
         if self._question_type is None:
-            self._selected_question_type = random.choice(
-                [qt["id"] for qt in self.QUESTION_TYPES]
-            )
+            question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
         else:
-            self._selected_question_type = self._question_type
+            question_type_idx = self._question_type
+
+        # Validate question type index
+        if not (0 <= question_type_idx < len(self.QUESTION_TYPES)):
+            raise ValueError(f"Invalid question type index: {question_type_idx}")
+
+        # Get question type ID from index
+        self._selected_question_type = self.QUESTION_TYPES[question_type_idx]["id"]
 
         # Select curve type
         curve_type = (
@@ -199,7 +236,12 @@ Do not include any explanation or extra text.
 
         obs = Observation(
             image=self.render(),
-            text=self._question,
+            text=self._get_state_text(),
+            metadata={
+                "question": self._question,
+                "options": self._options,
+                "question_type": self._selected_question_type,
+            },
         )
 
         logger.info(
@@ -376,6 +418,7 @@ Do not include any explanation or extra text.
             f"According to the color of the circle on the triangle (frog), "
             f"the answer is {self._frog_color}."
         )
+        self._options = []
 
     def _question_color_count(self):
         """Question 2: Count of specific color marbles."""
@@ -392,6 +435,7 @@ Do not include any explanation or extra text.
             f"By counting the marbles on the track, it can be determined that "
             f"there are {count} {target_color} marbles."
         )
+        self._options = []
 
     def _question_direction_groups(self):
         """Question 3: Number of same-color marble groups in a direction."""
@@ -438,6 +482,7 @@ Do not include any explanation or extra text.
             analysis_parts.append(".")
         analysis_parts.append(f" So the answer is '{len(ball_groups)}'.")
         self._analysis = "".join(analysis_parts)
+        self._options = []
 
     def _question_angle_shot_color(self):
         """Question 4: Color of marble hit at specific angle."""
@@ -467,6 +512,7 @@ Do not include any explanation or extra text.
                 f"If there are marbles within this distance, we identify the closest marble to the frog, "
                 f"which is of color {color}. Thus, the frog hits this marble. So the answer is {color}."
             )
+        self._options = []
 
     def _question_angle_shot_result(self):
         """Question 5: Result of shooting at specific angle."""
@@ -525,6 +571,7 @@ Do not include any explanation or extra text.
                     f"leading to the removal of {removal_count} marbles. "
                     f"So the answer is '{removal_count} marbles on the track were removed.'."
                 )
+        self._options = []
 
     def _question_optimal_strategy(self):
         """Question 6: Optimal strategy for eliminating marbles."""
@@ -564,6 +611,7 @@ Do not include any explanation or extra text.
                 f"so the frog cannot eliminate any marbles. "
                 f"So, the answer is '{self._answer}'."
             )
+        self._options = []
 
     def _get_direction(self, angle: float) -> str:
         """Get direction from angle."""

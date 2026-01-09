@@ -354,6 +354,39 @@ class GameRL3DReconstructionQAEnv(Env):
         """Return environment description with game rules."""
         return "3D Reconstruction QA\n\n" + GAME_RULES
 
+    def _get_state_text(self) -> str:
+        """Generate text description of current 3D reconstruction state."""
+        current_voxels = self._game.current_voxels
+        target_count = self._game.target_count
+        remaining = target_count - len(current_voxels)
+
+        text = "3D Voxel Reconstruction Puzzle\n"
+        text += "Grid Size: 3x3x3\n"
+        text += f"Current Voxels: {len(current_voxels)}\n"
+        text += f"Remaining Available Voxels: {remaining}\n\n"
+
+        text += "Current Structure Positions:\n"
+        for x, y, z in sorted(current_voxels):
+            text += f"  Voxel at ({x},{y},{z})\n"
+
+        # Add projection info
+        yz_proj, xz_proj = self._game.get_projections(current_voxels)
+        text += "\nCurrent Front View (Y-Z) Projection:\n"
+        for z in range(2, -1, -1):  # Top to bottom
+            row = []
+            for y in range(3):
+                row.append(str(yz_proj[y, z]))
+            text += f"  {' '.join(row)}\n"
+
+        text += "\nCurrent Side View (X-Z) Projection:\n"
+        for z in range(2, -1, -1):  # Top to bottom
+            row = []
+            for x in range(3):
+                row.append(str(xz_proj[x, z]))
+            text += f"  {' '.join(row)}\n"
+
+        return text.strip()
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
@@ -372,9 +405,23 @@ class GameRL3DReconstructionQAEnv(Env):
         )
         self._current_question = self._generate_question(q_type)
 
-        obs = Observation(image=self.render(), text=self._current_question["question"])
+        # Generate text state
+        text_state = self._get_state_text()
 
-        return obs, {}
+        obs = Observation(
+            image=self.render(),
+            text=text_state,
+            metadata={
+                "question": self._current_question["question"],
+            },
+        )
+
+        info = {
+            "oracle_answer": self._current_question["answer"],
+            "question_type": self.QUESTION_TYPES[q_type]["id"],
+        }
+
+        return obs, info
 
     def _generate_game_instance(self, plot_level: str) -> ThreeDReconstructionGame:
         """Generate game instance based on difficulty level."""
@@ -795,12 +842,17 @@ class GameRL3DReconstructionQAEnv(Env):
         # Draw 3D isometric view (left side)
         self._draw_isometric_view(draw, 50, 100, self._game.current_voxels, label_font)
 
+        # Calculate projections of current state
+        current_yz, current_xz = self._game._calculate_projections(
+            self._game.current_voxels
+        )
+
         # Draw projections (right side)
         self._draw_projection(
             draw,
             500,
             100,
-            self._game.target_yz_projection,
+            current_yz,
             "Front View (Y-Z)",
             label_font,
         )
@@ -808,7 +860,7 @@ class GameRL3DReconstructionQAEnv(Env):
             draw,
             500,
             350,
-            self._game.target_xz_projection,
+            current_xz,
             "Side View (X-Z)",
             label_font,
         )
@@ -891,8 +943,12 @@ class GameRL3DReconstructionQAEnv(Env):
                 y = y_offset + (2 - row) * cell_size  # Flip vertically
 
                 # Fill cell
+                # Note: row is flipped (2-row maps to screen position), so we need to access projection[col, 2-row]
+                # to correctly map: col -> horizontal (y or x), row -> vertical (z with flip)
                 color = (
-                    (100, 150, 255) if projection[col, row] == 1 else (240, 240, 240)
+                    (100, 150, 255)
+                    if projection[col, 2 - row] == 1
+                    else (240, 240, 240)
                 )
                 draw.rectangle(
                     [x, y, x + cell_size, y + cell_size],
@@ -902,7 +958,7 @@ class GameRL3DReconstructionQAEnv(Env):
                 )
 
                 # Draw value
-                value = str(projection[col, row])
+                value = str(projection[col, 2 - row])
                 draw.text(
                     (x + cell_size // 2, y + cell_size // 2),
                     value,

@@ -289,6 +289,31 @@ class GameRLTicTacToeQAEnv(Env):
         """Return environment description with game rules."""
         return "TicTacToe QA\n\n" + TICTACTOE_RULES
 
+    def _get_state_text(self) -> str:
+        """Generate text description of current TicTacToe game state.
+
+        Returns a text representation that contains the same information as the rendered image.
+        """
+        # Create text grid representation
+        grid = []
+        for row in range(3):
+            row_chars = []
+            for col in range(3):
+                cell = self._game.board[row][col]
+                if cell == 1:
+                    row_chars.append("O")
+                elif cell == -1:
+                    row_chars.append("X")
+                else:
+                    row_chars.append(".")
+            grid.append("".join(row_chars))
+
+        grid_str = "\n".join(grid)
+
+        return f"""Grid Size: 3x3
+Grid (O=first player, X=second player, .=empty):
+{grid_str}"""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
@@ -315,9 +340,21 @@ class GameRLTicTacToeQAEnv(Env):
         )
         self._current_question = self._generate_question(q_type)
 
-        obs = Observation(image=self.render(), text=self._current_question["question"])
+        obs = Observation(
+            image=self.render(),
+            text=self._get_state_text(),
+            metadata={
+                "question": self._current_question["question"],
+                "options": self._current_question.get("options"),
+            },
+        )
 
-        return obs, {}
+        info = {
+            "oracle_answer": self._current_question["answer"],
+            "question_type": q_type,
+        }
+
+        return obs, info
 
     def _generate_random_state(self):
         """Generate a random valid game state."""

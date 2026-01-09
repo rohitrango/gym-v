@@ -440,6 +440,60 @@ class GameRLUltraTicTacToeQAEnv(Env):
         """Return environment description with game rules."""
         return "Ultra TicTacToe QA\n\n" + GAME_RULES
 
+    def _get_state_text(self) -> str:
+        """Generate text description of current Ultra TicTacToe game state.
+
+        Returns a grid representation matching the rendered image.
+        """
+        # Create 9x9 grid to represent all sub-grids
+        grid = [["." for _ in range(9)] for _ in range(9)]
+
+        # Fill in pieces from game state
+        for piece in self._game_state.get("piece_info", []):
+            nine_grid_str = piece["nine_grid"]  # Format: "(i, j)"
+            position_str = piece["position"]  # Format: "(row, col)"
+            piece_type = piece["type"]
+
+            # Parse nine_grid coordinates
+            try:
+                # Extract i, j from "(i, j)" format
+                nine_grid_coords = nine_grid_str.strip("()").split(", ")
+                i = int(nine_grid_coords[0])
+                j = int(nine_grid_coords[1])
+
+                # Extract row, col from "(row, col)" format
+                position_coords = position_str.strip("()").split(", ")
+                row = int(position_coords[0])
+                col = int(position_coords[1])
+
+                # Convert to 0-based indexing and calculate position in 9x9 grid
+                # Nine-grid (i, j) where i,j are 1-3 maps to offset ((i-1)*3, (j-1)*3)
+                # Cell (row, col) where row,col are 1-3 maps to offset (row-1, col-1)
+                grid_row = (i - 1) * 3 + (row - 1)
+                grid_col = (j - 1) * 3 + (col - 1)
+
+                if 0 <= grid_row < 9 and 0 <= grid_col < 9:
+                    grid[grid_row][grid_col] = piece_type
+            except (ValueError, IndexError):
+                # Skip invalid coordinates
+                continue
+
+        # Format as text with sub-grid separators
+        lines = []
+        for row in range(9):
+            row_chars = []
+            for col in range(9):
+                row_chars.append(grid[row][col])
+                if (col + 1) % 3 == 0 and col < 8:
+                    row_chars.append("|")
+            lines.append("".join(row_chars))
+            if (row + 1) % 3 == 0 and row < 8:
+                lines.append("-" * 13)
+
+        grid_str = "\n".join(lines)
+        return f"""Ultra TicTacToe 9x9 Grid (X=X, O=O, .=empty, |=sub-grid separator):
+{grid_str}"""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
@@ -459,16 +513,35 @@ class GameRLUltraTicTacToeQAEnv(Env):
         self._game_state = self._game.get_game_state()
 
         # Generate question
-        q_type = (
-            self._question_type
-            if self._question_type is not None
-            else random.randint(1, 7)
-        )
+        if self._question_type is None:
+            question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
+        else:
+            question_type_idx = self._question_type
+
+        # Validate question type index
+        if not (0 <= question_type_idx < len(self.QUESTION_TYPES)):
+            raise ValueError(f"Invalid question type index: {question_type_idx}")
+
+        # Convert 0-based index to 1-based for _generate_question (expects 1-7)
+        q_type = question_type_idx + 1
         self._current_question = self._generate_question(q_type)
 
-        obs = Observation(image=self.render(), text=self._current_question["question"])
+        obs = Observation(
+            image=self.render(),
+            text=self._get_state_text(),
+            metadata={
+                "question": self._current_question["question"],
+                "options": self._current_question.get("options"),
+                "question_type": q_type,
+            },
+        )
 
-        return obs, {}
+        info = {
+            "oracle_answer": self._current_question["answer"],
+            "question_type": q_type,
+        }
+
+        return obs, info
 
     def _generate_valid_game(self) -> UTTTGameGrid:
         """Generate a valid game state meeting difficulty requirements.

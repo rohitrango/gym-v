@@ -164,6 +164,38 @@ class GameRLTetrisQAEnv(Env):
         desc += ANSWER_FORMAT_PROMPT
         return desc.strip()
 
+    def _get_state_text(self) -> str:
+        """Generate text description of current Tetris game state.
+
+        Returns a grid representation matching the rendered image.
+        """
+        # Create grid with placed blocks
+        grid = []
+        for row in range(self._rows):
+            row_chars = []
+            for col in range(self._cols):
+                if self._grid[row, col] == 1:
+                    row_chars.append("#")
+                else:
+                    row_chars.append(".")
+            grid.append(row_chars)
+
+        # Mark falling piece
+        if self._current_piece is not None:
+            piece_row, piece_col = self._current_pos
+            for i in range(self._current_piece.shape[0]):
+                for j in range(self._current_piece.shape[1]):
+                    if self._current_piece[i, j] == 1:
+                        row = piece_row + i
+                        col = piece_col + j
+                        if 0 <= row < self._rows and 0 <= col < self._cols:
+                            grid[row][col] = "*"
+
+        grid_str = "\n".join(["".join(row) for row in grid])
+        return f"""Grid Size: {self._rows}x{self._cols}
+Grid (#=placed, *=falling, .=empty):
+{grid_str}"""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
@@ -191,8 +223,10 @@ class GameRLTetrisQAEnv(Env):
 
         obs = Observation(
             image=self.render(),
-            text=self._current_question,
+            text=self._get_state_text(),
             metadata={
+                "question": self._current_question,
+                "options": self._options,
                 "question_type": self.QUESTION_TYPES[self._current_question_type][
                     "name"
                 ],
@@ -235,7 +269,7 @@ class GameRLTetrisQAEnv(Env):
             "answer_format"
         ]
 
-        if answer_format == "number":
+        if answer_format == "fill_in_blank":
             match = re.search(r"-?\d+", answer)
             if match:
                 try:
@@ -245,7 +279,7 @@ class GameRLTetrisQAEnv(Env):
                 except ValueError:
                     return 0.0
             return 0.0
-        elif answer_format == "choice":
+        elif answer_format == "multiple_choice":
             match = re.search(r"[1-8]", answer)
             if match:
                 return 1.0 if match.group() == self._oracle_answer else 0.0

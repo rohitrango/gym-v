@@ -170,6 +170,52 @@ Do not include any explanation or extra text.
 
         return base_desc
 
+    def _get_state_text(self) -> str:
+        """Generate text description of current FreeCell game state.
+
+        Returns a text representation matching the rendered image.
+        """
+        lines = []
+
+        # Free cells
+        freecells_str = []
+        for i, cell in enumerate(self._free_cells):
+            if cell is None:
+                freecells_str.append(f"Cell {i}: empty")
+            else:
+                freecells_str.append(
+                    f"Cell {i}: {self.VALUE_MAP[cell.value]}{self.SUIT_TO_STRING[cell.suit.value][0]}"
+                )
+        lines.append("FreeCells: " + ", ".join(freecells_str))
+
+        # Foundation piles
+        foundation_strs = []
+        for suit in Suit:
+            pile = self._foundation_piles[suit]
+            if pile:
+                top = pile[-1]
+                foundation_strs.append(
+                    f"{self.SUIT_TO_STRING[suit.value]}: {self.VALUE_MAP[top.value]} ({len(pile)} cards)"
+                )
+            else:
+                foundation_strs.append(f"{self.SUIT_TO_STRING[suit.value]}: empty")
+        lines.append("Foundations: " + ", ".join(foundation_strs))
+
+        # Cascade piles
+        for i, pile in enumerate(self._cascade_piles):
+            if pile:
+                cards_str = ", ".join(
+                    [
+                        f"{self.VALUE_MAP[c.value]}{self.SUIT_TO_STRING[c.suit.value][0]}"
+                        for c in pile
+                    ]
+                )
+                lines.append(f"Cascade {i}: {cards_str}")
+            else:
+                lines.append(f"Cascade {i}: empty")
+
+        return "\n".join(lines)
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
@@ -201,7 +247,15 @@ Do not include any explanation or extra text.
             f"Reset FreeCell QA (cascade_number={self._cascade_number}, question: {question_type})."
         )
 
-        obs = Observation(image=self.render(), text=self._current_question["question"])
+        obs = Observation(
+            image=self.render(),
+            text=self._get_state_text(),
+            metadata={
+                "question": self._current_question["question"],
+                "options": self._current_question.get("options"),
+                "question_type": question_type,
+            },
+        )
 
         info = {
             "oracle_answer": self._current_question["answer"],

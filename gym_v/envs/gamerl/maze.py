@@ -167,6 +167,35 @@ class GameRLMazeQAEnv(Env):
         desc += ANSWER_FORMAT_PROMPT
         return desc.strip()
 
+    def _get_state_text(self) -> str:
+        """Generate text description of current maze state.
+
+        Returns a text representation that contains the same information as the rendered image.
+        """
+        # Create text grid representation
+        grid = []
+        for row in range(self._grid_size):
+            row_chars = []
+            for col in range(self._grid_size):
+                cell = self._maze[row, col]
+                if cell == self.WALL:
+                    row_chars.append("#")
+                elif cell == self.PATH:
+                    row_chars.append(".")
+                elif cell == self.PLAYER:
+                    row_chars.append("P")
+                elif cell == self.GOAL:
+                    row_chars.append("G")
+                else:
+                    row_chars.append("?")
+            grid.append("".join(row_chars))
+
+        grid_str = "\n".join(grid)
+
+        return f"""Grid Size: {self._grid_size}x{self._grid_size}
+Grid (#=wall, .=path, P=player, G=goal):
+{grid_str}"""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
@@ -179,9 +208,13 @@ class GameRLMazeQAEnv(Env):
         # Generate maze
         self._generate_maze()
 
-        # Select question type
+        # Select question type (convert 0-based to 1-based)
         if self._question_type is not None:
-            self._current_question_type = self._question_type
+            # Validate question type index
+            if not (0 <= self._question_type < len(self.QUESTION_TYPES)):
+                raise ValueError(f"Invalid question type index: {self._question_type}")
+            # Convert 0-based index to 1-based for internal use
+            self._current_question_type = self._question_type + 1
         else:
             self._current_question_type = self.np_random.integers(
                 1, len(self.QUESTION_TYPES) + 1
@@ -194,8 +227,10 @@ class GameRLMazeQAEnv(Env):
 
         obs = Observation(
             image=self.render(),
-            text=self._current_question,
+            text=self._get_state_text(),
             metadata={
+                "question": self._current_question,
+                "options": self._options,
                 "question_type": self.QUESTION_TYPES[self._current_question_type - 1][
                     "name"
                 ],
@@ -238,13 +273,13 @@ class GameRLMazeQAEnv(Env):
             "answer_format"
         ]
 
-        if answer_format == "choice":
+        if answer_format == "multiple_choice":
             # Extract first letter
             match = re.search(r"[A-H]", answer.upper())
             if match:
                 return 1.0 if match.group() == self._oracle_answer.upper() else 0.0
             return 0.0
-        elif answer_format == "number":
+        elif answer_format == "fill_in_blank":
             match = re.search(r"-?\d+", answer)
             if match:
                 try:

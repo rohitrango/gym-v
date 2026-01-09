@@ -97,14 +97,14 @@ class GameRL3dMazeQAEnv(Env):
 
     def __init__(
         self,
-        question_type: str | None = None,
+        question_type: int | None = None,
         grid_size: tuple[int, int, int] = (8, 8, 7),
         **kwargs,
     ):
         """Initialize 3D Maze QA environment.
 
         Args:
-            question_type: Type of question (default: random)
+            question_type: Question type index (0-based, default: random)
             grid_size: Size of the 3D grid (width, depth, height)
         """
         super().__init__(**kwargs)
@@ -160,26 +160,79 @@ Do not include any explanation or extra text.
 
         return base_rules.strip()
 
+    def _get_state_text(self) -> str:
+        """Generate text description of current 3D Maze game state.
+
+        Returns a multi-layer representation of the 3D maze.
+        """
+        # Determine bounds
+        if not self._cubes:
+            return "Empty maze"
+
+        all_positions = list(self._cubes)
+        min_x = min(p.x for p in all_positions)
+        max_x = max(p.x for p in all_positions)
+        min_y = min(p.y for p in all_positions)
+        max_y = max(p.y for p in all_positions)
+        min_z = min(p.z for p in all_positions)
+        max_z = max(p.z for p in all_positions)
+
+        layers = []
+        for z in range(min_z, max_z + 1):
+            layer_lines = [f"Layer z={z}:"]
+            for y in range(min_y, max_y + 1):
+                row_chars = []
+                for x in range(min_x, max_x + 1):
+                    pos = Position(x, y, z)
+                    if pos in self._cubes:
+                        if pos == self._start_pos:
+                            row_chars.append("S")
+                        elif pos == self._goal_pos:
+                            row_chars.append("G")
+                        else:
+                            row_chars.append("#")
+                    else:
+                        row_chars.append(".")
+                layer_lines.append("".join(row_chars))
+            layers.append("\n".join(layer_lines))
+
+        return f"""3D Maze (S=start, G=goal, #=path cube, .=empty)
+Start: ({self._start_pos.x}, {self._start_pos.y}, {self._start_pos.z})
+Goal: ({self._goal_pos.x if self._goal_pos else 'N/A'}, {self._goal_pos.y if self._goal_pos else 'N/A'}, {self._goal_pos.z if self._goal_pos else 'N/A'})
+
+{chr(10).join(layers)}"""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
         """Reset the environment and generate a new question."""
         super().reset(seed=seed)
 
-        # Select question type
+        # Select question type (convert 0-based index to question type ID)
         if self._question_type is None:
             self._selected_question_type = random.choice(
                 [qt["id"] for qt in self.QUESTION_TYPES]
             )
         else:
-            self._selected_question_type = self._question_type
+            # Validate question type index
+            if not (0 <= self._question_type < len(self.QUESTION_TYPES)):
+                raise ValueError(f"Invalid question type index: {self._question_type}")
+            # Convert 0-based index to question type ID
+            self._selected_question_type = self.QUESTION_TYPES[self._question_type][
+                "id"
+            ]
 
         # Generate maze and question
         self._generate_maze_and_question()
 
         obs = Observation(
             image=self.render(),
-            text=self._question,
+            text=self._get_state_text(),
+            metadata={
+                "question": self._question,
+                "options": self._options,
+                "question_type": self._selected_question_type,
+            },
         )
 
         logger.info(

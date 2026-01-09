@@ -85,7 +85,7 @@ class GameRLRubiksCubeQAEnv(Env):
     def __init__(
         self,
         num_moves: int | None = None,
-        question_type: str | None = None,
+        question_type: int | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -141,6 +141,24 @@ Do not include any explanation or extra text.
 
         return base_desc
 
+    def _get_state_text(self) -> str:
+        """Generate text description of current Rubik's Cube state."""
+        text = "Rubik's Cube State\n\n"
+
+        for face_name, face_array in self._faces.items():
+            text += f"{face_name} Face ({self.FACE_NAMES[face_name]}):\n"
+            for row in face_array:
+                color_names = [self.COLORS[c][0] for c in row]
+                text += f"  {' '.join(color_names)}\n"
+            text += "\n"
+
+        text += "Color Legend:\n"
+        for idx in sorted(self.COLORS.keys()):
+            color_name, _ = self.COLORS[idx]
+            text += f"  {idx}: {color_name}\n"
+
+        return text.strip()
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
@@ -164,9 +182,16 @@ Do not include any explanation or extra text.
 
         # Select question type
         if self._question_type is None:
-            question_type = random.choice(self.QUESTION_TYPES)["id"]
+            question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
         else:
-            question_type = self._question_type
+            question_type_idx = self._question_type
+
+        # Validate question type index
+        if not (0 <= question_type_idx < len(self.QUESTION_TYPES)):
+            raise ValueError(f"Invalid question type index: {question_type_idx}")
+
+        # Get question type ID from index
+        question_type = self.QUESTION_TYPES[question_type_idx]["id"]
 
         # Generate question
         if question_type == "face_recognition":
@@ -182,7 +207,17 @@ Do not include any explanation or extra text.
             f"Reset Rubik's Cube QA (num_moves={self._num_moves}, question: {question_type})."
         )
 
-        obs = Observation(image=self.render(), text=self._current_question["question"])
+        # Generate text state
+        text_state = self._get_state_text()
+
+        obs = Observation(
+            image=self.render(),
+            text=text_state,
+            metadata={
+                "question": self._current_question["question"],
+                "options": self._current_question.get("options"),
+            },
+        )
 
         info = {
             "oracle_answer": self._current_question["answer"],

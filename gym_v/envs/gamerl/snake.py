@@ -152,6 +152,38 @@ class GameRLSnakeQAEnv(Env):
         desc += ANSWER_FORMAT_PROMPT
         return desc.strip()
 
+    def _get_state_text(self) -> str:
+        """Generate text description of current snake game state.
+
+        Returns a text representation that contains the same information as the rendered image.
+        """
+        # Create text grid representation
+        grid = [["." for _ in range(self._width)] for _ in range(self._height)]
+
+        # Mark food
+        if self._food:
+            row, col = self._food
+            if 0 <= row < self._height and 0 <= col < self._width:
+                grid[row][col] = "F"
+
+        # Mark snake body (reverse order so head overwrites)
+        for i in range(len(self._snake) - 1, 0, -1):
+            row, col = self._snake[i]
+            if 0 <= row < self._height and 0 <= col < self._width:
+                grid[row][col] = "B"
+
+        # Mark snake head
+        if self._snake:
+            head_row, head_col = self._snake[0]
+            if 0 <= head_row < self._height and 0 <= head_col < self._width:
+                grid[head_row][head_col] = "H"
+
+        grid_str = "\n".join(["".join(row) for row in grid])
+
+        return f"""Grid Size: {self._width}x{self._height}
+Grid (H=head, B=body, F=food, .=empty):
+{grid_str}"""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
@@ -179,8 +211,10 @@ class GameRLSnakeQAEnv(Env):
 
         obs = Observation(
             image=self.render(),
-            text=self._current_question,
+            text=self._get_state_text(),
             metadata={
+                "question": self._current_question,
+                "options": self._options,
                 "question_type": self.QUESTION_TYPES[self._current_question_type][
                     "name"
                 ],
@@ -219,9 +253,8 @@ class GameRLSnakeQAEnv(Env):
 
     def _score_answer(self, answer: str) -> float:
         """Score the answer based on answer format."""
-        answer_format = self.QUESTION_TYPES[self._current_question_type][
-            "answer_format"
-        ]
+        # Use the answer format set by _generate_qa
+        answer_format = self._answer_format
 
         if answer_format == "coordinate":
             return self._score_coordinate(answer)

@@ -436,6 +436,54 @@ class GameRLKlondikeQAEnv(Env):
     def description(self) -> str:
         return f"Klondike Solitaire QA\n\n{KLONDIKE_RULES}"
 
+    def _get_state_text(self) -> str:
+        """Generate text description of current Klondike game state.
+
+        Returns a text representation matching the rendered image.
+        """
+        lines = []
+
+        # Stock pile
+        stock_count = len(self._game.stock)
+        lines.append(f"Stock: {stock_count} cards")
+
+        # Waste pile
+        if self._game.waste:
+            top_cards = self._game.waste[-min(3, len(self._game.waste)) :]
+            waste_str = ", ".join([f"{c.rank}{c.suit[0].upper()}" for c in top_cards])
+            lines.append(f"Waste (top {len(top_cards)}): {waste_str}")
+        else:
+            lines.append("Waste: empty")
+
+        # Foundation piles
+        for i, pile in enumerate(self._game.foundation, 1):
+            if pile:
+                top = pile[-1]
+                lines.append(
+                    f"Foundation {i}: {top.rank}{top.suit[0].upper()} ({len(pile)} cards)"
+                )
+            else:
+                lines.append(f"Foundation {i}: empty")
+
+        # Tableau piles
+        for i, pile in enumerate(self._game.tableau, 1):
+            if pile:
+                faceup = [c for c in pile if c.faceup]
+                hidden_count = len(pile) - len(faceup)
+                if hidden_count > 0:
+                    cards_str = f"[{hidden_count} hidden], " + ", ".join(
+                        [f"{c.rank}{c.suit[0].upper()}" for c in faceup]
+                    )
+                else:
+                    cards_str = ", ".join(
+                        [f"{c.rank}{c.suit[0].upper()}" for c in faceup]
+                    )
+                lines.append(f"Tableau {i}: {cards_str}")
+            else:
+                lines.append(f"Tableau {i}: empty")
+
+        return "\n".join(lines)
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
@@ -480,8 +528,21 @@ class GameRLKlondikeQAEnv(Env):
 
         # Render
         img = render_klondike_board(self._game)
-        obs = Observation(image=img, text=self._current_question["question"])
-        return obs, {}
+        obs = Observation(
+            image=img,
+            text=self._get_state_text(),
+            metadata={
+                "question": self._current_question["question"],
+                "question_type": q_type,
+            },
+        )
+
+        info = {
+            "oracle_answer": self._current_question["answer"],
+            "question_type": q_type,
+        }
+
+        return obs, info
 
     def inner_step(
         self, action: str

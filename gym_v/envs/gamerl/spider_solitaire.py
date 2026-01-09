@@ -1110,6 +1110,41 @@ class GameRLSpiderSolitaireQAEnv(Env):
     # Gym-v Interface
     # ========================================================================
 
+    def _get_state_text(self) -> str:
+        """Generate text description of current Spider Solitaire game state.
+
+        Returns a text representation matching the rendered image.
+        """
+        lines = []
+
+        # Stock pile
+        stock_count = len(self.stock) if self.stock else 0
+        lines.append(f"Stock: {stock_count} cards")
+
+        # Foundation piles (completed suits)
+        completed_suits = sum(1 for f in self.foundations if len(f) > 0)
+        lines.append(f"Foundations: {completed_suits} completed suits")
+
+        # Waste piles (tableau piles)
+        for i, pile in enumerate(self.waste, 1):
+            if pile.isEmpty():
+                lines.append(f"Pile {i}: empty")
+            else:
+                cards = list(pile)
+                faceup = [c for c in cards if c.faceUp]
+                hidden_count = len(cards) - len(faceup)
+                if hidden_count > 0:
+                    cards_str = f"[{hidden_count} hidden], " + ", ".join(
+                        [f"{c.rank}{c.suit[0].upper()}" for c in faceup]
+                    )
+                else:
+                    cards_str = ", ".join(
+                        [f"{c.rank}{c.suit[0].upper()}" for c in faceup]
+                    )
+                lines.append(f"Pile {i}: {cards_str}")
+
+        return "\n".join(lines)
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
@@ -1131,8 +1166,21 @@ class GameRLSpiderSolitaireQAEnv(Env):
         )
         self._current_question = self._generate_question(q_type)
 
-        obs = Observation(image=self.render(), text=self._current_question["question"])
-        return obs, {}
+        obs = Observation(
+            image=self.render(),
+            text=self._get_state_text(),
+            metadata={
+                "question": self._current_question["question"],
+                "question_type": q_type,
+            },
+        )
+
+        info = {
+            "oracle_answer": self._current_question["answer"],
+            "question_type": q_type,
+        }
+
+        return obs, info
 
     def inner_step(
         self, action: str

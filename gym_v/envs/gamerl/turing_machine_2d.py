@@ -100,7 +100,7 @@ class GameRL2dTuringMachineQAEnv(Env):
         num_symbols: int = 2,
         max_steps: int = 8,
         cell_size: int = 50,
-        question_type: str | None = None,
+        question_type: int | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -161,6 +161,37 @@ Do not include any explanation or extra text.
 
         return base_desc
 
+    def _get_state_text(self) -> str:
+        """Generate text description of current Turing machine state."""
+        text = "2D Turing Machine State\n"
+        text += f"Grid Size: {self._grid_size[0]}x{self._grid_size[1]}\n"
+        text += f"Head Position: ({self._head_y}, {self._head_x})\n"
+        text += f"Current State: {self._current_state} {self.STATE_BRACKETS[self._current_state]}\n\n"
+
+        text += "Transition Rules:\n"
+        for (state, symbol), (write_symbol, move_dir, new_state) in self._rules.items():
+            text += f"  State {state}, Symbol {symbol} ({self.COLOR_NAMES[symbol]}) → "
+            text += f"Write {write_symbol} ({self.COLOR_NAMES[write_symbol]}), "
+            text += f"Move {self.DIRECTION_NAMES[move_dir]}, "
+            text += f"New State {new_state}\n"
+
+        text += "\nGrid State:\n"
+        for y in range(self._grid_size[0]):
+            row = []
+            for x in range(self._grid_size[1]):
+                symbol = self._grid[y, x]
+                if (x, y) == (self._head_x, self._head_y):
+                    row.append(f"[{symbol}]")  # Mark head position
+                else:
+                    row.append(f" {symbol} ")
+            text += "".join(row) + "\n"
+
+        text += "\nColor Legend:\n"
+        for i in range(self._num_symbols):
+            text += f"  Symbol {i}: {self.COLOR_NAMES[i]}\n"
+
+        return text.strip()
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
@@ -171,9 +202,16 @@ Do not include any explanation or extra text.
 
         # Select question type
         if self._question_type is None:
-            question_type = random.choice(self.QUESTION_TYPES)["id"]
+            question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
         else:
-            question_type = self._question_type
+            question_type_idx = self._question_type
+
+        # Validate question type index
+        if not (0 <= question_type_idx < len(self.QUESTION_TYPES)):
+            raise ValueError(f"Invalid question type index: {question_type_idx}")
+
+        # Get question type ID from index
+        question_type = self.QUESTION_TYPES[question_type_idx]["id"]
 
         # Generate question based on type
         steps = random.randint(3, self._max_steps)
@@ -193,7 +231,17 @@ Do not include any explanation or extra text.
             f"question: {question_type})."
         )
 
-        obs = Observation(image=self.render(), text=self._current_question["question"])
+        # Generate text state
+        text_state = self._get_state_text()
+
+        obs = Observation(
+            image=self.render(),
+            text=text_state,
+            metadata={
+                "question": self._current_question["question"],
+                "options": self._current_question.get("options"),
+            },
+        )
 
         info = {
             "oracle_answer": self._current_question["answer"],

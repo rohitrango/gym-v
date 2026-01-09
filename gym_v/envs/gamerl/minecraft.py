@@ -102,7 +102,7 @@ class GameRLMinecraftQAEnv(Env):
     def __init__(
         self,
         space_ub: tuple[int, int, int] = (5, 5, 5),
-        question_type: str | None = None,
+        question_type: int | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -151,6 +151,21 @@ Do not include any explanation or extra text.
 
         return base_desc
 
+    def _get_state_text(self) -> str:
+        """Generate text description of current Minecraft state."""
+        text = "Minecraft State\n\n"
+
+        # Show number of blocks
+        text += f"Total blocks: {len(self._blocks)}\n"
+
+        # Show sceneries if any
+        if self._sceneries:
+            text += "\nSceneries present:\n"
+            for scenery_type, positions in self._sceneries.items():
+                text += f"  {scenery_type}: {len(positions)} blocks\n"
+
+        return text.strip()
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
@@ -158,9 +173,16 @@ Do not include any explanation or extra text.
 
         # Select question type
         if self._question_type is None:
-            question_type = random.choice(self.QUESTION_TYPES)["id"]
+            question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
         else:
-            question_type = self._question_type
+            question_type_idx = self._question_type
+
+        # Validate question type index
+        if not (0 <= question_type_idx < len(self.QUESTION_TYPES)):
+            raise ValueError(f"Invalid question type index: {question_type_idx}")
+
+        # Get question type ID from index
+        question_type = self.QUESTION_TYPES[question_type_idx]["id"]
 
         # Generate question
         if question_type == "scenery":
@@ -178,7 +200,17 @@ Do not include any explanation or extra text.
 
         logger.info(f"Reset Minecraft QA (question: {question_type}).")
 
-        obs = Observation(image=self.render(), text=self._current_question["question"])
+        # Generate text state
+        text_state = self._get_state_text()
+
+        obs = Observation(
+            image=self.render(),
+            text=text_state,
+            metadata={
+                "question": self._current_question["question"],
+                "options": self._current_question.get("options"),
+            },
+        )
 
         info = {
             "oracle_answer": self._current_question["answer"],

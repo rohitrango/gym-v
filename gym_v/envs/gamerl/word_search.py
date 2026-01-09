@@ -140,6 +140,16 @@ class GameRLWordSearchQAEnv(Env):
             GAME_RULES + "\n\n" + self._current_question + "\n" + ANSWER_FORMAT_PROMPT
         )
 
+    def _get_state_text(self) -> str:
+        """Generate text description of current Word Search grid.
+
+        Returns a grid representation matching the rendered image.
+        """
+        grid_str = "\n".join(["".join(row) for row in self._grid])
+        return f"""Grid Size: {self._grid_size}x{self._grid_size}
+Grid (uppercase letters):
+{grid_str}"""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
@@ -176,7 +186,15 @@ class GameRLWordSearchQAEnv(Env):
             f"Reset Word Search QA ({self._grid_size}x{self._grid_size}, question: {q_type['name']})."
         )
 
-        obs = Observation(image=self.render(), text=self._current_question)
+        obs = Observation(
+            image=self.render(),
+            text=self._get_state_text(),
+            metadata={
+                "question": self._current_question,
+                "question_type": q_type["name"],
+                "level": q_type["level"],
+            },
+        )
         info = {"oracle_answer": self._oracle_answer, "question_type": q_type}
         return obs, info
 

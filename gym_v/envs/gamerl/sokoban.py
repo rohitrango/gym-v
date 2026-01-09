@@ -143,6 +143,37 @@ Do not include any explanation or extra text.
 
         return base_rules.strip()
 
+    def _get_state_text(self) -> str:
+        """Generate text description of current Sokoban game state.
+
+        Returns a grid representation matching the rendered image.
+        """
+        grid = []
+        for row in range(self._size):
+            row_chars = []
+            for col in range(self._size):
+                cell = self._grid[row, col]
+                if cell == 1:
+                    row_chars.append("#")  # Wall
+                elif cell == 2:
+                    row_chars.append("$")  # Box
+                elif cell == 3:
+                    row_chars.append(".")  # Target
+                elif cell == 4:
+                    row_chars.append("*")  # Box on target
+                elif cell == 5:
+                    row_chars.append("@")  # Player
+                elif cell == 6:
+                    row_chars.append("+")  # Player on target
+                else:
+                    row_chars.append(" ")  # Empty
+            grid.append("".join(row_chars))
+
+        grid_str = "\n".join(grid)
+        return f"""Grid Size: {self._size}x{self._size}
+Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, space=empty):
+{grid_str}"""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
@@ -165,7 +196,12 @@ Do not include any explanation or extra text.
 
         obs = Observation(
             image=self.render(),
-            text=self._question,
+            text=self._get_state_text(),
+            metadata={
+                "question": self._question,
+                "options": self._options,
+                "question_type": self._selected_question_type,
+            },
         )
 
         logger.info(
@@ -266,12 +302,15 @@ Do not include any explanation or extra text.
 
         # Generate options
         self._options = [f"({final_pos[0]}, {final_pos[1]})"]
-        while len(self._options) < 8:
+        max_attempts = 100  # Prevent infinite loop
+        attempts = 0
+        while len(self._options) < 8 and attempts < max_attempts:
             y = random.randint(1, self._size - 2)
             x = random.randint(1, self._size - 2)
             opt = f"({y}, {x})"
             if opt not in self._options and self._grid[y, x] != 1:
                 self._options.append(opt)
+            attempts += 1
 
         random.shuffle(self._options)
         correct_idx = self._options.index(f"({final_pos[0]}, {final_pos[1]})") + 1
@@ -327,12 +366,15 @@ Do not include any explanation or extra text.
 
         # Generate options
         self._options = [f"({final_box[1]}, {final_box[0]})"]
-        while len(self._options) < 8:
+        max_attempts = 100  # Prevent infinite loop
+        attempts = 0
+        while len(self._options) < 8 and attempts < max_attempts:
             y = random.randint(1, self._size - 2)
             x = random.randint(1, self._size - 2)
             opt = f"({y}, {x})"
             if opt not in self._options and self._grid[y, x] != 1:
                 self._options.append(opt)
+            attempts += 1
 
         random.shuffle(self._options)
         correct_idx = self._options.index(f"({final_box[1]}, {final_box[0]})") + 1
@@ -371,12 +413,15 @@ Do not include any explanation or extra text.
 
         # Generate options
         self._options = [f"({player_pos[0]}, {player_pos[1]})"]
-        while len(self._options) < 8:
+        max_attempts = 100  # Prevent infinite loop
+        attempts = 0
+        while len(self._options) < 8 and attempts < max_attempts:
             y = random.randint(1, self._size - 2)
             x = random.randint(1, self._size - 2)
             opt = f"({y}, {x})"
             if opt not in self._options and self._grid[y, x] != 1:
                 self._options.append(opt)
+            attempts += 1
 
         random.shuffle(self._options)
         correct_idx = self._options.index(f"({player_pos[0]}, {player_pos[1]})") + 1

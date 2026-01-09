@@ -199,6 +199,41 @@ class GameRLSpaceInvadersQAEnv(Env):
         desc += ANSWER_FORMAT_PROMPT
         return desc.strip()
 
+    def _get_state_text(self) -> str:
+        """Generate text description of current Space Invaders game state.
+
+        Returns a grid representation matching the rendered image.
+        """
+        # Create grid for enemy area (1-indexed as per game rules)
+        grid = [
+            ["." for _ in range(self._total_cols)] for _ in range(self._enemy_area_rows)
+        ]
+
+        # Mark enemies
+        for enemy in self._enemies:
+            row_idx = enemy.row - 1  # Convert to 0-indexed
+            col_idx = enemy.col - 1  # Convert to 0-indexed
+            if 0 <= row_idx < self._enemy_area_rows and 0 <= col_idx < self._total_cols:
+                if enemy.type == 1:
+                    grid[row_idx][col_idx] = "P"  # Purple
+                elif enemy.type == 2:
+                    grid[row_idx][col_idx] = "B"  # Blue
+                elif enemy.type == 3:
+                    grid[row_idx][col_idx] = "G"  # Green
+
+        grid_str = "\n".join(["".join(row) for row in grid])
+
+        # Add ship position below the grid
+        ship_row = ["."] * self._total_cols
+        ship_row[self._ship_col - 1] = "S"
+        ship_str = "".join(ship_row)
+
+        return f"""Grid Size: {self._enemy_area_rows}x{self._total_cols}
+Ship Position: Column {self._ship_col}
+Grid (P=purple enemy, B=blue enemy, G=green enemy, .=empty):
+{grid_str}
+Ship Row: {ship_str}"""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
@@ -234,8 +269,10 @@ class GameRLSpaceInvadersQAEnv(Env):
 
         obs = Observation(
             image=self.render(),
-            text=self._current_question,
+            text=self._get_state_text(),
             metadata={
+                "question": self._current_question,
+                "options": self._options,
                 "question_type": self.QUESTION_TYPES[self._current_question_type][
                     "name"
                 ],
@@ -342,6 +379,7 @@ class GameRLSpaceInvadersQAEnv(Env):
         count = len(self._get_enemies_on_row(self._target_row))
         self._current_question = f"How many enemies are on row {self._target_row}?"
         self._oracle_answer = str(count)
+        self._options = []
 
     def _generate_q1_enemies_on_col(self) -> None:
         """Q1: How many enemies are on a specific column?"""
@@ -356,11 +394,13 @@ class GameRLSpaceInvadersQAEnv(Env):
         count = len(self._get_enemies_on_col(self._target_col))
         self._current_question = f"How many enemies are on column {self._target_col}?"
         self._oracle_answer = str(count)
+        self._options = []
 
     def _generate_q2_total_enemies(self) -> None:
         """Q2: How many enemies are there in total?"""
         self._current_question = "How many enemies are there in total?"
         self._oracle_answer = str(len(self._enemies))
+        self._options = []
 
     def _generate_q3_colored_enemies(self) -> None:
         """Q3: How many enemies of a specific color are there?"""
@@ -375,6 +415,7 @@ class GameRLSpaceInvadersQAEnv(Env):
             f"How many {self._target_color} enemies are there in total?"
         )
         self._oracle_answer = str(count)
+        self._options = []
 
     def _generate_q4_shoot_here_points(self) -> None:
         """Q4: If the ship shoots at the current position, how many points?"""
@@ -385,6 +426,7 @@ class GameRLSpaceInvadersQAEnv(Env):
             self._oracle_answer = str(enemies_on_col[0].score)
         else:
             self._oracle_answer = "0"
+        self._options = []
 
     def _generate_q5_move_and_shoot_points(self) -> None:
         """Q5: If the ship moves to a column and shoots, how many points?"""
@@ -404,6 +446,7 @@ class GameRLSpaceInvadersQAEnv(Env):
             self._oracle_answer = str(enemies_on_col[0].score)
         else:
             self._oracle_answer = "0"
+        self._options = []
 
     def _generate_q6_max_shoot_once_points(self) -> None:
         """Q6: What is the maximum points from shooting once?"""
@@ -416,6 +459,7 @@ class GameRLSpaceInvadersQAEnv(Env):
                 max_score = max(max_score, enemies_on_col[0].score)
 
         self._oracle_answer = str(max_score)
+        self._options = []
 
     def render(self) -> Image.Image:
         """Render the game state."""

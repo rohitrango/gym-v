@@ -144,6 +144,26 @@ class GameRLLifegameQAEnv(Env):
         desc += ANSWER_FORMAT_PROMPT
         return desc.strip()
 
+    def _get_state_text(self) -> str:
+        """Generate text description of current Game of Life state.
+
+        Returns a grid representation matching the rendered image.
+        """
+        grid = []
+        for row in range(self._grid_size):
+            row_chars = []
+            for col in range(self._grid_size):
+                if self._grid[row][col] == 1:
+                    row_chars.append("#")
+                else:
+                    row_chars.append(".")
+            grid.append("".join(row_chars))
+
+        grid_str = "\n".join(grid)
+        return f"""Grid Size: {self._grid_size}x{self._grid_size}
+Grid (#=alive, .=dead):
+{grid_str}"""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
@@ -179,8 +199,10 @@ class GameRLLifegameQAEnv(Env):
 
         obs = Observation(
             image=self.render(),
-            text=self._current_question,
+            text=self._get_state_text(),
             metadata={
+                "question": self._current_question,
+                "options": self._options,
                 "question_type": self.QUESTION_TYPES[self._current_question_type][
                     "name"
                 ],

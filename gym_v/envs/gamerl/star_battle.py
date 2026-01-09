@@ -94,7 +94,7 @@ class GameRLStarBattleQAEnv(Env):
         grid_size: int = 6,
         stars_per_region: int = 1,
         cell_size: int = 50,
-        question_type: str | None = None,
+        question_type: int | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -150,6 +150,33 @@ Do not include any explanation or extra text.
 
         return base_desc
 
+    def _get_state_text(self) -> str:
+        """Generate text description of current Star Battle puzzle state.
+
+        Returns a grid representation matching the rendered image.
+        """
+        # Create a grid showing region numbers
+        region_grid = [[0] * self._grid_size for _ in range(self._grid_size)]
+        for region_idx, region_cells in enumerate(self._regions):
+            for row, col in region_cells:
+                region_grid[row][col] = region_idx + 1
+
+        # Create text representation
+        grid = []
+        for row in range(self._grid_size):
+            row_chars = []
+            for col in range(self._grid_size):
+                if self._grid[row][col] == 1:
+                    row_chars.append("*")
+                else:
+                    row_chars.append(str(region_grid[row][col]))
+            grid.append("".join(row_chars))
+
+        grid_str = "\n".join(grid)
+        return f"""Grid Size: {self._grid_size}x{self._grid_size}
+Grid (*=star, 1-{self._grid_size}=region number):
+{grid_str}"""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
@@ -157,9 +184,16 @@ Do not include any explanation or extra text.
 
         # Select question type
         if self._question_type is None:
-            question_type = random.choice(self.QUESTION_TYPES)["id"]
+            question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
         else:
-            question_type = self._question_type
+            question_type_idx = self._question_type
+
+        # Validate question type index
+        if not (0 <= question_type_idx < len(self.QUESTION_TYPES)):
+            raise ValueError(f"Invalid question type index: {question_type_idx}")
+
+        # Get question type ID from index
+        question_type = self.QUESTION_TYPES[question_type_idx]["id"]
 
         # Generate puzzle
         self._generate_puzzle()
@@ -180,7 +214,15 @@ Do not include any explanation or extra text.
             f"Reset Star Battle QA ({self._grid_size}x{self._grid_size}, question: {question_type})."
         )
 
-        obs = Observation(image=self.render(), text=self._current_question["question"])
+        obs = Observation(
+            image=self.render(),
+            text=self._get_state_text(),
+            metadata={
+                "question": self._current_question["question"],
+                "options": self._current_question.get("options"),
+                "question_type": question_type,
+            },
+        )
 
         info = {
             "oracle_answer": self._current_question["answer"],
@@ -719,7 +761,7 @@ Options:
                 action_tuple = eval(action_normalized)
                 correct_tuple = self._current_question["answer_tuple"]
                 return action_tuple == correct_tuple
-            except (ValueError, IndexError):
+            except (ValueError, IndexError, NameError, SyntaxError):
                 pass
 
         # For multiple choice, compare the option number

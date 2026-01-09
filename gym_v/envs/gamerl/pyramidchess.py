@@ -576,6 +576,25 @@ class GameRLPyramidChessQAEnv(Env):
     def description(self) -> str:
         return f"Pyramid Chess QA\n\n{PYRAMID_RULES}"
 
+    def _get_state_text(self) -> str:
+        """Generate text description of current pyramid chess state."""
+        board_dict = self._board.board_dict()
+        balls_list, total_count = count_ball(board_dict)
+
+        text = f"Pyramid Chess - {self.plot_level}\n"
+        text += f"Board Level: {self._board.Level}\n"
+        text += f"Total Balls: {total_count}\n"
+        text += f"Current Turn: PLAYER_{self._game_gen.Turn}\n\n"
+
+        text += "Board State by Level:\n"
+        for level, (num_balls, details) in enumerate(balls_list):
+            text += f"  Level {level}: {num_balls} ball(s)\n"
+            for _row_idx, row in enumerate(details):
+                for color, coord in row:
+                    text += f"    {color.capitalize()} ball at position {coord}\n"
+
+        return text.strip()
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
@@ -612,8 +631,23 @@ class GameRLPyramidChessQAEnv(Env):
         layers = self._board.board_dict()
         combined_image = draw_pyramid_combined(layers, self.plot_level)
 
-        obs = Observation(image=combined_image, text=self._current_question["question"])
-        return obs, {}
+        # Generate text state
+        text_state = self._get_state_text()
+
+        obs = Observation(
+            image=combined_image,
+            text=text_state,
+            metadata={
+                "question": self._current_question["question"],
+            },
+        )
+
+        info = {
+            "oracle_answer": self._current_question["answer"],
+            "question_type": self.QUESTION_TYPES[q_type]["id"],
+        }
+
+        return obs, info
 
     def inner_step(
         self, action: str

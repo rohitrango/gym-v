@@ -301,8 +301,10 @@ class GameRLPacmanQAEnv(Env):
 
         obs = Observation(
             image=self.render(),
-            text=self._current_question,
+            text=self._get_state_text(),
             metadata={
+                "question": self._current_question,
+                "options": self._options,
                 "question_type": self.QUESTION_TYPES[self._current_question_type][
                     "name"
                 ],
@@ -345,12 +347,12 @@ class GameRLPacmanQAEnv(Env):
             "answer_format"
         ]
 
-        if answer_format == "choice":
+        if answer_format == "multiple_choice":
             match = re.search(r"[A-H]", answer.upper())
             if match:
                 return 1.0 if match.group() == self._oracle_answer.upper() else 0.0
             return 0.0
-        elif answer_format == "number":
+        elif answer_format == "fill_in_blank":
             match = re.search(r"-?\d+", answer)
             if match:
                 try:
@@ -361,6 +363,42 @@ class GameRLPacmanQAEnv(Env):
                     return 0.0
             return 0.0
         return 0.0
+
+    def _get_state_text(self) -> str:
+        """Generate text description of the current game state.
+
+        Returns a text representation that contains the same information as the rendered image.
+        """
+        # Create a text grid representation
+        grid = [["." for _ in range(self._grid_size)] for _ in range(self._grid_size)]
+
+        # Mark walls
+        for wall in self._walls:
+            grid[wall[0]][wall[1]] = "#"
+
+        # Mark beans
+        for bean in self._beans:
+            grid[bean[0]][bean[1]] = "*"
+
+        # Mark ghosts
+        for ghost in self._ghosts:
+            pos = ghost.position
+            if ghost.name == "Pinky":
+                grid[pos[0]][pos[1]] = "P"
+            elif ghost.name == "Blinky":
+                grid[pos[0]][pos[1]] = "B"
+
+        # Mark Pacman (override anything else at this position)
+        grid[self._pacman_position[0]][self._pacman_position[1]] = "C"
+
+        # Build the text description
+        grid_str = "\n".join(["".join(row) for row in grid])
+
+        state_text = f"""Grid Size: {self._grid_size}x{self._grid_size}
+Grid (C=Pacman, P=Pinky, B=Blinky, *=bean, #=wall, .=empty):
+{grid_str}"""
+
+        return state_text
 
     def _generate_qa(self) -> None:
         """Generate question and oracle answer based on current state."""

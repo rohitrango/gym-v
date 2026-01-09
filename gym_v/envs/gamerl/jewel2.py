@@ -1000,6 +1000,18 @@ class GameRLJewel2QAEnv(Env):
     # Gym-v Interface
     # ========================================================================
 
+    def _get_state_text(self) -> str:
+        """Generate text description of current Jewel2 game state.
+
+        Returns a grid representation matching the rendered image.
+        """
+        grid_str = "\n".join(["".join(row) for row in self._chessboard.chessboard])
+
+        return f"""Jewel2 Game State (size: {self.size}x{self.size})
+Elements: A-E=normal jewels, a-e=special jewels, +=cross bomb, |=vertical bomb
+Grid:
+{grid_str}"""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
@@ -1019,8 +1031,21 @@ class GameRLJewel2QAEnv(Env):
         )
         self._current_question = self._generate_question(q_type)
 
-        obs = Observation(image=self.render(), text=self._current_question["question"])
-        return obs, {}
+        obs = Observation(
+            image=self.render(),
+            text=self._get_state_text(),
+            metadata={
+                "question": self._current_question["question"],
+                "question_type": q_type,
+            },
+        )
+
+        info = {
+            "oracle_answer": self._current_question["answer"],
+            "question_type": q_type,
+        }
+
+        return obs, info
 
     def inner_step(
         self, action: str

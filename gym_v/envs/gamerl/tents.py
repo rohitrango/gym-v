@@ -107,7 +107,7 @@ class GameRLTentsQAEnv(Env):
         grid_size: tuple[int, int] | None = None,
         num_trees: int | None = None,
         cell_size: int = 50,
-        question_type: str | None = None,
+        question_type: int | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -176,6 +176,30 @@ Do not include any explanation or extra text.
 
         return base_desc
 
+    def _get_state_text(self) -> str:
+        """Generate text description of current Tents puzzle state.
+
+        Returns a grid representation matching the rendered image.
+        """
+        width, height = self._grid_size
+        grid = []
+        for row in range(height):
+            row_chars = []
+            for col in range(width):
+                cell = self._grid[row][col]
+                if cell == "T":
+                    row_chars.append("T")
+                elif cell == "X":
+                    row_chars.append("X")
+                else:
+                    row_chars.append(".")
+            grid.append("".join(row_chars))
+
+        grid_str = "\n".join(grid)
+        return f"""Grid Size: {width}x{height}
+Grid (T=tree, X=tent, .=empty):
+{grid_str}"""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
@@ -186,9 +210,16 @@ Do not include any explanation or extra text.
 
         # Select question type
         if self._question_type is None:
-            question_type = random.choice(self.QUESTION_TYPES)["id"]
+            question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
         else:
-            question_type = self._question_type
+            question_type_idx = self._question_type
+
+        # Validate question type index
+        if not (0 <= question_type_idx < len(self.QUESTION_TYPES)):
+            raise ValueError(f"Invalid question type index: {question_type_idx}")
+
+        # Get question type ID from index
+        question_type = self.QUESTION_TYPES[question_type_idx]["id"]
 
         # Generate question based on type
         if question_type == "num_tents_in_row":
@@ -213,7 +244,15 @@ Do not include any explanation or extra text.
             f"{self._num_trees} trees, question: {question_type})."
         )
 
-        obs = Observation(image=self.render(), text=self._current_question["question"])
+        obs = Observation(
+            image=self.render(),
+            text=self._get_state_text(),
+            metadata={
+                "question": self._current_question["question"],
+                "options": self._current_question.get("options"),
+                "question_type": question_type,
+            },
+        )
 
         info = {
             "oracle_answer": self._current_question["answer"],

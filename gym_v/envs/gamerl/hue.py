@@ -126,6 +126,32 @@ Do not include any explanation or extra text.
 
         return base_desc
 
+    def _get_state_text(self) -> str:
+        """Generate text description of current puzzle state.
+
+        Returns a text representation of the color gradient board state.
+        """
+        text = "Hue Color Gradient Puzzle\n"
+        text += f"Board Size: {self._board_size}x{self._board_size}\n\n"
+
+        # List colored cells
+        if self._colored_cells:
+            text += "Colored Cells:\n"
+            for row in range(self._board_size):
+                for col in range(self._board_size):
+                    if (row, col) in self._colored_cells:
+                        color_rgb = tuple(self._board[row, col])
+                        color_name = self._get_color_name(color_rgb)
+                        text += f"  Row {row + 1}, Col {col + 1}: {color_name}\n"
+
+        # List cells to fill (if any)
+        if self._cells_to_fill:
+            text += "\nCells to Fill:\n"
+            for (row, col), label in self._cells_to_fill.items():
+                text += f"  Cell {label} at Row {row + 1}, Col {col + 1}\n"
+
+        return text.strip()
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
@@ -158,7 +184,17 @@ Do not include any explanation or extra text.
             f"question: {question_type})."
         )
 
-        obs = Observation(image=self.render(), text=self._current_question["question"])
+        # Generate text state representation
+        text_state = self._get_state_text()
+
+        obs = Observation(
+            image=self.render(),
+            text=text_state,
+            metadata={
+                "question": self._current_question["question"],
+                "options": self._current_question.get("options"),
+            },
+        )
 
         info = {
             "oracle_answer": self._current_question["answer"],

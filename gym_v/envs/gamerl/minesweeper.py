@@ -161,6 +161,35 @@ class GameRLMinesweeperQAEnv(Env):
         desc += ANSWER_FORMAT_PROMPT
         return desc.strip()
 
+    def _get_state_text(self) -> str:
+        """Generate text description of current Minesweeper game state.
+
+        Returns a grid representation matching the rendered image.
+        """
+        grid = []
+        for row in range(self._rows):
+            row_chars = []
+            for col in range(self._cols):
+                if self._flagged[row][col]:
+                    row_chars.append("F")
+                elif not self._revealed[row][col]:
+                    row_chars.append("#")
+                else:
+                    # Cell is revealed
+                    cell_value = self._board[row][col]
+                    if cell_value == "M":
+                        row_chars.append("M")
+                    elif cell_value == 0:
+                        row_chars.append(".")
+                    else:
+                        row_chars.append(str(cell_value))
+            grid.append("".join(row_chars))
+
+        grid_str = "\n".join(grid)
+        return f"""Grid Size: {self._rows}x{self._cols}
+Grid (#=unrevealed, F=flagged, .=revealed empty, 1-8=numbers, M=mine):
+{grid_str}"""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
@@ -201,8 +230,10 @@ class GameRLMinesweeperQAEnv(Env):
 
         obs = Observation(
             image=self.render(),
-            text=self._current_question,
+            text=self._get_state_text(),
             metadata={
+                "question": self._current_question,
+                "options": self._options,
                 "question_type": self.QUESTION_TYPES[self._current_question_type][
                     "name"
                 ],

@@ -148,6 +148,33 @@ class GameRLSudokuQAEnv(Env):
         desc += ANSWER_FORMAT_PROMPT
         return desc.strip()
 
+    def _get_state_text(self) -> str:
+        """Generate text description of current Sudoku game state.
+
+        Returns a grid representation matching the rendered image.
+        """
+        grid = []
+        for row in range(self._size):
+            row_chars = []
+            for col in range(self._size):
+                cell_value = self._board[row][col]
+                if cell_value == 0:
+                    row_chars.append(".")
+                else:
+                    row_chars.append(str(cell_value))
+            grid.append("".join(row_chars))
+
+        grid_str = "\n".join(grid)
+
+        # Create color legend
+        color_legend = ", ".join(
+            [f"{i+1}={self._color_names[i]}" for i in range(self._size)]
+        )
+
+        return f"""Grid Size: {self._size}x{self._size}
+Grid ({color_legend}, .=empty):
+{grid_str}"""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
@@ -202,8 +229,10 @@ class GameRLSudokuQAEnv(Env):
 
         obs = Observation(
             image=self.render(),
-            text=self._current_question,
+            text=self._get_state_text(),
             metadata={
+                "question": self._current_question,
+                "options": self._options,
                 "question_type": self.QUESTION_TYPES[self._current_question_type][
                     "name"
                 ],

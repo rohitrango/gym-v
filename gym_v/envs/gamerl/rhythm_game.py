@@ -98,7 +98,7 @@ class GameRLRhythmGameQAEnv(Env):
         grid_size: tuple[int, int] | None = None,
         difficulty: str | None = None,
         cell_size: int = 40,
-        question_type: str | None = None,
+        question_type: int | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -150,6 +150,27 @@ Do not include any explanation or extra text.
 
         return base_desc
 
+    def _get_state_text(self) -> str:
+        """Generate text description of current rhythm game state."""
+        text = "Rhythm Game State\n\n"
+        text += f"Grid Size: {self._grid_size[0]} rows x {self._grid_size[1]} columns\n"
+        text += f"Difficulty: {self._difficulty}\n"
+        text += f"Total Blocks: {len(self._blocks)}\n\n"
+
+        # Count block types
+        block_counts = {}
+        for block in self._blocks:
+            block_type = block["type"]
+            block_counts[block_type] = block_counts.get(block_type, 0) + 1
+
+        text += "Block Distribution:\n"
+        for color, (name, _points) in self.BLOCK_TYPES.items():
+            count = block_counts.get(color, 0)
+            if count > 0:
+                text += f"  {name}: {count} blocks\n"
+
+        return text.strip()
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
@@ -160,9 +181,16 @@ Do not include any explanation or extra text.
 
         # Select question type
         if self._question_type is None:
-            question_type = random.choice(self.QUESTION_TYPES)["id"]
+            question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
         else:
-            question_type = self._question_type
+            question_type_idx = self._question_type
+
+        # Validate question type index
+        if not (0 <= question_type_idx < len(self.QUESTION_TYPES)):
+            raise ValueError(f"Invalid question type index: {question_type_idx}")
+
+        # Get question type ID from index
+        question_type = self.QUESTION_TYPES[question_type_idx]["id"]
 
         # Generate question
         if question_type == "block_type":
@@ -179,7 +207,17 @@ Do not include any explanation or extra text.
             f"question: {question_type})."
         )
 
-        obs = Observation(image=self.render(), text=self._current_question["question"])
+        # Generate text state
+        text_state = self._get_state_text()
+
+        obs = Observation(
+            image=self.render(),
+            text=text_state,
+            metadata={
+                "question": self._current_question["question"],
+                "options": self._current_question.get("options"),
+            },
+        )
 
         info = {
             "oracle_answer": self._current_question["answer"],

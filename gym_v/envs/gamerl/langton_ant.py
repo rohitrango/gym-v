@@ -121,6 +121,29 @@ class GameRLLangtonAntQAEnv(Env):
             GAME_RULES + "\n\n" + self._current_question + "\n" + ANSWER_FORMAT_PROMPT
         )
 
+    def _get_state_text(self) -> str:
+        """Generate text description of current Langton's Ant state.
+
+        Returns a grid representation matching the rendered image.
+        """
+        grid = []
+        for row in range(self._grid_size):
+            row_chars = []
+            for col in range(self._grid_size):
+                if row == self._ant_y and col == self._ant_x:
+                    row_chars.append("A")
+                elif self._grid[row][col] == 1:
+                    row_chars.append("#")
+                else:
+                    row_chars.append(".")
+            grid.append("".join(row_chars))
+
+        grid_str = "\n".join(grid)
+        return f"""Grid Size: {self._grid_size}x{self._grid_size}
+Ant Position: ({self._ant_x}, {self._ant_y}) facing {self._ant_direction}
+Grid (A=ant, #=black, .=white):
+{grid_str}"""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
@@ -145,18 +168,26 @@ class GameRLLangtonAntQAEnv(Env):
         self._generate_initial_state()
 
         # Generate question
-        if q_type["name"] == "current_state":
+        if q_type["id"] == "current_state":
             self._generate_current_state_question()
-        elif q_type["name"] == "future_state":
+        elif q_type["id"] == "future_state":
             self._generate_future_state_question()
-        elif q_type["name"] == "cell_changes":
+        elif q_type["id"] == "cell_changes":
             self._generate_cell_changes_question()
 
         logger.info(
             f"Reset Langton's Ant QA ({self._difficulty}, question: {q_type['name']})."
         )
 
-        obs = Observation(image=self.render(), text=self._current_question)
+        obs = Observation(
+            image=self.render(),
+            text=self._get_state_text(),
+            metadata={
+                "question": self._current_question,
+                "question_type": q_type["name"],
+                "level": q_type["level"],
+            },
+        )
         info = {"oracle_answer": self._oracle_answer, "question_type": q_type}
         return obs, info
 
