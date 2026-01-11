@@ -10,6 +10,7 @@ from PIL import Image
 
 from gym_v import Env, Observation, get_logger
 from gym_v.envs.sphinx.utils import (
+    POLY_STYLES,
     TRANSFORMS,
     _images_are_similar,
     apply_transform,
@@ -78,10 +79,19 @@ class SphinxOddOneOutBaseEnv(Env):
         """Log reset information."""
         pass
 
+    def _prepare_reset(self) -> None:
+        """Hook for subclasses to prepare before shape generation.
+
+        Called after seed is set but before any shapes are generated.
+        Useful for Poly envs to select a consistent style for all shapes.
+        """
+        pass
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
         super().reset(seed=seed)
+        self._prepare_reset()
 
         # Generate base shape for the "same" group
         base_shape = self._generate_shape()
@@ -255,6 +265,16 @@ class SphinxOddOneOutPolyEnv(SphinxOddOneOutBaseEnv):
         self._style = style
         self._current_style: str | None = None
 
+    def _prepare_reset(self) -> None:
+        """Select a consistent style for all shapes in this reset."""
+        if self._style is not None:
+            self._current_style = self._style
+        else:
+            # Random selection - same style for all shapes in this episode
+            self._current_style = POLY_STYLES[
+                int(self.np_random.integers(0, len(POLY_STYLES)))
+            ]
+
     def _generate_shape(self) -> Image.Image:
         shape = generate_random_polygon(
             self.np_random,
@@ -263,10 +283,8 @@ class SphinxOddOneOutPolyEnv(SphinxOddOneOutBaseEnv):
             line_width=self._line_width,
             grid_lines=True,
             grid_divisions=self._grid_divisions,
-            style=self._style,
+            style=self._current_style,  # Use pre-selected style
         )
-
-        self._current_style = self._style if self._style else "random"
 
         return shape
 

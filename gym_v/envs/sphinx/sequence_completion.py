@@ -10,6 +10,7 @@ from PIL import Image
 
 from gym_v import Env, Observation, get_logger
 from gym_v.envs.sphinx.utils import (
+    POLY_STYLES,
     SEQUENCE_PATTERNS,
     TRANSFORMS,
     _images_are_similar,
@@ -83,6 +84,14 @@ class SphinxSequenceCompletionBaseEnv(Env):
         """Log reset information."""
         pass
 
+    def _prepare_reset(self) -> None:
+        """Hook for subclasses to prepare before shape generation.
+
+        Called after seed is set but before any shapes are generated.
+        Useful for Poly envs to select a consistent style.
+        """
+        pass
+
     def _select_pattern(self) -> tuple[str, list[str]]:
         """Select a pattern and return (pattern_name, transform_sequence)."""
         if self._pattern is not None and self._pattern in SEQUENCE_PATTERNS:
@@ -99,6 +108,7 @@ class SphinxSequenceCompletionBaseEnv(Env):
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
         super().reset(seed=seed)
+        self._prepare_reset()
 
         # Generate base shape
         base_shape = self._generate_base_shape()
@@ -326,6 +336,16 @@ class SphinxSequenceCompletionPolyEnv(SphinxSequenceCompletionBaseEnv):
         self._style = style
         self._current_style: str | None = None
 
+    def _prepare_reset(self) -> None:
+        """Select a consistent style for this reset."""
+        if self._style is not None:
+            self._current_style = self._style
+        else:
+            # Random selection
+            self._current_style = POLY_STYLES[
+                int(self.np_random.integers(0, len(POLY_STYLES)))
+            ]
+
     def _generate_base_shape(self) -> Image.Image:
         shape = generate_random_polygon(
             self.np_random,
@@ -334,10 +354,8 @@ class SphinxSequenceCompletionPolyEnv(SphinxSequenceCompletionBaseEnv):
             line_width=self._line_width,
             grid_lines=True,
             grid_divisions=self._grid_divisions,
-            style=self._style,
+            style=self._current_style,  # Use pre-selected style
         )
-
-        self._current_style = self._style if self._style else "random"
 
         return shape
 
