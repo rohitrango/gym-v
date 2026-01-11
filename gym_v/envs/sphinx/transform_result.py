@@ -1,7 +1,8 @@
-"""Transform Result Identify environment with procedural generation."""
+"""Transform Result Identify environments with procedural generation."""
 
 from __future__ import annotations
 
+from abc import abstractmethod
 from textwrap import dedent
 from typing import Any
 
@@ -13,11 +14,11 @@ from gym_v.envs.sphinx.utils import (
     apply_transform,
     compose_8_options,
     generate_random_grid,
+    generate_random_polygon,
 )
 
 logger = get_logger()
 
-# Human-readable descriptions for each transformation
 TRANSFORM_DESCRIPTIONS = {
     "identity": "no transformation",
     "rot90_cw": "rotate 90° clockwise",
@@ -30,36 +31,20 @@ TRANSFORM_DESCRIPTIONS = {
 }
 
 
-class SphinxTransformResultEnv(Env):
-    """Transform Result Identify task with procedural generation.
+class SphinxTransformResultBaseEnv(Env):
+    """Base class for Transform Result Identify tasks.
 
     Given an original shape and a transformation description, identify which
     of 8 options shows the correct transformation result.
-
-    The environment procedurally generates random colored grid patterns and
-    applies geometric transformations to create the task.
-
-    Args:
-        grid_size: Size of the grid (grid_size x grid_size), controls difficulty
-        num_colors: Number of colors to use in the grid
-        cell_size: Pixel size of each cell in the grid
-        option_size: Size of each option image in pixels
-        padding: Padding between elements in the composed image
     """
 
     def __init__(
         self,
-        grid_size: int = 5,
-        num_colors: int = 4,
-        cell_size: int = 40,
         option_size: int = 280,
         padding: int = 20,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self._grid_size = grid_size
-        self._num_colors = num_colors
-        self._cell_size = cell_size
         self._option_size = option_size
         self._padding = padding
 
@@ -94,61 +79,24 @@ class SphinxTransformResultEnv(Env):
             f"which option (a)–(h) shows the correct outcome?"
         )
 
-    def reset(
-        self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
-        super().reset(seed=seed)
+    @abstractmethod
+    def _generate_original(self) -> Image.Image:
+        """Generate the original shape image.
 
-        # Generate random grid as the original shape
-        self._original = generate_random_grid(
-            self.np_random,
-            grid_size=self._grid_size,
-            num_colors=self._num_colors,
-            cell_size=self._cell_size,
-        )
+        Returns:
+            PIL Image of the original shape
+        """
+        pass
 
-        # Randomly select a transformation as the correct answer
-        transform_idx = int(self.np_random.integers(0, len(TRANSFORMS)))
-        self._correct_transform = TRANSFORMS[transform_idx]
+    @abstractmethod
+    def _get_metadata(self) -> dict[str, Any]:
+        """Get environment-specific metadata for observation."""
+        pass
 
-        # Generate 8 options with all transformations
-        options_list, self._correct_idx = self._generate_options()
-
-        # Compose the final image
-        self._composed_image = compose_8_options(
-            self._original,
-            options_list,
-            self._correct_idx,
-            option_size=self._option_size,
-            padding=self._padding,
-        )
-
-        # Set oracle answer
-        labels = ["(a)", "(b)", "(c)", "(d)", "(e)", "(f)", "(g)", "(h)"]
-        self._oracle_answer = labels[self._correct_idx]
-
-        # Build observation text
-        obs_text = self._build_problem_text()
-
-        logger.info(
-            f"Reset Sphinx TransformResult: transform={self._correct_transform}, "
-            f"answer={self._oracle_answer}, grid_size={self._grid_size}"
-        )
-
-        obs = Observation(
-            image=self.render(),
-            text=obs_text,
-            metadata={
-                "transform": self._correct_transform,
-                "grid_size": self._grid_size,
-                "num_colors": self._num_colors,
-            },
-        )
-        info = {
-            "oracle_answer": self._oracle_answer,
-            "transform": self._correct_transform,
-        }
-        return obs, info
+    @abstractmethod
+    def _log_reset(self) -> None:
+        """Log reset information."""
+        pass
 
     def _generate_options(self) -> tuple[list[Image.Image], int]:
         """Generate 8 option images with all transformations.
@@ -156,10 +104,8 @@ class SphinxTransformResultEnv(Env):
         Returns:
             Tuple of (list of 8 option images, index of correct answer)
         """
-        # Generate all 8 transformations
         transformed = {t: apply_transform(self._original, t) for t in TRANSFORMS}
 
-        # Create shuffled list
         transform_order = list(TRANSFORMS)
         self.np_random.shuffle(transform_order)
 
@@ -168,25 +114,55 @@ class SphinxTransformResultEnv(Env):
 
         return options, correct_idx
 
+    def reset(
+        self, *, seed: int | None = None, options: dict[str, Any] | None = None
+    ) -> tuple[Observation, dict[str, Any]]:
+        super().reset(seed=seed)
+
+        self._original = self._generate_original()
+
+        transform_idx = int(self.np_random.integers(0, len(TRANSFORMS)))
+        self._correct_transform = TRANSFORMS[transform_idx]
+
+        options_list, self._correct_idx = self._generate_options()
+
+        self._composed_image = compose_8_options(
+            self._original,
+            options_list,
+            self._correct_idx,
+            option_size=self._option_size,
+            padding=self._padding,
+        )
+
+        labels = ["(a)", "(b)", "(c)", "(d)", "(e)", "(f)", "(g)", "(h)"]
+        self._oracle_answer = labels[self._correct_idx]
+
+        obs_text = self._build_problem_text()
+
+        self._log_reset()
+
+        obs = Observation(
+            image=self.render(),
+            text=obs_text,
+            metadata={"transform": self._correct_transform, **self._get_metadata()},
+        )
+        info = {
+            "oracle_answer": self._oracle_answer,
+            "transform": self._correct_transform,
+            **self._get_metadata(),
+        }
+        return obs, info
+
     def inner_step(
         self, action: str
     ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
-        """Evaluate the action against the correct answer.
-
-        Args:
-            action: The user's answer, e.g., "(a)", "a", "(h)"
-
-        Returns:
-            Tuple of (observation, reward, terminated, truncated, info)
-        """
-        # Normalize action
+        """Evaluate the action against the correct answer."""
         action_clean = action.strip().lower()
         if not action_clean.startswith("("):
             action_clean = f"({action_clean})"
         if not action_clean.endswith(")"):
             action_clean = action_clean + ")"
 
-        # Check if answer is correct
         correct = action_clean == self._oracle_answer.lower()
         reward = 1.0 if correct else 0.0
 
@@ -209,6 +185,124 @@ class SphinxTransformResultEnv(Env):
 
     def render(self) -> Image.Image:
         """Return the composed image with 8 options."""
-        if self._composed_image is None:
-            raise RuntimeError("Environment not reset. Call reset() first.")
         return self._composed_image
+
+
+class SphinxTransformResultEnv(SphinxTransformResultBaseEnv):
+    """Transform Result Identify task with colored grid patterns.
+
+    Args:
+        grid_size: Size of the grid (grid_size x grid_size), controls difficulty
+        num_colors: Number of colors to use in the grid
+        cell_size: Pixel size of each cell in the grid
+        option_size: Size of each option image in pixels
+        padding: Padding between elements in the composed image
+    """
+
+    def __init__(
+        self,
+        grid_size: int = 5,
+        num_colors: int = 4,
+        cell_size: int = 40,
+        option_size: int = 280,
+        padding: int = 20,
+        **kwargs: Any,
+    ):
+        super().__init__(option_size=option_size, padding=padding, **kwargs)
+        self._grid_size = grid_size
+        self._num_colors = num_colors
+        self._cell_size = cell_size
+
+    def _generate_original(self) -> Image.Image:
+        return generate_random_grid(
+            self.np_random,
+            grid_size=self._grid_size,
+            num_colors=self._num_colors,
+            cell_size=self._cell_size,
+        )
+
+    def _get_metadata(self) -> dict[str, Any]:
+        return {
+            "grid_size": self._grid_size,
+            "num_colors": self._num_colors,
+        }
+
+    def _log_reset(self) -> None:
+        logger.info(
+            f"Reset Sphinx TransformResult: transform={self._correct_transform}, "
+            f"answer={self._oracle_answer}, grid_size={self._grid_size}"
+        )
+
+
+class SphinxTransformResultPolyEnv(SphinxTransformResultBaseEnv):
+    """Transform Result Identify task with polygon shapes (original Sphinx style).
+
+    Args:
+        img_size: Size of each shape image in pixels
+        num_points: Number of vertices in the polygon (controls complexity)
+        line_width: Width of polygon lines
+        grid_divisions: Number of grid divisions in background
+        option_size: Size of each option image in the composed output
+        padding: Padding between elements in the composed image
+        style: Visual style ('outline', 'filled', 'nested', 'striped',
+               'gradient', '3d', 'composite', 'pixelated'),
+               or 'random' for random selection each reset
+        difficulty: Difficulty level 1-8 (maps to styles in order).
+    """
+
+    def __init__(
+        self,
+        img_size: int = 300,
+        num_points: int = 8,
+        line_width: int = 3,
+        grid_divisions: int = 8,
+        option_size: int = 280,
+        padding: int = 20,
+        style: str | None = None,
+        difficulty: int | None = None,
+        **kwargs: Any,
+    ):
+        super().__init__(option_size=option_size, padding=padding, **kwargs)
+        self._img_size = img_size
+        self._num_points = num_points
+        self._line_width = line_width
+        self._grid_divisions = grid_divisions
+        self._style = style
+        self._difficulty = difficulty
+        self._current_style: str | None = None
+
+    def _generate_original(self) -> Image.Image:
+        original = generate_random_polygon(
+            self.np_random,
+            img_size=self._img_size,
+            num_points=self._num_points,
+            line_width=self._line_width,
+            grid_lines=True,
+            grid_divisions=self._grid_divisions,
+            style=self._style,
+            difficulty=self._difficulty,
+        )
+
+        if self._style == "random" or (
+            self._style is None and self._difficulty is None
+        ):
+            self._current_style = "random"
+        elif self._style is not None:
+            self._current_style = self._style
+        else:
+            self._current_style = f"difficulty_{self._difficulty}"
+
+        return original
+
+    def _get_metadata(self) -> dict[str, Any]:
+        return {
+            "num_points": self._num_points,
+            "style": self._current_style,
+        }
+
+    def _log_reset(self) -> None:
+        logger.info(
+            f"Reset Sphinx TransformResultPoly: transform={self._correct_transform}, "
+            f"answer={self._oracle_answer}, num_points={self._num_points}, "
+            f"style={self._current_style}"
+        )

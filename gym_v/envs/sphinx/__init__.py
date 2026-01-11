@@ -1,6 +1,8 @@
-"""Sphinx visual reasoning environments."""
-
-from gym_v.envs.sphinx.symmetry_fill import SphinxSymmetryFillEnv
-from gym_v.envs.sphinx.symmetry_fill_poly import SphinxSymmetryFillPolyEnv
-from gym_v.envs.sphinx.transform_result import SphinxTransformResultEnv
-from gym_v.envs.sphinx.transform_result_poly import SphinxTransformResultPolyEnv
+from gym_v.envs.sphinx.symmetry_fill import (
+    SphinxSymmetryFillEnv,
+    SphinxSymmetryFillPolyEnv,
+)
+from gym_v.envs.sphinx.transform_result import (
+    SphinxTransformResultEnv,
+    SphinxTransformResultPolyEnv,
+)

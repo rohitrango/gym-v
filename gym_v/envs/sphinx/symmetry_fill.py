@@ -1,7 +1,8 @@
-"""Symmetry Fill environment with procedural generation."""
+"""Symmetry Fill environments with procedural generation."""
 
 from __future__ import annotations
 
+from abc import abstractmethod
 from textwrap import dedent
 from typing import Any
 
@@ -12,41 +13,26 @@ from gym_v.envs.sphinx.utils import (
     compose_symmetry_fill_8_options,
     generate_extra_distractors,
     generate_symmetric_2x2_grid,
+    generate_symmetric_2x2_icons,
 )
 
 logger = get_logger()
 
 
-class SphinxSymmetryFillEnv(Env):
-    """Symmetry Fill task with procedural generation.
+class SphinxSymmetryFillBaseEnv(Env):
+    """Base class for Symmetry Fill tasks.
 
     Given a 2x2 grid with one missing cell, identify which of 8 options
     completes the grid to satisfy vertical + horizontal mirror symmetry.
-
-    The environment procedurally generates random colored grid patterns
-    with symmetry constraints.
-
-    Args:
-        cell_grid_size: Grid size within each cell, controls difficulty
-        num_colors: Number of colors to use in the grids
-        cell_size: Pixel size of each cell
-        option_size: Size of each option image in pixels
-        padding: Padding between elements in the composed image
     """
 
     def __init__(
         self,
-        cell_grid_size: int = 4,
-        num_colors: int = 3,
-        cell_size: int = 100,
         option_size: int = 200,
         padding: int = 15,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self._cell_grid_size = cell_grid_size
-        self._num_colors = num_colors
-        self._cell_size = cell_size
         self._option_size = option_size
         self._padding = padding
 
@@ -92,22 +78,19 @@ class SphinxSymmetryFillEnv(Env):
         """
         cell_w, cell_h = cells[0].size
 
-        # Create canvas for 2x2 grid
         total_w = 2 * cell_w + gap
         total_h = 2 * cell_h + gap
         canvas = Image.new("RGB", (total_w, total_h), (255, 255, 255))
 
-        # Position mapping: [TL, TR, BL, BR]
         positions = [
-            (0, 0),  # TL
-            (cell_w + gap, 0),  # TR
-            (0, cell_h + gap),  # BL
-            (cell_w + gap, cell_h + gap),  # BR
+            (0, 0),
+            (cell_w + gap, 0),
+            (0, cell_h + gap),
+            (cell_w + gap, cell_h + gap),
         ]
 
         for i, (cell, pos) in enumerate(zip(cells, positions, strict=True)):
             if i == hidden_idx:
-                # Draw black rectangle for hidden cell
                 black_cell = Image.new("RGB", (cell_w, cell_h), (0, 0, 0))
                 canvas.paste(black_cell, pos)
             else:
@@ -115,53 +98,52 @@ class SphinxSymmetryFillEnv(Env):
 
         return canvas
 
+    @abstractmethod
+    def _generate_cells(self) -> tuple[list[Image.Image], int]:
+        """Generate the 2x2 grid cells with symmetry.
+
+        Returns:
+            Tuple of (list of 4 cell images, hidden cell index)
+        """
+        pass
+
+    @abstractmethod
+    def _get_metadata(self) -> dict[str, Any]:
+        """Get environment-specific metadata for observation."""
+        pass
+
+    @abstractmethod
+    def _log_reset(self) -> None:
+        """Log reset information."""
+        pass
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Observation, dict[str, Any]]:
         super().reset(seed=seed)
 
-        # Generate symmetric 2x2 grid
-        self._cells, self._hidden_idx = generate_symmetric_2x2_grid(
-            self.np_random,
-            cell_grid_size=self._cell_grid_size,
-            num_colors=self._num_colors,
-            cell_size=self._cell_size,
-        )
+        self._cells, self._hidden_idx = self._generate_cells()
 
-        # The correct answer is the hidden cell
         correct_cell = self._cells[self._hidden_idx]
-
-        # Compose question grid (with hidden cell as black)
         self._question = self._compose_question_grid(self._cells, self._hidden_idx)
 
-        # Generate 8 options:
-        # - Option 0: correct answer
-        # - Options 1-3: other cells from the grid (as partial distractors)
-        # - Options 4-7: generated distractors via transformations
-
-        # Get the other 3 cells as base distractors
         other_cells = [self._cells[i] for i in range(4) if i != self._hidden_idx]
 
-        # Generate 4 extra distractors by transforming the correct answer
         extra_distractors = generate_extra_distractors(
             correct_cell,
-            self._cells,  # All 4 cells for comparison
+            self._cells,
             self.np_random,
             num_extra=4,
         )
 
-        # Combine: correct + 3 other cells + 4 generated distractors = 8 options
         all_options = [correct_cell] + other_cells + extra_distractors
 
-        # Shuffle all 8 options and track correct answer position
         indices = list(range(8))
         self.np_random.shuffle(indices)
 
         shuffled_options = [all_options[i] for i in indices]
-        # Find where the correct option (index 0) ended up
         self._correct_idx = indices.index(0)
 
-        # Compose the final image
         self._composed_image = compose_symmetry_fill_8_options(
             self._question,
             shuffled_options,
@@ -170,55 +152,38 @@ class SphinxSymmetryFillEnv(Env):
             padding=self._padding,
         )
 
-        # Set oracle answer
         labels = ["(a)", "(b)", "(c)", "(d)", "(e)", "(f)", "(g)", "(h)"]
         self._oracle_answer = labels[self._correct_idx]
 
-        # Build observation text
         obs_text = (
             "Which option (a)-(h) completes the left 2×2 grid "
             "with vertical + horizontal mirror symmetry?"
         )
 
-        logger.info(
-            f"Reset Sphinx SymmetryFill: hidden_idx={self._hidden_idx}, "
-            f"answer={self._oracle_answer}, cell_grid_size={self._cell_grid_size}"
-        )
+        self._log_reset()
 
         obs = Observation(
             image=self.render(),
             text=obs_text,
-            metadata={
-                "hidden_idx": self._hidden_idx,
-                "cell_grid_size": self._cell_grid_size,
-                "num_colors": self._num_colors,
-            },
+            metadata={"hidden_idx": self._hidden_idx, **self._get_metadata()},
         )
         info = {
             "oracle_answer": self._oracle_answer,
             "hidden_idx": self._hidden_idx,
+            **self._get_metadata(),
         }
         return obs, info
 
     def inner_step(
         self, action: str
     ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
-        """Evaluate the action against the correct answer.
-
-        Args:
-            action: The user's answer, e.g., "(a)", "a", "(h)"
-
-        Returns:
-            Tuple of (observation, reward, terminated, truncated, info)
-        """
-        # Normalize action
+        """Evaluate the action against the correct answer."""
         action_clean = action.strip().lower()
         if not action_clean.startswith("("):
             action_clean = f"({action_clean})"
         if not action_clean.endswith(")"):
             action_clean = action_clean + ")"
 
-        # Check if answer is correct
         correct = action_clean == self._oracle_answer.lower()
         reward = 1.0 if correct else 0.0
 
@@ -240,6 +205,110 @@ class SphinxSymmetryFillEnv(Env):
 
     def render(self) -> Image.Image:
         """Return the composed image with 8 options."""
-        if self._composed_image is None:
-            raise RuntimeError("Environment not reset. Call reset() first.")
         return self._composed_image
+
+
+class SphinxSymmetryFillEnv(SphinxSymmetryFillBaseEnv):
+    """Symmetry Fill task with colored grid patterns.
+
+    Args:
+        cell_grid_size: Grid size within each cell, controls difficulty
+        num_colors: Number of colors to use in the grids
+        cell_size: Pixel size of each cell
+        option_size: Size of each option image in pixels
+        padding: Padding between elements in the composed image
+    """
+
+    def __init__(
+        self,
+        cell_grid_size: int = 4,
+        num_colors: int = 3,
+        cell_size: int = 100,
+        option_size: int = 200,
+        padding: int = 15,
+        **kwargs: Any,
+    ):
+        super().__init__(option_size=option_size, padding=padding, **kwargs)
+        self._cell_grid_size = cell_grid_size
+        self._num_colors = num_colors
+        self._cell_size = cell_size
+
+    def _generate_cells(self) -> tuple[list[Image.Image], int]:
+        return generate_symmetric_2x2_grid(
+            self.np_random,
+            cell_grid_size=self._cell_grid_size,
+            num_colors=self._num_colors,
+            cell_size=self._cell_size,
+        )
+
+    def _get_metadata(self) -> dict[str, Any]:
+        return {
+            "cell_grid_size": self._cell_grid_size,
+            "num_colors": self._num_colors,
+        }
+
+    def _log_reset(self) -> None:
+        logger.info(
+            f"Reset Sphinx SymmetryFill: hidden_idx={self._hidden_idx}, "
+            f"answer={self._oracle_answer}, cell_grid_size={self._cell_grid_size}"
+        )
+
+
+class SphinxSymmetryFillPolyEnv(SphinxSymmetryFillBaseEnv):
+    """Symmetry Fill task with icon shapes (original Sphinx style).
+
+    Args:
+        cell_size: Pixel size of each cell/icon
+        line_width: Width of icon lines
+        option_size: Size of each option image in pixels
+        padding: Padding between elements in the composed image
+        style: Visual style ('simple', 'colored', 'nested', 'complex'),
+               or 'random' for random selection each reset
+        difficulty: Difficulty level 1-4. Higher = more complex icons.
+    """
+
+    def __init__(
+        self,
+        cell_size: int = 200,
+        line_width: int = 4,
+        option_size: int = 200,
+        padding: int = 15,
+        style: str | None = None,
+        difficulty: int | None = None,
+        **kwargs: Any,
+    ):
+        super().__init__(option_size=option_size, padding=padding, **kwargs)
+        self._cell_size = cell_size
+        self._line_width = line_width
+        self._style = style
+        self._difficulty = difficulty
+        self._current_style: str | None = None
+
+    def _generate_cells(self) -> tuple[list[Image.Image], int]:
+        cells, hidden_idx = generate_symmetric_2x2_icons(
+            self.np_random,
+            cell_size=self._cell_size,
+            line_width=self._line_width,
+            style=self._style,
+            difficulty=self._difficulty,
+        )
+
+        if self._style == "random" or (
+            self._style is None and self._difficulty is None
+        ):
+            self._current_style = "random"
+        elif self._style is not None:
+            self._current_style = self._style
+        else:
+            self._current_style = f"difficulty_{self._difficulty}"
+
+        return cells, hidden_idx
+
+    def _get_metadata(self) -> dict[str, Any]:
+        return {"style": self._current_style}
+
+    def _log_reset(self) -> None:
+        logger.info(
+            f"Reset Sphinx SymmetryFillPoly: hidden_idx={self._hidden_idx}, "
+            f"answer={self._oracle_answer}, style={self._current_style}"
+        )

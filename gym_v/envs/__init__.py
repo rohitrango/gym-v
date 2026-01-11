@@ -1001,9 +1001,9 @@ register(
     entry_point="gym_v.envs.sphinx.transform_result:SphinxTransformResultEnv",
     max_episode_steps=1,
     kwargs=dict(
-        grid_size=5,  # Grid size for difficulty control
-        num_colors=4,  # Number of colors
-        cell_size=40,  # Pixel size per cell
+        grid_size=5,
+        num_colors=4,
+        cell_size=40,
         option_size=280,
         padding=20,
     ),
@@ -1014,24 +1014,23 @@ register(
     entry_point="gym_v.envs.sphinx.symmetry_fill:SphinxSymmetryFillEnv",
     max_episode_steps=1,
     kwargs=dict(
-        cell_grid_size=4,  # Grid size within each cell for difficulty control
-        num_colors=3,  # Number of colors
-        cell_size=100,  # Pixel size per cell
+        cell_grid_size=4,
+        num_colors=3,
+        cell_size=100,
         option_size=200,
         padding=15,
     ),
 )
 
-# Sphinx environments (procedurally generated) - Polygon/Icon style (original Sphinx-like)
 register(
     id="Sphinx/TransformResultPoly-v0",
-    entry_point="gym_v.envs.sphinx.transform_result_poly:SphinxTransformResultPolyEnv",
+    entry_point="gym_v.envs.sphinx.transform_result:SphinxTransformResultPolyEnv",
     max_episode_steps=1,
     kwargs=dict(
-        img_size=300,  # Size of shape image
-        num_points=8,  # Number of polygon vertices (controls complexity)
-        line_width=3,  # Line width
-        grid_divisions=8,  # Grid background divisions
+        img_size=300,
+        num_points=8,
+        line_width=3,
+        grid_divisions=8,
         option_size=280,
         padding=20,
     ),
@@ -1039,11 +1038,11 @@ register(
 
 register(
     id="Sphinx/SymmetryFillPoly-v0",
-    entry_point="gym_v.envs.sphinx.symmetry_fill_poly:SphinxSymmetryFillPolyEnv",
+    entry_point="gym_v.envs.sphinx.symmetry_fill:SphinxSymmetryFillPolyEnv",
     max_episode_steps=1,
     kwargs=dict(
-        cell_size=200,  # Size of each icon
-        line_width=4,  # Line width
+        cell_size=200,
+        line_width=4,
         option_size=200,
         padding=15,
     ),
