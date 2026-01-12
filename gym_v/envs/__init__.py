@@ -467,7 +467,6 @@ register(
         padding=20,
     ),
 )
-
 register(
     id="GameRL/Pacman-v0",
     entry_point="gym_v.envs.gamerl_multiturn.pacman:GameRLPacmanEnv",
@@ -556,6 +555,41 @@ register(
         size=9,
         difficulty="medium",
         cell_size=50,
+    ),
+)
+
+register(
+    id="RLVE/HitoriPuzzle-v0",
+    entry_point="gym_v.envs.rlve.hitori_puzzle:RLVEHitoriPuzzleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=4,
+        cell_px=56,
+        padding=24,
+    ),
+)
+
+register(
+    id="RLVE/SkyscraperPuzzle-v0",
+    entry_point="gym_v.envs.rlve.skyscraper_puzzle:RLVESkyscraperPuzzleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        n=3,
+        cell_px=52,
+        padding=28,
+    ),
+)
+
+register(
+    id="RLVE/LightUpPuzzle-v0",
+    entry_point="gym_v.envs.rlve.light_up_puzzle:RLVELightUpPuzzleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=3,
+        density_list=[0.5, 0.6, 0.7, 0.8, 0.9, 0.95],
+        black_cell_density_range=(0.6, 0.95),
+        cell_px=48,
+        padding=24,
     ),
 )
 
