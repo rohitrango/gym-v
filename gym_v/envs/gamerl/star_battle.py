@@ -266,7 +266,7 @@ Grid (*=star, 1-{self._grid_size}=region number):
         obs = Observation(image=self.render(), text=response)
         return obs, reward, terminated, truncated, info
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the current puzzle state as a PIL Image."""
         img_width = self._grid_size * self._cell_size
         img_height = self._grid_size * self._cell_size

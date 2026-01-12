@@ -119,7 +119,7 @@ class OfflineSingleTurnEnv(Env):
 
         return obs, reward, True, False, info
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         if self._current_sample.image is None:
             raise RuntimeError("current sample has no image")
         return self._current_sample.image

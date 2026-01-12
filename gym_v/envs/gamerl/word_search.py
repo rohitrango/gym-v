@@ -217,7 +217,7 @@ Grid (uppercase letters):
 
         return obs, reward, True, False, info  # Always terminate after one step
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the word search grid as a PIL Image."""
         grid_width = (self._grid_size + 1) * self._cell_size
         grid_height = (self._grid_size + 1) * self._cell_size

@@ -802,7 +802,7 @@ class GameRL3DReconstructionQAEnv(Env):
         obs = Observation(image=self.render(), text=response)
         return obs, reward, True, False, {}
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the 3D reconstruction game as a PIL Image.
 
         Creates a composite image showing:

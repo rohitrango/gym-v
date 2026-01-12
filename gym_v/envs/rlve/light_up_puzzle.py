@@ -279,7 +279,7 @@ The grid is given in **row-major order**:
 
         return (satisfied / total) ** 10
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         if self._grid is None:
             raise RuntimeError("No grid generated")
         rows, cols = len(self._grid), len(self._grid[0])

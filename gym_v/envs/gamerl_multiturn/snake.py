@@ -156,7 +156,7 @@ class GameRLSnakeEnv(Env):
         obs = Observation(image=self.render(), text=self._get_observation_text())
         return obs, reward, terminated, truncated, info
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the game state as a PIL Image."""
         img_width = self._width * self._cell_size + 2 * self._margin
         img_height = self._height * self._cell_size + 2 * self._margin

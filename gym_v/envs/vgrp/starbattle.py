@@ -473,7 +473,7 @@ class VGRPStarBattleEnv(Env):
                 board.append(row)
         return board
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         size_px = self._cell_px * self._size + 2 * self._padding
         img = Image.new("RGB", (size_px, size_px), (255, 255, 255))
         draw = ImageDraw.Draw(img)

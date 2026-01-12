@@ -255,7 +255,7 @@ Do not include any explanation or extra text.
         obs = Observation(image=self.render(), text=response)
         return obs, reward, terminated, truncated, info
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the rhythm game grid."""
         rows, cols = self._grid_size
         margin_x, margin_y = 40, 40

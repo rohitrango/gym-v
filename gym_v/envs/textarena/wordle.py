@@ -99,7 +99,7 @@ class TextArenaWordleEnv(Env):
 
         return obs, reward, terminated, truncated, info
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         # Constants for rendering
         cell_size = self._cell_size
         gap = 5

@@ -521,7 +521,7 @@ Grid (#=placed, *=falling, .=empty):
 
         self._oracle_answer = str(max_cleared)
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the game state."""
         width = self._cols * self._cell_size + 2 * self._padding
         height = self._rows * self._cell_size + 2 * self._padding

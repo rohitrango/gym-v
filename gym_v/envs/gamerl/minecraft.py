@@ -248,7 +248,7 @@ Do not include any explanation or extra text.
         obs = Observation(image=self.render(), text=response)
         return obs, reward, terminated, truncated, info
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the Minecraft scene in isometric view."""
         # Image dimensions
         img_width, img_height = 800, 600

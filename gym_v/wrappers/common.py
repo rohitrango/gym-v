@@ -62,7 +62,7 @@ class PassiveEnvChecker(Wrapper, RecordConstructorArgs):
         else:
             return self.env.reset(seed=seed, options=options)
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         """Renders the environment that on the first call will run the `passive_env_render_check`."""
         if self.checked_render is False:
             self.checked_render = True
@@ -140,7 +140,7 @@ class OrderEnforcing(Wrapper, RecordConstructorArgs):
         self._has_reset = True
         return super().reset(seed=seed, options=options)
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         """Renders the environment with `kwargs`."""
         if not self._disable_render_order_enforcing and not self._has_reset:
             raise RuntimeError(

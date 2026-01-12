@@ -909,7 +909,7 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
 
         return obs, reward, True, False, info
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the game state as an image using PIL."""
         curve_x, curve_y = self._track_data
 

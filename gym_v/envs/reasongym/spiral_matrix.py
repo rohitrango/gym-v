@@ -156,7 +156,7 @@ class ReasoningGymSpiralMatrixEnv(Env):
             return ""
         return "\n".join(" ".join(str(x) for x in row) for row in matrix)
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         return self._render_matrix_grid(
             self._matrix, cell_px=self._cell_px, padding=self._padding
         )

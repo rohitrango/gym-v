@@ -180,7 +180,7 @@ class ReasoningGymTowerOfHanoiEnv(Env):
 
         return obs, reward, True, False, info
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         return self._render_hanoi(
             peg_width=self._peg_width,
             peg_height=self._peg_height,

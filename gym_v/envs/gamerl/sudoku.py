@@ -269,7 +269,7 @@ Grid ({color_legend}, .=empty):
         }
         return obs, reward, True, False, info
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the current board state as a PIL Image."""
         grid_size = self._cell_size * self._size
         padding = self._margin

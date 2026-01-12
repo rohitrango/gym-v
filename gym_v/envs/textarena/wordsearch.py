@@ -97,7 +97,7 @@ class TextArenaWordSearchEnv(Env):
 
         return obs, reward, terminated, truncated, info
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         # Get game state
         game_board = self._ta_env.game_board
         highlighted_positions = self._ta_env.highlighted_positions

@@ -161,7 +161,7 @@ class ReasoningGymMiniSudokuEnv(Env):
             " ".join(str(x) if x != 0 else "_" for x in row) for row in board
         )
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         return self._render_mini_sudoku_grid(
             self._puzzle, cell_px=self._cell_px, padding=self._padding
         )

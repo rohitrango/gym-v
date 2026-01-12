@@ -461,7 +461,7 @@ Ship Row: {ship_str}"""
         self._oracle_answer = str(max_score)
         self._options = []
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the game state."""
         width = self._left_border + self._total_cols * self._cell_width
         height = self._top_border + (self._enemy_area_rows + 1) * self._cell_height

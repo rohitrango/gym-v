@@ -136,7 +136,7 @@ class TextArenaPegJumpEnv(Env):
 
         return obs, reward, terminated, truncated, info
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         board = self._ta_env.state.game_state["board"]
 
         # Calculate board dimensions based on peg_size

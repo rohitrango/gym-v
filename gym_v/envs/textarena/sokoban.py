@@ -100,7 +100,7 @@ class TextArenaSokobanEnv(Env):
 
         return obs, reward, terminated, truncated, info
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         room_state = self._ta_env.room_state
 
         rows, cols = room_state.shape

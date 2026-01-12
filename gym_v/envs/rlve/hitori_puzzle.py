@@ -303,7 +303,7 @@ The matrix is given in **row-major order**, with each row represented as a list 
                     )
         return False
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         if self._matrix is None:
             raise RuntimeError("No matrix generated")
         rows, cols = len(self._matrix), len(self._matrix[0])

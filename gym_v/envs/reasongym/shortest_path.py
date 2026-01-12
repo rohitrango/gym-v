@@ -163,7 +163,7 @@ class ReasoningGymShortestPathEnv(Env):
             return ""
         return "\n".join(" ".join(row) for row in matrix)
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         return self._render_path_grid(
             self._matrix, cell_px=self._cell_px, padding=self._padding
         )

@@ -91,7 +91,7 @@ class TextArenaTowerOfHanoiEnv(Env):
 
         return obs, reward, terminated, truncated, info
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         # Constants for rendering
         tower_width = 200
         tower_height = 300

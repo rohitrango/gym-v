@@ -943,7 +943,7 @@ Grid (C=Pacman, P=Pinky, B=Blinky, *=bean, #=wall, .=empty):
                 pos = random.choice(available)
                 self._ghosts.append(Ghost(name, pos, self))
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the game state."""
         img_width = self._margin + self._grid_size * self._cell_size
         img_height = (

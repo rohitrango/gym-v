@@ -401,7 +401,7 @@ class VGRPTreesAndTentsEnv(Env):
                 board.append(row)
         return board
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         return self._render_trees_and_tents(
             self._puzzle_board,
             self._row_clues,

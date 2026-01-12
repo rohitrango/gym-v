@@ -238,7 +238,7 @@ Do not include any explanation or extra text.
         obs = Observation(image=self.render(), text=response)
         return obs, reward, terminated, truncated, info
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the current puzzle state as a PIL Image."""
         index_margin = 30
         options_height = 100 if self._shuffled_colors else 0

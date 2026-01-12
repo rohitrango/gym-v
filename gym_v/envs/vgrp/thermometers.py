@@ -400,7 +400,7 @@ class VGRPThermometersEnv(Env):
                 board.append(row)
         return board
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         return self._render_thermometers(
             self._puzzle_board,
             self._thermometers,

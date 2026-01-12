@@ -101,7 +101,7 @@ class TextArenaGame2048Env(Env):
 
         return obs, reward, terminated, truncated, info
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         board_state = self._ta_env.state.game_state["board"]
 
         size = self._tile_size * 4

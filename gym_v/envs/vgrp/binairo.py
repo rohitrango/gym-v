@@ -286,7 +286,7 @@ class VGRPBinairoEnv(Env):
             board.append(row)
         return board
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         return self._render_binairo_grid(
             self._puzzle_board, cell_px=self._cell_px, padding=self._padding
         )

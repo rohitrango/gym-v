@@ -126,7 +126,7 @@ class TextArenaSudokuEnv(Env):
 
         return obs, reward, terminated, truncated, info
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         grid_size = 9
         cell_size = self._cell_size
         margin = 30

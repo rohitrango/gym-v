@@ -704,7 +704,7 @@ Goal: ({self._goal_pos.x if self._goal_pos else 'N/A'}, {self._goal_pos.y if sel
 
         return obs, reward, True, False, info
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the 3D maze as an image using isometric projection."""
         # Image settings
         img_width, img_height = 800, 600

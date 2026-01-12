@@ -270,7 +270,7 @@ Grid (#=unrevealed, F=flagged, .=revealed empty, 1-8=numbers, M=mine):
         }
         return obs, reward, True, False, info
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the current board state as a PIL Image."""
         # Calculate dimensions
         board_width = self._cols * self._cell_size

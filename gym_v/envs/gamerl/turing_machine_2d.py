@@ -282,7 +282,7 @@ Do not include any explanation or extra text.
         obs = Observation(image=self.render(), text=response)
         return obs, reward, terminated, truncated, info
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the current Turing machine state as a PIL Image."""
         rows, cols = self._grid_size
         margin = 40

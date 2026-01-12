@@ -221,7 +221,7 @@ The number of visible buildings is specified as follows:
 
         return (satisfied / (4 * N)) ** 10
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         N = int(self._n)
         cell_px = self._cell_px
         padding = self._padding

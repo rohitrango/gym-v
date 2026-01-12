@@ -161,7 +161,7 @@ class ReasoningGymTsumegoEnv(Env):
         rows = [f"{size-i:2d} {' '.join(row)}" for i, row in enumerate(board)]
         return cols + "\n" + "\n".join(rows)
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         return self._render_go_board(
             self._board, cell_px=self._cell_px, padding=self._padding
         )

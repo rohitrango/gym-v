@@ -255,7 +255,7 @@ Do not include any explanation or extra text.
         obs = Observation(image=self.render(), text=response)
         return obs, reward, terminated, truncated, info
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the Rubik's Cube in unfolded view."""
         cell_size = 40
         margin = 20

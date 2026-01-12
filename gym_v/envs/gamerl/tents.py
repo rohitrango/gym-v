@@ -296,7 +296,7 @@ Grid (T=tree, X=tent, .=empty):
         obs = Observation(image=self.render(), text=response)
         return obs, reward, terminated, truncated, info
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the current puzzle state as a PIL Image."""
         width, height = self._grid_size
         margin = 60

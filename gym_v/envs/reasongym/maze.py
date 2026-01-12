@@ -150,7 +150,7 @@ class ReasoningGymMazeEnv(Env):
 
         return obs, reward, True, False, info
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         return self._render_maze_grid(
             self._grid,
             cell_px=self._cell_px,

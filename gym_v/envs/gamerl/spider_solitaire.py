@@ -399,7 +399,7 @@ class GameRLSpiderSolitaireQAEnv(Env):
                     "RGBA"
                 )
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the game state as a PIL Image"""
         canvas_width = max(745, self.num_waste * XSPACING)
         canvas_height = 410

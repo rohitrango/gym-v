@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, SupportsFloat
 
 import numpy as np
 from PIL import Image
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from gym_v.logger import get_logger
 from gym_v.utils.record_constructor import RecordConstructorArgs
@@ -30,7 +30,9 @@ class Observation(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    image: Image.Image = Field(..., description="Visual observation as a PIL Image")
+    image: Image.Image | list[Image.Image] | None = Field(
+        ..., description="Visual observation as a PIL Image"
+    )
     text: str | None = Field(default=None, description="Textual observation or context")
     metadata: dict[str, Any] = Field(
         default_factory=dict, description="Additional metadata"
@@ -43,6 +45,13 @@ class Observation(BaseModel):
         if isinstance(v, np.ndarray):
             return Image.fromarray(v)
         return v
+
+    @model_validator(mode="after")
+    def _require_content(self) -> Observation:
+        """Validate that the observation has at least text or image."""
+        if self.image is None and self.text is None:
+            raise ValueError("observation must contain at least 'text' or 'image'")
+        return self
 
 
 class Env:
@@ -120,7 +129,7 @@ class Env:
         if seed is not None:
             self._np_random, self._np_random_seed = np_random(seed)
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the environment.
 
         Returns:
@@ -224,7 +233,7 @@ class Wrapper(Env):
         """Uses the `reset` of the `env` that can be overwritten to change the returned data."""
         return self.env.reset(seed=seed, options=options)
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         """Uses the `render` of the `env` that can be overwritten to change the returned data."""
         return self.env.render()
 

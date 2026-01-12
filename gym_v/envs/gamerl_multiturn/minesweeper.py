@@ -188,7 +188,7 @@ class GameRLMinesweeperEnv(Env):
         obs = Observation(image=self.render(), text=self._get_observation_text())
         return obs, reward, terminated, truncated, info
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the current board state as a PIL Image."""
         # Calculate dimensions
         board_width = self._cols * self._cell_size

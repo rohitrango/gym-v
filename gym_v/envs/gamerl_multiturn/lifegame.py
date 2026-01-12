@@ -149,7 +149,7 @@ class GameRLLifegameEnv(Env):
         obs = Observation(image=self.render(), text=self._get_observation_text())
         return obs, reward, terminated, truncated, info
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the current grid state as a PIL Image."""
         width = self._grid_size * self._cell_size + self._margin * 2
         height = self._grid_size * self._cell_size + self._margin * 2

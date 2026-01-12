@@ -170,7 +170,7 @@ class ReasoningGymGameOfLifeEnv(Env):
 
         return obs, reward, True, False, info
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         return self._render_life_grid(
             self._board, cell_px=self._cell_px, padding=self._padding
         )

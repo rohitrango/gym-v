@@ -466,7 +466,7 @@ class GameRLJewel2QAEnv(Env):
             if img_path.exists():
                 self._element_images[elem] = Image.open(img_path).convert("RGBA")
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the game board"""
         image_width = 480
         image_height = 640

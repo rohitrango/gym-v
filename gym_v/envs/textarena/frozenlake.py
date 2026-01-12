@@ -103,7 +103,7 @@ class TextArenaFrozenLakeEnv(Env):
 
         return obs, reward, terminated, truncated, info
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         grid = self._ta_env.state.game_state["grid"]
         player_pos = self._ta_env.state.game_state["player_pos"]
 

@@ -217,7 +217,7 @@ class ReasoningGymKnightSwapEnv(Env):
 
         return "\n".join(lines)
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         return self._render_knight_board(
             self._board,
             self._pieces,

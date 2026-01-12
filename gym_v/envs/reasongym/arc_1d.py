@@ -187,7 +187,7 @@ class ReasoningGymArc1DEnv(Env):
 
         return obs, reward, True, False, info
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         return self._render_arc_1d(
             self._train_examples,
             self._test_example,

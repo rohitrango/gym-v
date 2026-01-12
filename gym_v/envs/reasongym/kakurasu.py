@@ -181,7 +181,7 @@ class ReasoningGymKakurasuEnv(Env):
             lines.append(" ".join(str(x) for x in row))
         return "\n".join(lines)
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         return self._render_kakurasu_grid(
             self._puzzle,
             self._row_sums,

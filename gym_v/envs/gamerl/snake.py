@@ -543,7 +543,7 @@ Grid (H=head, B=body, F=food, .=empty):
         else:
             self._food = None
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the game state as a PIL Image."""
         img_width = self._width * self._cell_size + 2 * self._margin
         img_height = self._height * self._cell_size + 2 * self._margin

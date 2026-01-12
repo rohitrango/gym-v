@@ -602,7 +602,7 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
 
         return obs, reward, True, False, info
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the Sokoban board as an image using PIL."""
         cell_size = 60
         img_width = self._size * cell_size

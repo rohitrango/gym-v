@@ -226,7 +226,7 @@ class GameRLSpaceInvadersEnv(Env):
         self._score += target.score
         return float(target.score)
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the game state as a PIL Image."""
         width = self._left_border + self._total_cols * self._cell_width
         height = self._top_border + (self._enemy_area_rows + 1) * self._cell_height

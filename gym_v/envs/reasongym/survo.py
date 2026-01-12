@@ -165,7 +165,7 @@ class ReasoningGymSurvoEnv(Env):
         """Convert board to string representation."""
         return "\n".join(" ".join(str(x) for x in row) for row in board)
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         return self._render_survo_grid(
             self._puzzle, cell_px=self._cell_px, padding=self._padding
         )

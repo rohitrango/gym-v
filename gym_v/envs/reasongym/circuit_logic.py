@@ -177,7 +177,7 @@ class ReasoningGymCircuitLogicEnv(Env):
 
         return obs, reward, True, False, info
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         return self._render_circuit(
             self._diagram, self._assignments, padding=self._padding
         )

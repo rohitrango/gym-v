@@ -1076,7 +1076,7 @@ class GameRLUltraTicTacToeQAEnv(Env):
 
         return obs, reward, True, False, {}
 
-    def render(self) -> Image.Image:
+    def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the Ultra TicTacToe board as a PIL Image.
 
         Returns:
