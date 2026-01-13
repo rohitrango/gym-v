@@ -63,7 +63,7 @@ class TextArenaSokobanEnv(Env):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
 
         self._ta_env.reset(num_players=1, seed=seed)
@@ -73,15 +73,21 @@ class TextArenaSokobanEnv(Env):
 
         obs = Observation(image=self.render(), text=self._get_observation_text())
         info = {}
-
-        return obs, info
+        return {"agent_0": obs}, {"agent_0": info}
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
-        info = {}
-        done, _ = self._ta_env.step(action)
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
+        action_str = action["agent_0"]
+        done, _ = self._ta_env.step(action_str)
 
+        info = {}
         info["invalid_action"] = (
             self._ta_env.state.error_count > 0
             or self._ta_env.state.game_info[0]["invalid_move"]
@@ -98,7 +104,13 @@ class TextArenaSokobanEnv(Env):
 
         obs = Observation(image=self.render(), text=self._get_observation_text())
 
-        return obs, reward, terminated, truncated, info
+        return (
+            {"agent_0": obs},
+            {"agent_0": reward},
+            {"agent_0": terminated, "__all__": terminated},
+            {"agent_0": truncated, "__all__": truncated},
+            {"agent_0": info},
+        )
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         room_state = self._ta_env.room_state

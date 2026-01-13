@@ -106,6 +106,27 @@ class Env:
             truncated: Dictionary of truncated flags {agent_id: bool, "__all__": bool}
             info: Dictionary of infos {agent_id: dict}
         """
+        self._current_episode_steps += 1
+        obs, reward, terminated, truncated, info = self.inner_step(action)
+
+        if self._current_episode_steps >= self._max_episode_steps:
+            truncated["__all__"] = True
+            for agent_id in self._agent_ids:
+                if agent_id in truncated:
+                    truncated[agent_id] = True
+
+        return obs, reward, terminated, truncated, info
+
+    def inner_step(
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
+        """Internal step implementation to be overridden by subclasses."""
         raise NotImplementedError
 
     def reset(
@@ -120,9 +141,6 @@ class Env:
         self._current_episode_steps = 0
         if seed is not None:
             self._np_random, self._np_random_seed = np_random(seed)
-
-        # Subclasses must implement the actual reset logic and return dicts
-        raise NotImplementedError
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the environment.
