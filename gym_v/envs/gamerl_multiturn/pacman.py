@@ -99,6 +99,7 @@ class GameRLPacmanEnv(Env):
         grid_size: int = 16,
         wall_ratio: float = 0.1,
         cell_size: int = 25,
+        num_players: int = 1,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -107,6 +108,8 @@ class GameRLPacmanEnv(Env):
         self._cell_size = cell_size
         self._margin = 30  # Margin for coordinate labels
         self._score_height = 20  # Height for score display
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         # Game state (initialized in reset)
         self._walls: set[tuple[int, int]] = set()
@@ -178,7 +181,7 @@ class GameRLPacmanEnv(Env):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
 
         # Set random seed for reproducibility
@@ -211,7 +214,10 @@ class GameRLPacmanEnv(Env):
         logger.info("Reset Pacman game.")
 
         obs = Observation(image=self.render(), text=self._get_observation_text())
-        return obs, {}
+        info = {}
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def inner_step(
         self, action: str

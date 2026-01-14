@@ -33,12 +33,15 @@ The number of visible buildings is specified as follows:
         n: int = 3,
         cell_px: int = 52,
         padding: int = 28,
+        num_players: int = 1,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
         self._n = n
         self._cell_px = cell_px
         self._padding = padding
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         self._prompt: str | None = None
         self._reference_answer: str | None = None
@@ -68,7 +71,7 @@ The number of visible buildings is specified as follows:
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
 
         self._generate()
@@ -86,12 +89,22 @@ The number of visible buildings is specified as follows:
         info = {
             "reference_answer": self._reference_answer,
         }
-        return obs, info
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
-        reward = float(self._score_answer(action))
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
+        agent_id = next(iter(self._agent_ids))
+        action_str = action[agent_id]
+        reward = float(self._score_answer(action_str))
         obs = Observation(
             image=self._last_image,
             text=None,
@@ -103,7 +116,23 @@ The number of visible buildings is specified as follows:
         info = {
             "reference_answer": self._reference_answer,
         }
-        return obs, reward, True, False, info
+
+        terminated = True
+        truncated = False
+
+        return (
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: reward for agent_id in self._agent_ids},
+            {
+                **{agent_id: terminated for agent_id in self._agent_ids},
+                "__all__": terminated,
+            },
+            {
+                **{agent_id: truncated for agent_id in self._agent_ids},
+                "__all__": truncated,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
+        )
 
     def _generate(self) -> None:
         N = int(self._n)

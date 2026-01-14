@@ -25,6 +25,7 @@ class TextArenaWordleEnv(Env):
         num_guesses: int = 6,
         hardcore: bool = False,
         cell_size: int = 60,
+        num_players: int = 1,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -32,6 +33,8 @@ class TextArenaWordleEnv(Env):
         self._num_guesses = num_guesses
         self._hardcore = hardcore
         self._cell_size = cell_size
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         self._ta_env = ta.make(
             "Wordle-v0-raw",
@@ -55,23 +58,33 @@ class TextArenaWordleEnv(Env):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
 
-        self._ta_env.reset(num_players=1, seed=seed)
+        self._ta_env.reset(num_players=self.num_players, seed=seed)
 
         logger.info("Reset Wordle.")
 
         obs = Observation(image=self.render(), text=self._get_observation_text())
         info = {}
 
-        return obs, info
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
+        agent_id = next(iter(self._agent_ids))
+        action_str = action[agent_id]
         info = {}
-        done, _ = self._ta_env.step(action)
+        done, _ = self._ta_env.step(action_str)
 
         info["invalid_action"] = (
             self._ta_env.state.error_count > 0
@@ -97,7 +110,19 @@ class TextArenaWordleEnv(Env):
 
         obs = Observation(image=self.render(), text=self._get_observation_text())
 
-        return obs, reward, terminated, truncated, info
+        return (
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: reward for agent_id in self._agent_ids},
+            {
+                **{agent_id: terminated for agent_id in self._agent_ids},
+                "__all__": terminated,
+            },
+            {
+                **{agent_id: truncated for agent_id in self._agent_ids},
+                "__all__": truncated,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
+        )
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         # Constants for rendering

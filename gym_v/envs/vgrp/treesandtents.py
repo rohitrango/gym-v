@@ -184,12 +184,15 @@ class VGRPTreesAndTentsEnv(Env):
         num_hints: int = 0,
         cell_px: int = 60,
         padding: int = 50,
+        num_players: int = 1,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
         self._size = size
         self._cell_px = cell_px
         self._padding = padding
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         self._seed: int | None = None
         self._puzzle_board: list[list[str]] | None = None
@@ -224,7 +227,7 @@ class VGRPTreesAndTentsEnv(Env):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         """Reset the environment."""
         super().reset(seed=seed, options=options)
         self._seed = seed
@@ -289,7 +292,9 @@ class VGRPTreesAndTentsEnv(Env):
         info = {
             "oracle_answer": self._board_to_text(self._solution_board),
         }
-        return obs, info
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def _generate_trees(self) -> list[tuple[int, int]]:
         """Generate random tree positions."""
@@ -305,10 +310,18 @@ class VGRPTreesAndTentsEnv(Env):
         return trees
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
+        agent_id = next(iter(self._agent_ids))
+        action_str = action[agent_id]
         try:
-            answer_board = self._text_to_board(action)
+            answer_board = self._text_to_board(action_str)
             reward = 1.0 if self._check_solution(answer_board) else 0.0
         except Exception as e:
             logger.warning(f"Failed to parse answer: {e}")
@@ -324,7 +337,19 @@ class VGRPTreesAndTentsEnv(Env):
         info = {
             "oracle_answer": self._board_to_text(self._solution_board),
         }
-        return obs, reward, terminated, truncated, info
+        return (
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: reward for agent_id in self._agent_ids},
+            {
+                **{agent_id: terminated for agent_id in self._agent_ids},
+                "__all__": terminated,
+            },
+            {
+                **{agent_id: truncated for agent_id in self._agent_ids},
+                "__all__": truncated,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
+        )
 
     def _check_solution(self, answer_board: list[list[str]]) -> bool:
         """Check if the answer matches the solution."""

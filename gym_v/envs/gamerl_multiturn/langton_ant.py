@@ -43,6 +43,7 @@ class GameRLLangtonAntEnv(Env):
         grid_size: int = 15,
         cell_size: int = 30,
         init_black_ratio: float = 0.1,
+        num_players: int = 1,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -50,6 +51,8 @@ class GameRLLangtonAntEnv(Env):
         self._cell_size = cell_size
         self._init_black_ratio = init_black_ratio
         self._margin = 20
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         # Game state (initialized in reset)
         self._grid: list[list[int]] = []  # 0=white, 1=black
@@ -80,7 +83,7 @@ class GameRLLangtonAntEnv(Env):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
 
         # Initialize grid with random black cells
@@ -104,30 +107,56 @@ class GameRLLangtonAntEnv(Env):
         )
 
         obs = Observation(image=self.render(), text=self._get_observation_text())
-        return obs, {}
+        info = {}
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
+        agent_id = next(iter(self._agent_ids))
+        action_str = action[agent_id]
+
         info: dict[str, Any] = {}
         reward = 0.0
         terminated = False
         truncated = False
 
         # Parse action
-        action = action.strip().lower()
+        action_str = action_str.strip().lower()
 
-        if action in ["step", "next", "n", "space", " "]:
+        if action_str in ["step", "next", "n", "space", " "]:
             # Execute one step
             self._execute_step()
             reward = 0.01
         else:
-            logger.warning(f"Invalid action: {action}")
+            logger.warning(f"Invalid action: {action_str}")
             obs = Observation(
                 image=self.render(),
                 text="Invalid action. Use 'step', 'next', 'n', or 'space' to advance.",
             )
-            return obs, -0.1, False, False, info
+            # return obs, -0.1, False, False, info
+            # Keep consistent with multi-agent return format even for error case
+            return (
+                {agent_id: obs for agent_id in self._agent_ids},
+                {agent_id: -0.1 for agent_id in self._agent_ids},
+                {
+                    **{agent_id: False for agent_id in self._agent_ids},
+                    "__all__": False,
+                },
+                {
+                    **{agent_id: False for agent_id in self._agent_ids},
+                    "__all__": False,
+                },
+                {agent_id: info for agent_id in self._agent_ids},
+            )
 
         info = {
             "step_count": self._step_count,
@@ -136,7 +165,20 @@ class GameRLLangtonAntEnv(Env):
         }
 
         obs = Observation(image=self.render(), text=self._get_observation_text())
-        return obs, reward, terminated, truncated, info
+
+        return (
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: reward for agent_id in self._agent_ids},
+            {
+                **{agent_id: terminated for agent_id in self._agent_ids},
+                "__all__": terminated,
+            },
+            {
+                **{agent_id: truncated for agent_id in self._agent_ids},
+                "__all__": truncated,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
+        )
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the current grid state as a PIL Image."""

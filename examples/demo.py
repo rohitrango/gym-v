@@ -43,9 +43,10 @@ def parse_env_args(env_args: tuple[str, ...]) -> dict[str, Any]:
 @click.command()
 @click.option("--id", "env_id", default="TextArena/Sokoban-v0", show_default=True)
 @click.option("--env-args", "env_args", multiple=True)
-def main(env_id: str, env_args: tuple[str, ...]):
+@click.option("--agent", "agent_id", default="agent_0", help="The agent to control")
+def main(env_id: str, env_args: tuple[str, ...], agent_id: str):
     root = tk.Tk()
-    root.title(f"gym-v: {env_id}")
+    root.title(f"gym-v: {env_id} ({agent_id})")
     root.attributes("-topmost", True)
 
     image_label = tk.Label(root)
@@ -63,13 +64,24 @@ def main(env_id: str, env_args: tuple[str, ...]):
     is_game_over = False
 
     logger.info(f"Environment {env_id} created.")
+    logger.info(f"Controlling Agent: {agent_id}")
     logger.info("Controls: Type command and Enter.")
     logger.info("  - 'reset' or 'r: Reset environment")
     logger.info("  - 'quit' or 'q': Exit")
 
     logger.info(f"\nEnv Description: {env.description}")
 
-    obs, info = env.reset()
+    # Handle Multi-Agent Reset
+    obs_dict, info_dict = env.reset()
+    if agent_id not in obs_dict:
+        logger.error(
+            f"Agent {agent_id} not found in observation dict: {obs_dict.keys()}"
+        )
+        sys.exit(1)
+
+    obs = obs_dict[agent_id]
+    info = info_dict.get(agent_id, {})
+
     width = shutil.get_terminal_size(fallback=(80, 20)).columns
     logger.info(
         dedent(f"""
@@ -91,7 +103,11 @@ def main(env_id: str, env_args: tuple[str, ...]):
         except tk.TclError:
             break
 
-        prompt = "[Game Over] Type 'r' to reset >>> " if is_game_over else ">>> "
+        prompt = (
+            "[Game Over] Type 'r' to reset >>> "
+            if is_game_over
+            else f"[{agent_id}] >>> "
+        )
 
         try:
             action = session.prompt(prompt)
@@ -108,7 +124,8 @@ def main(env_id: str, env_args: tuple[str, ...]):
             break
 
         elif action_lower in ("reset", "r"):
-            obs, _ = env.reset()
+            obs_dict, info_dict = env.reset()
+            obs = obs_dict[agent_id]
             is_game_over = False
             logger.info(f"Environment({env_id}) Reset")
             continue
@@ -117,7 +134,20 @@ def main(env_id: str, env_args: tuple[str, ...]):
             logger.info("Game over. Type 'r' to reset.")
             continue
 
-        obs, reward, terminated, truncated, info = env.step(action)
+        # Handle Multi-Agent Step
+        action_dict = {agent_id: action}
+        obs_dict, reward_dict, terminated_dict, truncated_dict, info_dict = env.step(
+            action_dict
+        )
+
+        obs = obs_dict[agent_id]
+        reward = reward_dict.get(agent_id, 0)
+        terminated = terminated_dict.get(agent_id, False)
+        truncated = truncated_dict.get(agent_id, False)
+        env_done = terminated_dict.get("__all__", False) or truncated_dict.get(
+            "__all__", False
+        )
+        info = info_dict.get(agent_id, {})
 
         width = shutil.get_terminal_size(fallback=(80, 20)).columns
         logger.info(
@@ -131,9 +161,9 @@ def main(env_id: str, env_args: tuple[str, ...]):
             {"=" * width}""")
         )
 
-        if terminated or truncated:
+        if env_done:
             is_game_over = True
-            logger.info("Game over. Type 'r' to reset.")
+            logger.info("Game over (Env terminated/truncated). Type 'r' to reset.")
 
     try:
         root.destroy()

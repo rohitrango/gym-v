@@ -38,6 +38,7 @@ The grid is given in **row-major order**:
         black_cell_density_range: tuple[float, float] = (0.6, 0.95),
         cell_px: int = 48,
         padding: int = 24,
+        num_players: int = 1,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
@@ -49,6 +50,8 @@ The grid is given in **row-major order**:
         self._black_cell_density_range = black_cell_density_range
         self._cell_px = cell_px
         self._padding = padding
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         self._grid: list[str] | None = None
         self._prompt: str | None = None
@@ -84,7 +87,7 @@ The grid is given in **row-major order**:
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
 
         self._generate()
@@ -102,12 +105,22 @@ The grid is given in **row-major order**:
         info = {
             "reference_answer": self._reference_answer,
         }
-        return obs, info
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
-        reward = float(self._score_answer(action))
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
+        agent_id = next(iter(self._agent_ids))
+        action_str = action[agent_id]
+        reward = float(self._score_answer(action_str))
         obs = Observation(
             image=self._last_image,
             text=None,
@@ -119,7 +132,23 @@ The grid is given in **row-major order**:
         info = {
             "reference_answer": self._reference_answer,
         }
-        return obs, reward, True, False, info
+
+        terminated = True
+        truncated = False
+
+        return (
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: reward for agent_id in self._agent_ids},
+            {
+                **{agent_id: terminated for agent_id in self._agent_ids},
+                "__all__": terminated,
+            },
+            {
+                **{agent_id: truncated for agent_id in self._agent_ids},
+                "__all__": truncated,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
+        )
 
     def _generate(self) -> None:
         max_n_m = self._max_n_m

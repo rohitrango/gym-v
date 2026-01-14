@@ -95,6 +95,7 @@ class GameRLWordSearchQAEnv(Env):
         question_type: int | None = None,
         grid_size: int | None = None,
         cell_size: int = 50,
+        num_players: int = 1,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -102,6 +103,8 @@ class GameRLWordSearchQAEnv(Env):
         self._grid_size_param = grid_size
         self._cell_size = cell_size
         self._margin = 0
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         # Load word list
         try:
@@ -152,7 +155,7 @@ Grid (uppercase letters):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
 
         # Select question type
@@ -196,13 +199,24 @@ Grid (uppercase letters):
             },
         )
         info = {"oracle_answer": self._oracle_answer, "question_type": q_type}
-        return obs, info
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
         """Single-turn environment: check answer and terminate."""
-        answer = action.strip()
+        agent_id = next(iter(self._agent_ids))
+        action_str = action[agent_id]
+
+        answer = action_str.strip()
 
         # Check answer
         correct = self._check_answer(answer)
@@ -215,7 +229,22 @@ Grid (uppercase letters):
             "question_type": self._current_q_type,
         }
 
-        return obs, reward, True, False, info  # Always terminate after one step
+        terminated = True
+        truncated = False
+
+        return (
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: reward for agent_id in self._agent_ids},
+            {
+                **{agent_id: terminated for agent_id in self._agent_ids},
+                "__all__": terminated,
+            },
+            {
+                **{agent_id: truncated for agent_id in self._agent_ids},
+                "__all__": truncated,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
+        )
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the word search grid as a PIL Image."""

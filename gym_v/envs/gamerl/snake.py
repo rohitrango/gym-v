@@ -117,6 +117,7 @@ class GameRLSnakeQAEnv(Env):
         height: int = 10,
         initial_snake_length: tuple[int, int] = (10, 20),
         cell_size: int = 40,
+        num_players: int = 1,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -126,6 +127,8 @@ class GameRLSnakeQAEnv(Env):
         self._initial_snake_length = initial_snake_length
         self._cell_size = cell_size
         self._margin = 30  # Margin for coordinate labels
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         # Game state (initialized in reset)
         self._snake: list[tuple[int, int]] = []
@@ -186,7 +189,7 @@ Grid (H=head, B=body, F=food, .=empty):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
 
         if seed is not None:
@@ -225,13 +228,24 @@ Grid (H=head, B=body, F=food, .=empty):
             "oracle_answer": self._oracle_answer,
             "question_type": self._current_question_type,
         }
-        return obs, info
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
         """Evaluate the answer. Always terminates after one step."""
-        answer = action.strip()
+        agent_id = next(iter(self._agent_ids))
+        action_str = action[agent_id]
+
+        answer = action_str.strip()
         reward = self._score_answer(answer)
 
         obs = Observation(
@@ -249,7 +263,22 @@ Grid (H=head, B=body, F=food, .=empty):
             "correct": reward == 1.0,
         }
 
-        return obs, reward, True, False, info  # Always terminated=True
+        terminated = True
+        truncated = False
+
+        return (
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: reward for agent_id in self._agent_ids},
+            {
+                **{agent_id: terminated for agent_id in self._agent_ids},
+                "__all__": terminated,
+            },
+            {
+                **{agent_id: truncated for agent_id in self._agent_ids},
+                "__all__": truncated,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
+        )
 
     def _score_answer(self, answer: str) -> float:
         """Score the answer based on answer format."""

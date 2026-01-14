@@ -49,6 +49,7 @@ class ReasoningGymTowerOfHanoiEnv(Env):
         peg_width: int = 150,
         peg_height: int = 250,
         padding: int = 40,
+        num_players: int = 1,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
@@ -56,6 +57,8 @@ class ReasoningGymTowerOfHanoiEnv(Env):
         self._peg_width = peg_width
         self._peg_height = peg_height
         self._padding = padding
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         self._seed: int | None = None
         self._dataset = None
@@ -135,7 +138,7 @@ class ReasoningGymTowerOfHanoiEnv(Env):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
         self._seed = seed
 
@@ -159,12 +162,21 @@ class ReasoningGymTowerOfHanoiEnv(Env):
             "reasoning_gym_index": self._entry_idx,
             "oracle_answer": self._oracle_answer,
         }
-        return obs, info
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
-        answer = action
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
+        agent_id = next(iter(self._agent_ids))
+        answer = action[agent_id]
         reward = self._dataset.score_answer(answer=answer, entry=self._entry)
 
         obs = Observation(
@@ -178,7 +190,22 @@ class ReasoningGymTowerOfHanoiEnv(Env):
             "oracle_answer": self._oracle_answer,
         }
 
-        return obs, reward, True, False, info
+        terminated = True
+        truncated = False
+
+        return (
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: reward for agent_id in self._agent_ids},
+            {
+                **{agent_id: terminated for agent_id in self._agent_ids},
+                "__all__": terminated,
+            },
+            {
+                **{agent_id: truncated for agent_id in self._agent_ids},
+                "__all__": truncated,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
+        )
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         return self._render_hanoi(

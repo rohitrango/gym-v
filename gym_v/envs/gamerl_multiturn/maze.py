@@ -55,6 +55,7 @@ class GameRLMazeEnv(Env):
         self,
         size: str = "small",
         cell_size: int = 40,
+        num_players: int = 1,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -66,6 +67,8 @@ class GameRLMazeEnv(Env):
         self._grid_size = self.SIZE_CONFIG[size]
         self._cell_size = cell_size
         self._padding = 30  # Padding for coordinate labels
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         # Game state (initialized in reset)
         self._maze: np.ndarray = np.zeros((self._grid_size, self._grid_size), dtype=int)
@@ -89,7 +92,7 @@ class GameRLMazeEnv(Env):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
 
         if seed is not None:
@@ -106,7 +109,10 @@ class GameRLMazeEnv(Env):
         logger.info(f"Reset Maze game ({self._size_name}).")
 
         obs = Observation(image=self.render(), text=self._get_observation_text())
-        return obs, {}
+        info = {}
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def _generate_maze(self) -> None:
         """Generate a random maze using recursive backtracking algorithm."""
@@ -228,8 +234,17 @@ class GameRLMazeEnv(Env):
                 self._maze[row, col] = self.PATH
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
+        agent_id = next(iter(self._agent_ids))
+        action_str = action[agent_id]
+
         info: dict[str, Any] = {}
         reward = 0.0
         terminated = False
@@ -237,9 +252,21 @@ class GameRLMazeEnv(Env):
 
         if self._game_over:
             obs = Observation(image=self.render(), text=self._get_observation_text())
-            return obs, reward, True, truncated, info
+            return (
+                {agent_id: obs for agent_id in self._agent_ids},
+                {agent_id: reward for agent_id in self._agent_ids},
+                {
+                    **{agent_id: True for agent_id in self._agent_ids},
+                    "__all__": True,
+                },
+                {
+                    **{agent_id: truncated for agent_id in self._agent_ids},
+                    "__all__": truncated,
+                },
+                {agent_id: info for agent_id in self._agent_ids},
+            )
 
-        action_lower = action.lower().strip()
+        action_lower = action_str.lower().strip()
 
         # Map actions to direction
         action_map = {
@@ -256,7 +283,19 @@ class GameRLMazeEnv(Env):
         if action_lower not in action_map:
             info["invalid_action"] = True
             obs = Observation(image=self.render(), text=self._get_observation_text())
-            return obs, reward, terminated, truncated, info
+            return (
+                {agent_id: obs for agent_id in self._agent_ids},
+                {agent_id: reward for agent_id in self._agent_ids},
+                {
+                    **{agent_id: terminated for agent_id in self._agent_ids},
+                    "__all__": terminated,
+                },
+                {
+                    **{agent_id: truncated for agent_id in self._agent_ids},
+                    "__all__": truncated,
+                },
+                {agent_id: info for agent_id in self._agent_ids},
+            )
 
         info["invalid_action"] = False
         dr, dc = action_map[action_lower]
@@ -296,7 +335,20 @@ class GameRLMazeEnv(Env):
         info["goal_pos"] = self._goal_pos
 
         obs = Observation(image=self.render(), text=self._get_observation_text())
-        return obs, reward, terminated, truncated, info
+
+        return (
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: reward for agent_id in self._agent_ids},
+            {
+                **{agent_id: terminated for agent_id in self._agent_ids},
+                "__all__": terminated,
+            },
+            {
+                **{agent_id: truncated for agent_id in self._agent_ids},
+                "__all__": truncated,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
+        )
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the game state as a PIL Image."""

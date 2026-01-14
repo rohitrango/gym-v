@@ -65,6 +65,7 @@ class GameRLTetrisEnv(Env):
         rows: int = 12,
         cols: int = 8,
         cell_size: int = 30,
+        num_players: int = 1,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -72,6 +73,8 @@ class GameRLTetrisEnv(Env):
         self._cols = cols
         self._cell_size = cell_size
         self._padding = 35  # Padding for coordinate labels
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         # Game state (initialized in reset)
         self._grid: np.ndarray = np.zeros((rows, cols), dtype=int)
@@ -111,7 +114,7 @@ class GameRLTetrisEnv(Env):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
 
         if seed is not None:
@@ -129,11 +132,23 @@ class GameRLTetrisEnv(Env):
         logger.info("Reset Tetris game.")
 
         obs = Observation(image=self.render(), text=self._get_observation_text())
-        return obs, {}
+        info = {}
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
+        agent_id = next(iter(self._agent_ids))
+        action_str = action[agent_id]
+
         info: dict[str, Any] = {}
         reward = 0.0
         terminated = False
@@ -141,15 +156,39 @@ class GameRLTetrisEnv(Env):
 
         if self._game_over:
             obs = Observation(image=self.render(), text=self._get_observation_text())
-            return obs, reward, True, truncated, info
+            return (
+                {agent_id: obs for agent_id in self._agent_ids},
+                {agent_id: reward for agent_id in self._agent_ids},
+                {
+                    **{agent_id: True for agent_id in self._agent_ids},
+                    "__all__": True,
+                },
+                {
+                    **{agent_id: truncated for agent_id in self._agent_ids},
+                    "__all__": truncated,
+                },
+                {agent_id: info for agent_id in self._agent_ids},
+            )
 
-        action_lower = action.lower().strip()
+        action_lower = action_str.lower().strip()
 
         valid_actions = ["left", "right", "rotate", "down", "drop", "a", "d", "w", "s"]
         if action_lower not in valid_actions:
             info["invalid_action"] = True
             obs = Observation(image=self.render(), text=self._get_observation_text())
-            return obs, reward, terminated, truncated, info
+            return (
+                {agent_id: obs for agent_id in self._agent_ids},
+                {agent_id: reward for agent_id in self._agent_ids},
+                {
+                    **{agent_id: terminated for agent_id in self._agent_ids},
+                    "__all__": terminated,
+                },
+                {
+                    **{agent_id: truncated for agent_id in self._agent_ids},
+                    "__all__": truncated,
+                },
+                {agent_id: info for agent_id in self._agent_ids},
+            )
 
         info["invalid_action"] = False
 
@@ -187,7 +226,20 @@ class GameRLTetrisEnv(Env):
         info["total_lines"] = self._lines_cleared
 
         obs = Observation(image=self.render(), text=self._get_observation_text())
-        return obs, reward, terminated, truncated, info
+
+        return (
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: reward for agent_id in self._agent_ids},
+            {
+                **{agent_id: terminated for agent_id in self._agent_ids},
+                "__all__": terminated,
+            },
+            {
+                **{agent_id: truncated for agent_id in self._agent_ids},
+                "__all__": truncated,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
+        )
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the game state as a PIL Image."""

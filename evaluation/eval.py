@@ -147,44 +147,72 @@ def _run_one_episode(
     import gym_v
 
     env = gym_v.make(env_id)
-    obs, _ = env.reset(seed=seed)
+    # RLLib interface: reset returns (obs_dict, info_dict)
+    obs_dict, _ = env.reset(seed=seed)
+
+    if not obs_dict:
+        raise RuntimeError("Environment returned empty observation dict on reset")
 
     final_reward = 0.0
     steps = 0
-    last_action = ""
     trajectory: list[dict[str, Any]] = []
+
+    # Simple loop for sequential agent inference.
+    # TODO: ThreadPool can be used here for parallel inference.
 
     try:
         for t in range(max_steps):
             steps = t + 1
-            last_action = _chat(
-                base_url=base_url,
-                api_key=api_key,
-                model=model,
-                messages=_messages(
-                    env_desc=getattr(env, "description", "") or "",
-                    obs_text=getattr(obs, "text", None),
-                    obs_img=getattr(obs, "image", None),
-                    include_image=include_image,
-                ),
-                temperature=temperature,
-                max_tokens=max_tokens,
-                timeout_s=timeout_s,
-            )
+            action_dict = {}
 
-            obs, reward, terminated, truncated, _ = env.step(last_action)
-            final_reward += float(reward)
+            # 1. Collect actions for all agents currently observing
+            for agent_id, obs in obs_dict.items():
+                action = _chat(
+                    base_url=base_url,
+                    api_key=api_key,
+                    model=model,
+                    messages=_messages(
+                        env_desc=getattr(env, "description", "") or "",
+                        obs_text=getattr(obs, "text", None),
+                        obs_img=getattr(obs, "image", None),
+                        include_image=include_image,
+                    ),
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    timeout_s=timeout_s,
+                )
+                action_dict[agent_id] = action
+
+            # 2. Step the environment with all collected actions
+            (
+                obs_dict,
+                reward_dict,
+                terminated_dict,
+                truncated_dict,
+                _,
+            ) = env.step(action_dict)
+
+            # 3. Aggregate rewards and check termination
+            # For trajectory recording, we can record the full action_dict and reward_dict
+            # Or flatten it. Here we record dicts for completeness.
+
+            step_reward = sum(reward_dict.values())
+            final_reward += step_reward
+
+            terminated_all = terminated_dict.get("__all__", False)
+            truncated_all = truncated_dict.get("__all__", False)
+
             trajectory.append(
                 {
                     "t": t,
-                    "action": last_action,
-                    "reward": float(reward),
-                    "terminated": bool(terminated),
-                    "truncated": bool(truncated),
+                    "actions": action_dict,
+                    "rewards": reward_dict,
+                    "terminated": terminated_dict,
+                    "truncated": truncated_dict,
                 }
             )
 
-            if terminated or truncated:
+            if terminated_all or truncated_all:
                 return {
                     "_episode": episode_idx,
                     "seed": seed,
@@ -200,6 +228,7 @@ def _run_one_episode(
             "final_reward": final_reward,
             "trajectory": trajectory,
         }
+
     except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as e:
         return {
             "_episode": episode_idx,

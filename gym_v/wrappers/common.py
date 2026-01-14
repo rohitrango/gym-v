@@ -127,7 +127,15 @@ class OrderEnforcing(Wrapper, RecordConstructorArgs):
         self._has_reset: bool = False
         self._disable_render_order_enforcing: bool = disable_render_order_enforcing
 
-    def step(self, action: str) -> tuple[Observation, SupportsFloat, bool, bool, dict]:
+    def step(
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
         """Steps through the environment."""
         if not self._has_reset:
             raise RuntimeError("Cannot call env.step() before calling env.reset()")
@@ -135,7 +143,7 @@ class OrderEnforcing(Wrapper, RecordConstructorArgs):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         """Resets the environment with `kwargs`."""
         self._has_reset = True
         return super().reset(seed=seed, options=options)

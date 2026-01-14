@@ -70,6 +70,8 @@ class Env:
     _np_random: np.random.Generator | None = None
     _np_random_seed: int | None = None
 
+    _agent_ids: set[str] = {"agent_0"}
+
     def __init__(self, max_episode_steps: int | None = None):
         super().__init__()
         if max_episode_steps is not None and max_episode_steps > 0:
@@ -84,46 +86,57 @@ class Env:
         raise NotImplementedError
 
     def step(
-        self, action: str
-    ) -> tuple[Observation, SupportsFloat, bool, bool, dict[str, Any]]:
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
         """Run one timestep of the environment's dynamics.
 
         Args:
-            action: Action string to execute
+            action: Dictionary of actions {agent_id: action_string}
 
         Returns:
-            observation: Next observation
-            reward: Reward for this step
-            terminated: Whether the agent reaches terminal state
-            truncated: Whether truncation condition is satisfied
-            info: Additional diagnostic information
+            observation: Dictionary of observations {agent_id: Observation}
+            reward: Dictionary of rewards {agent_id: float}
+            terminated: Dictionary of terminated flags {agent_id: bool, "__all__": bool}
+            truncated: Dictionary of truncated flags {agent_id: bool, "__all__": bool}
+            info: Dictionary of infos {agent_id: dict}
         """
         self._current_episode_steps += 1
         obs, reward, terminated, truncated, info = self.inner_step(action)
 
         if self._current_episode_steps >= self._max_episode_steps:
-            truncated = True
+            truncated["__all__"] = True
+            for agent_id in self._agent_ids:
+                if agent_id in truncated:
+                    truncated[agent_id] = True
 
         return obs, reward, terminated, truncated, info
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, SupportsFloat, bool, bool, dict[str, Any]]:
-        """Internal step implementation."""
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
+        """Internal step implementation to be overridden by subclasses."""
         raise NotImplementedError
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         """Reset environment to initial state.
 
-        Args:
-            seed: Random seed for reproducibility
-            options: Additional reset options
-
         Returns:
-            observation: Initial observation
-            info: Additional information
+            observation: Dictionary of initial observations {agent_id: Observation}
+            info: Dictionary of infos {agent_id: dict}
         """
         self._current_episode_steps = 0
         if seed is not None:
@@ -222,14 +235,20 @@ class Wrapper(Env):
         return self.env.description
 
     def step(
-        self, action: str
-    ) -> tuple[Observation, SupportsFloat, bool, bool, dict[str, Any]]:
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
         """Uses the `step` of the `env` that can be overwritten to change the returned data."""
         return self.env.step(action)
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         """Uses the `reset` of the `env` that can be overwritten to change the returned data."""
         return self.env.reset(seed=seed, options=options)
 
@@ -421,17 +440,28 @@ class ObservationWrapper(Wrapper):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
-        """Modifies the `env` after calling `reset`, returning a modified observation using `self.observation`."""
-        obs, info = self.env.reset(seed=seed, options=options)
-        return self.observation(obs), info
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
+        """Modifies the `env` after calling `reset`, returning modified observations using `self.observation`."""
+        obs_dict, info = self.env.reset(seed=seed, options=options)
+        return {
+            agent_id: self.observation(obs) for agent_id, obs in obs_dict.items()
+        }, info
 
     def step(
-        self, action: str
-    ) -> tuple[Observation, SupportsFloat, bool, bool, dict[str, Any]]:
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
         """Modifies the `env` after calling `step` using `self.observation` on the returned observations."""
-        observation, reward, terminated, truncated, info = self.env.step(action)
-        return self.observation(observation), reward, terminated, truncated, info
+        obs_dict, reward, terminated, truncated, info = self.env.step(action)
+        new_obs_dict = {
+            agent_id: self.observation(obs) for agent_id, obs in obs_dict.items()
+        }
+        return new_obs_dict, reward, terminated, truncated, info
 
     def observation(self, observation: Observation) -> Observation:
         """Returns a modified observation.
@@ -487,10 +517,17 @@ class ActionWrapper(Wrapper):
         Wrapper.__init__(self, env)
 
     def step(
-        self, action: str
-    ) -> tuple[Observation, SupportsFloat, bool, bool, dict[str, Any]]:
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
         """Runs the `env` `env.step` using the modified ``action`` from `self.action`."""
-        return self.env.step(self.action(action))
+        new_action = {agent_id: self.action(act) for agent_id, act in action.items()}
+        return self.env.step(new_action)
 
     def action(self, action: str) -> str:
         """Returns a modified action before `step` is called.

@@ -49,7 +49,25 @@ class TestRLVE(unittest.TestCase):
         print(f"\n[{env_id}] Using random seed: {test_seed}")
 
         env = gym_v.make(env_id)
-        obs, info = env.reset(seed=test_seed)
+
+        # 1. Reset
+        obs_dict, info_dict = env.reset(seed=test_seed)
+
+        # Check dictionary return structure
+        self.assertIsInstance(
+            obs_dict, dict, f"{env_id}: reset() should return dict of observations"
+        )
+        self.assertIsInstance(
+            info_dict, dict, f"{env_id}: reset() should return dict of infos"
+        )
+
+        # Get agent_0 (default single player)
+        agent_id = "agent_0"
+        self.assertIn(agent_id, obs_dict)
+        self.assertIn(agent_id, info_dict)
+
+        obs = obs_dict[agent_id]
+        info = info_dict[agent_id]
 
         self.assertIsNotNone(obs.image)
         obs.image.save(output_dir / "0_reset.png")
@@ -73,25 +91,43 @@ class TestRLVE(unittest.TestCase):
         print(oracle[:300] + "..." if len(oracle) > 300 else oracle)
         print("=" * 80 + "\n")
 
-        _, reward, terminated, truncated, _ = env.step(oracle)
-        self.assertTrue(terminated)
-        self.assertTrue(truncated)
-        self.assertIsInstance(reward, float)
+        # 3. Verify reward with correct answer
+        actions = {agent_id: oracle}
+        _, reward_dict, terminated_dict, truncated_dict, _ = env.step(actions)
+
+        self.assertIn(agent_id, reward_dict)
+        self.assertIn(agent_id, terminated_dict)
+        self.assertIn(agent_id, truncated_dict)
+        self.assertIn("__all__", terminated_dict)
+        self.assertIn("__all__", truncated_dict)
+
+        self.assertTrue(terminated_dict[agent_id])
+        self.assertTrue(truncated_dict[agent_id])
+        self.assertIsInstance(reward_dict[agent_id], float)
         self.assertAlmostEqual(
-            reward, 1.0, places=6, msg=f"{env_id}: Expected reward 1.0"
+            reward_dict[agent_id], 1.0, places=6, msg=f"{env_id}: Expected reward 1.0"
         )
 
+        # 4. Verify reward with wrong answer
         env.reset(seed=test_seed)
-        _, reward_wrong, terminated_wrong, truncated_wrong, _ = env.step("")
-        self.assertTrue(terminated_wrong)
-        self.assertTrue(truncated_wrong)
-        self.assertIsInstance(reward_wrong, float)
-        self.assertLess(reward_wrong, 0.0)
+        actions_wrong = {agent_id: ""}
+        _, reward_dict_wrong, terminated_dict_wrong, truncated_dict_wrong, _ = env.step(
+            actions_wrong
+        )
 
+        self.assertTrue(terminated_dict_wrong[agent_id])
+        self.assertTrue(truncated_dict_wrong[agent_id])
+        self.assertIsInstance(reward_dict_wrong[agent_id], float)
+        self.assertLess(reward_dict_wrong[agent_id], 0.0)
+
+        # 5. Test with multiple seeds
         print(f"[{env_id}] Testing with 3 additional seeds...")
         for i in range(3):
             seed = random.randint(0, 9999)
-            obs_test, info_test = env.reset(seed=seed)
+            obs_dict_test, info_dict_test = env.reset(seed=seed)
+            info_test = info_dict_test[agent_id]
+            obs_test = obs_dict_test[agent_id]
+
             oracle_test = info_test.get("reference_answer")
 
             obs_test.image.save(output_dir / f"{i + 1}_seed_{seed}.png")
@@ -100,9 +136,9 @@ class TestRLVE(unittest.TestCase):
             self.assertIsInstance(oracle_test, str)
             self.assertGreater(len(oracle_test), 0)
 
-            _, reward_test, _, _, _ = env.step(oracle_test)
+            _, reward_dict_test, _, _, _ = env.step({agent_id: oracle_test})
             self.assertAlmostEqual(
-                reward_test,
+                reward_dict_test[agent_id],
                 1.0,
                 places=6,
                 msg=f"{env_id}: Expected reward 1.0 (seed={seed})",

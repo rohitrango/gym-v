@@ -62,10 +62,9 @@
 ### GameRL QA (视觉问答/单轮)
 - `GameRL/Snake-QA-v0` / `Pacman-QA-v0` 等共计 30 个 QA 环境，侧重于对当前游戏画面的视觉理解与单步决策问答（包含：魔方、空当接龙、三消、我的世界、祖玛、象棋等）。
 
-### GUI 
-- `Webshop` 
-- `miniwob` 
+### GUI
+- `Webshop`
+- `miniwob`
 
 ### Offline (离线数据)
 - `Offline/SingleTurn-v0`: 通用单轮任务环境，支持加载 JSONL 离线多模态数据。
-

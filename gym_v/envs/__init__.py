@@ -11,6 +11,7 @@ register(
         dataset_kwargs=dict(size=500),
         cell_px=64,
         padding=24,
+        num_players=1,
     ),
 )
 
@@ -22,6 +23,7 @@ register(
         dataset_kwargs=dict(size=500),
         cell_px=48,
         padding=24,
+        num_players=1,
     ),
 )
 
@@ -33,6 +35,7 @@ register(
         dataset_kwargs=dict(size=500),
         cell_px=64,
         padding=24,
+        num_players=1,
     ),
 )
 
@@ -44,6 +47,7 @@ register(
         dataset_kwargs=dict(size=500),
         cell_px=32,
         padding=16,
+        num_players=1,
     ),
 )
 
@@ -56,6 +60,7 @@ register(
         peg_width=150,
         peg_height=250,
         padding=40,
+        num_players=1,
     ),
 )
 
@@ -67,6 +72,7 @@ register(
         dataset_kwargs=dict(size=500),
         cell_px=64,
         padding=24,
+        num_players=1,
     ),
 )
 
@@ -78,6 +84,7 @@ register(
         dataset_kwargs=dict(size=500),
         cell_px=80,
         padding=24,
+        num_players=1,
     ),
 )
 
@@ -89,6 +96,7 @@ register(
         dataset_kwargs=dict(size=500),
         cell_px=64,
         padding=24,
+        num_players=1,
     ),
 )
 
@@ -100,6 +108,7 @@ register(
         dataset_kwargs=dict(size=500),
         cell_px=56,
         padding=40,
+        num_players=1,
     ),
 )
 
@@ -111,6 +120,7 @@ register(
         dataset_kwargs=dict(size=500),
         cell_px=36,
         padding=24,
+        num_players=1,
     ),
 )
 
@@ -122,6 +132,7 @@ register(
         dataset_kwargs=dict(size=500),
         cell_px=48,
         padding=24,
+        num_players=1,
     ),
 )
 
@@ -133,6 +144,7 @@ register(
         dataset_kwargs=dict(size=500),
         cell_px=48,
         padding=24,
+        num_players=1,
     ),
 )
 
@@ -144,6 +156,7 @@ register(
         dataset_kwargs=dict(size=500),
         cell_px=40,
         padding=20,
+        num_players=1,
     ),
 )
 
@@ -155,6 +168,7 @@ register(
         dataset_kwargs=dict(size=500),
         cell_px=40,
         padding=24,
+        num_players=1,
     ),
 )
 
@@ -166,6 +180,7 @@ register(
         dataset_kwargs=dict(size=500),
         cell_px=36,
         padding=20,
+        num_players=1,
     ),
 )
 
@@ -177,6 +192,7 @@ register(
         dataset_kwargs=dict(size=500),
         cell_px=48,
         padding=24,
+        num_players=1,
     ),
 )
 
@@ -188,6 +204,7 @@ register(
         dataset_kwargs=dict(size=500),
         cell_px=8,
         padding=16,
+        num_players=1,
     ),
 )
 
@@ -198,6 +215,7 @@ register(
     kwargs=dict(
         dataset_kwargs=dict(size=500),
         padding=24,
+        num_players=1,
     ),
 )
 
@@ -209,6 +227,7 @@ register(
         dataset_kwargs=dict(size=500),
         cell_px=28,
         padding=24,
+        num_players=1,
     ),
 )
 
@@ -221,6 +240,7 @@ register(
         hardcore=False,
         num_words=5,
         cell_size=48,
+        num_players=1,
     ),
 )
 
@@ -230,6 +250,7 @@ register(
     max_episode_steps=100,
     kwargs=dict(
         tile_size=80,
+        num_players=1,
     ),
 )
 
@@ -242,6 +263,7 @@ register(
         num_holes=3,
         randomize_start_goal=False,
         tile_size=64,
+        num_players=1,
     ),
 )
 
@@ -252,6 +274,7 @@ register(
     kwargs=dict(
         target_tile=2048,
         tile_size=100,
+        num_players=1,
     ),
 )
 
@@ -262,6 +285,7 @@ register(
     kwargs=dict(
         size=5,
         cell_size=80,
+        num_players=1,
     ),
 )
 
@@ -274,6 +298,7 @@ register(
         cols=8,
         num_mines=10,
         cell_size=64,
+        num_players=1,
     ),
 )
 
@@ -284,6 +309,7 @@ register(
     kwargs=dict(
         initial_empty=1,
         peg_size=80,
+        num_players=1,
     ),
 )
 
@@ -294,6 +320,7 @@ register(
     kwargs=dict(
         difficulty="easy",
         cell_size=80,
+        num_players=1,
     ),
 )
 
@@ -305,6 +332,7 @@ register(
         dim_room=(6, 6),
         num_boxes=3,
         tile_size=48,
+        num_players=1,
     ),
 )
 
@@ -315,6 +343,7 @@ register(
     kwargs=dict(
         clues=30,
         cell_size=50,
+        num_players=1,
     ),
 )
 
@@ -324,6 +353,7 @@ register(
     max_episode_steps=100,
     kwargs=dict(
         num_disks=3,
+        num_players=1,
     ),
 )
 
@@ -336,6 +366,7 @@ register(
         num_guesses=6,
         hardcore=False,
         cell_size=60,
+        num_players=1,
     ),
 )
 
@@ -346,6 +377,7 @@ register(
     kwargs=dict(
         hardcore=False,
         cell_size=60,
+        num_players=1,
     ),
 )
 
@@ -384,6 +416,7 @@ register(
         num_hints=12,
         cell_px=60,
         padding=24,
+        num_players=1,
     ),
 )
 
@@ -396,6 +429,7 @@ register(
         num_hints=0,
         cell_px=60,
         padding=50,
+        num_players=1,
     ),
 )
 
@@ -408,6 +442,7 @@ register(
         num_hints=0,
         cell_px=60,
         padding=50,
+        num_players=1,
     ),
 )
 
@@ -420,6 +455,7 @@ register(
         num_hints=0,
         cell_px=55,
         padding=50,
+        num_players=1,
     ),
 )
 
@@ -431,6 +467,7 @@ register(
         size=9,
         cell_px=50,
         padding=30,
+        num_players=1,
     ),
 )
 
@@ -442,6 +479,7 @@ register(
         size=5,
         cell_px=60,
         padding=30,
+        num_players=1,
     ),
 )
 
@@ -453,6 +491,7 @@ register(
         size=6,
         cell_px=50,
         padding=20,
+        num_players=1,
     ),
 )
 
@@ -465,6 +504,7 @@ register(
         stars_per_group=1,
         cell_px=50,
         padding=20,
+        num_players=1,
     ),
 )
 register(
@@ -475,6 +515,7 @@ register(
         grid_size=16,
         wall_ratio=0.1,
         cell_size=25,
+        num_players=1,
     ),
 )
 
@@ -486,6 +527,7 @@ register(
         rows=12,
         cols=8,
         cell_size=30,
+        num_players=1,
     ),
 )
 
@@ -499,6 +541,7 @@ register(
         enemy_area_rows=8,
         cell_width=50,
         cell_height=40,
+        num_players=1,
     ),
 )
 
@@ -509,6 +552,7 @@ register(
     kwargs=dict(
         size="small",
         cell_size=40,
+        num_players=1,
     ),
 )
 
@@ -521,6 +565,7 @@ register(
         cell_size=20,
         random_init=True,
         init_density=0.3,
+        num_players=1,
     ),
 )
 
@@ -532,29 +577,7 @@ register(
         grid_size=15,
         cell_size=30,
         init_black_ratio=0.1,
-    ),
-)
-
-register(
-    id="GameRL/Minesweeper-v0",
-    entry_point="gym_v.envs.gamerl_multiturn.minesweeper:GameRLMinesweeperEnv",
-    max_episode_steps=500,
-    kwargs=dict(
-        rows=8,
-        cols=8,
-        mines=10,
-        cell_size=60,
-    ),
-)
-
-register(
-    id="GameRL/Sudoku-v0",
-    entry_point="gym_v.envs.gamerl_multiturn.sudoku:GameRLSudokuEnv",
-    max_episode_steps=1000,
-    kwargs=dict(
-        size=9,
-        difficulty="medium",
-        cell_size=50,
+        num_players=1,
     ),
 )
 
@@ -566,6 +589,7 @@ register(
         max_n_m=4,
         cell_px=56,
         padding=24,
+        num_players=1,
     ),
 )
 
@@ -577,6 +601,7 @@ register(
         n=3,
         cell_px=52,
         padding=28,
+        num_players=1,
     ),
 )
 
@@ -590,6 +615,7 @@ register(
         black_cell_density_range=(0.6, 0.95),
         cell_px=48,
         padding=24,
+        num_players=1,
     ),
 )
 
@@ -604,6 +630,7 @@ register(
         height=10,
         initial_snake_length=(10, 20),
         cell_size=40,
+        num_players=1,
     ),
 )
 
@@ -615,6 +642,7 @@ register(
         question_type=None,
         size="small",
         cell_size=40,
+        num_players=1,
     ),
 )
 
@@ -625,6 +653,7 @@ register(
     kwargs=dict(
         question_type=None,
         grid_size=(8, 8, 7),
+        num_players=1,
     ),
 )
 
@@ -636,6 +665,7 @@ register(
         question_type=None,
         grid_size=None,
         cell_size=30,
+        num_players=1,
     ),
 )
 
@@ -646,6 +676,7 @@ register(
     kwargs=dict(
         question_type=None,
         cascade_number=None,
+        num_players=1,
     ),
 )
 
@@ -658,6 +689,7 @@ register(
         board_size=None,
         num_lines=None,
         cell_size=60,
+        num_players=1,
     ),
 )
 
@@ -668,6 +700,7 @@ register(
     kwargs=dict(
         size=5,
         question_type=None,
+        num_players=1,
     ),
 )
 
@@ -679,6 +712,7 @@ register(
         question_type=None,
         grid_size=None,
         cell_size=30,
+        num_players=1,
     ),
 )
 
@@ -690,6 +724,7 @@ register(
         question_type=None,
         difficulty=None,
         cell_size=60,
+        num_players=1,
     ),
 )
 
@@ -700,6 +735,7 @@ register(
     kwargs=dict(
         question_type=None,
         space_ub=(5, 5, 5),
+        num_players=1,
     ),
 )
 
@@ -711,6 +747,7 @@ register(
         question_type=None,
         size=None,
         cell_size=50,
+        num_players=1,
     ),
 )
 
@@ -723,6 +760,7 @@ register(
         grid_size=16,
         wall_ratio=0.1,
         cell_size=25,
+        num_players=1,
     ),
 )
 
@@ -735,6 +773,7 @@ register(
         grid_size=None,
         difficulty=None,
         cell_size=40,
+        num_players=1,
     ),
 )
 
@@ -745,6 +784,7 @@ register(
     kwargs=dict(
         question_type=None,
         num_moves=None,
+        num_players=1,
     ),
 )
 
@@ -756,6 +796,7 @@ register(
         question_type=None,
         size=5,
         num_boxes=1,
+        num_players=1,
     ),
 )
 
@@ -768,6 +809,7 @@ register(
         circular=False,
         open=False,
         question_type=None,
+        num_players=1,
     ),
 )
 
@@ -780,6 +822,7 @@ register(
         grid_size=None,
         num_seeds=None,
         num_pieces_to_remove=None,
+        num_players=1,
     ),
 )
 
@@ -792,6 +835,7 @@ register(
         rows=12,
         cols=8,
         cell_size=30,
+        num_players=1,
     ),
 )
 
@@ -801,6 +845,7 @@ register(
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
+        num_players=1,
     ),
 )
 
@@ -811,6 +856,7 @@ register(
     kwargs=dict(
         plot_level="Easy",
         question_type=None,
+        num_players=1,
     ),
 )
 
@@ -825,6 +871,7 @@ register(
         num_symbols=2,
         max_steps=8,
         cell_size=50,
+        num_players=1,
     ),
 )
 
@@ -837,6 +884,7 @@ register(
         grid_size=None,
         num_trees=None,
         cell_size=50,
+        num_players=1,
     ),
 )
 
@@ -851,6 +899,7 @@ register(
         enemy_area_rows=8,
         cell_width=50,
         cell_height=40,
+        num_players=1,
     ),
 )
 
@@ -863,6 +912,7 @@ register(
         grid_size=6,
         stars_per_region=1,
         cell_size=50,
+        num_players=1,
     ),
 )
 
@@ -874,6 +924,7 @@ register(
         question_type=None,
         grid_size=None,
         cell_size=50,
+        num_players=1,
     ),
 )
 
@@ -886,6 +937,7 @@ register(
         curve_type=None,
         num_balls=None,
         ball_radius=0.3,
+        num_players=1,
     ),
 )
 
@@ -896,6 +948,7 @@ register(
     kwargs=dict(
         plot_level="Easy",
         question_type=None,
+        num_players=1,
     ),
 )
 
@@ -906,6 +959,7 @@ register(
     kwargs=dict(
         num_pieces=6,
         question_type=None,
+        num_players=1,
     ),
 )
 
@@ -916,6 +970,7 @@ register(
     kwargs=dict(
         plot_level="Easy",
         question_type=None,
+        num_players=1,
     ),
 )
 
@@ -925,5 +980,6 @@ register(
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
+        num_players=1,
     ),
 )

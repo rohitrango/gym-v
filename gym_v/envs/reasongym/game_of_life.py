@@ -34,12 +34,15 @@ class ReasoningGymGameOfLifeEnv(Env):
         dataset_kwargs: dict[str, Any] | None = None,
         cell_px: int = 32,
         padding: int = 16,
+        num_players: int = 1,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
         self._dataset_kwargs = dataset_kwargs or {}
         self._cell_px = cell_px
         self._padding = padding
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         self._seed: int | None = None
         self._dataset = None
@@ -100,7 +103,7 @@ class ReasoningGymGameOfLifeEnv(Env):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
         self._seed = seed
 
@@ -129,7 +132,9 @@ class ReasoningGymGameOfLifeEnv(Env):
             "reasoning_gym_index": self._entry_idx,
             "oracle_answer": self._oracle_answer,
         }
-        return obs, info
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def _parse_board_from_question(self, question: str) -> list[list[int]]:
         """Parse the board JSON from the question string.
@@ -152,9 +157,16 @@ class ReasoningGymGameOfLifeEnv(Env):
         return []
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
-        answer = action
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
+        agent_id = next(iter(self._agent_ids))
+        answer = action[agent_id]
         reward = self._dataset.score_answer(answer=answer, entry=self._entry)
 
         obs = Observation(
@@ -168,7 +180,22 @@ class ReasoningGymGameOfLifeEnv(Env):
             "oracle_answer": self._oracle_answer,
         }
 
-        return obs, reward, True, False, info
+        terminated = True
+        truncated = False
+
+        return (
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: reward for agent_id in self._agent_ids},
+            {
+                **{agent_id: terminated for agent_id in self._agent_ids},
+                "__all__": terminated,
+            },
+            {
+                **{agent_id: truncated for agent_id in self._agent_ids},
+                "__all__": truncated,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
+        )
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         return self._render_life_grid(
