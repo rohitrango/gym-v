@@ -417,10 +417,18 @@ class GameRLJewel2QAEnv(Env):
         },
     ]
 
-    def __init__(self, size=5, question_type: int | None = None, **kwargs):
+    def __init__(
+        self,
+        size: int = 5,
+        question_type: int | None = None,
+        num_players: int = 1,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.size = size
         self._question_type = question_type
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
         self._chessboard = None
         self._total_cleared = 0
         self._current_question = None
@@ -1014,7 +1022,7 @@ Grid:
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         """Reset the environment"""
         super().reset(seed=seed)
 
@@ -1045,14 +1053,26 @@ Grid:
             "question_type": q_type,
         }
 
-        return obs, info
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
         """Execute an action (answer the question)"""
+        agent_id = next(iter(self._agent_ids))
+        action_str = action[agent_id]
+
         correct = (
-            action.strip().lower() == self._current_question["answer"].strip().lower()
+            action_str.strip().lower()
+            == self._current_question["answer"].strip().lower()
         )
         reward = 1.0 if correct else 0.0
 
@@ -1062,4 +1082,21 @@ Grid:
             response = f"Incorrect. The correct answer is: {self._current_question['answer']}\n\n{self._current_question['analysis']}"
 
         obs = Observation(image=self.render(), text=response)
-        return obs, reward, True, False, {}
+
+        terminated = True
+        truncated = False
+        info = {}
+
+        return (
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: reward for agent_id in self._agent_ids},
+            {
+                **{agent_id: terminated for agent_id in self._agent_ids},
+                "__all__": terminated,
+            },
+            {
+                **{agent_id: truncated for agent_id in self._agent_ids},
+                "__all__": truncated,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
+        )

@@ -563,11 +563,17 @@ class GameRLPyramidChessQAEnv(Env):
     ]
 
     def __init__(
-        self, plot_level: str = "Easy", question_type: int | None = None, **kwargs
+        self,
+        plot_level: str = "Easy",
+        question_type: int | None = None,
+        num_players: int = 1,
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.plot_level = plot_level
         self._question_type = question_type
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
         self._current_question = None
         self._board = None
         self._game_gen = None
@@ -597,7 +603,7 @@ class GameRLPyramidChessQAEnv(Env):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
 
         # Generate random game state
@@ -647,13 +653,24 @@ class GameRLPyramidChessQAEnv(Env):
             "question_type": self.QUESTION_TYPES[q_type]["id"],
         }
 
-        return obs, info
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
+        agent_id = next(iter(self._agent_ids))
+        action_str = action[agent_id]
+
         # Normalize answer
-        answer_normalized = action.strip().lower()
+        answer_normalized = action_str.strip().lower()
         correct_answer = str(self._current_question["answer"]).strip().lower()
 
         # Check if correct
@@ -671,7 +688,24 @@ class GameRLPyramidChessQAEnv(Env):
         combined_image = draw_pyramid_combined(layers, self.plot_level)
 
         obs = Observation(image=combined_image, text=response)
-        return obs, reward, True, False, {}
+
+        terminated = True
+        truncated = False
+        info = {}
+
+        return (
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: reward for agent_id in self._agent_ids},
+            {
+                **{agent_id: terminated for agent_id in self._agent_ids},
+                "__all__": terminated,
+            },
+            {
+                **{agent_id: truncated for agent_id in self._agent_ids},
+                "__all__": truncated,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
+        )
 
     def _generate_status_question(self) -> dict:
         """Type 0: What is the status of the ball at coordinate?"""

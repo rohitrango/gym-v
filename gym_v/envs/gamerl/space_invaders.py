@@ -143,6 +143,7 @@ class GameRLSpaceInvadersQAEnv(Env):
         enemy_area_rows: int = 8,
         cell_width: int = 50,
         cell_height: int = 40,
+        num_players: int = 1,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -157,6 +158,8 @@ class GameRLSpaceInvadersQAEnv(Env):
         self._cell_height = cell_height
         self._top_border = 40
         self._left_border = 30
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         # Game state
         self._enemies: list[Enemy] = []
@@ -236,7 +239,7 @@ Ship Row: {ship_str}"""
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
 
         if seed is not None:
@@ -283,13 +286,24 @@ Ship Row: {ship_str}"""
             "oracle_answer": self._oracle_answer,
             "question_type": self._current_question_type,
         }
-        return obs, info
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
         """Evaluate the answer. Always terminates after one step."""
-        answer = action.strip()
+        agent_id = next(iter(self._agent_ids))
+        action_str = action[agent_id]
+
+        answer = action_str.strip()
         reward = self._score_answer(answer)
 
         obs = Observation(
@@ -307,7 +321,22 @@ Ship Row: {ship_str}"""
             "correct": reward == 1.0,
         }
 
-        return obs, reward, True, False, info
+        terminated = True
+        truncated = False
+
+        return (
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: reward for agent_id in self._agent_ids},
+            {
+                **{agent_id: terminated for agent_id in self._agent_ids},
+                "__all__": terminated,
+            },
+            {
+                **{agent_id: truncated for agent_id in self._agent_ids},
+                "__all__": truncated,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
+        )
 
     def _score_answer(self, answer: str) -> float:
         """Score the answer."""

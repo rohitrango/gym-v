@@ -639,10 +639,18 @@ class GameRLChessRangerQAEnv(Env):
         - The goal is to end up with a single piece remaining on the board
     """).strip()
 
-    def __init__(self, num_pieces: int = 6, question_type: int | None = None, **kwargs):
+    def __init__(
+        self,
+        num_pieces: int = 6,
+        question_type: int | None = None,
+        num_players: int = 1,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.num_pieces = num_pieces
         self._question_type = question_type
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
         self._current_question = None
         self._fen = None
         self._board = None
@@ -667,7 +675,7 @@ class GameRLChessRangerQAEnv(Env):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
 
         # Generate puzzle
@@ -714,13 +722,24 @@ class GameRLChessRangerQAEnv(Env):
             "question_type": self.QUESTION_TYPES[q_type]["id"],
         }
 
-        return obs, info
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
+        agent_id = next(iter(self._agent_ids))
+        action_str = action[agent_id]
+
         # Normalize answer
-        answer_normalized = action.strip().lower()
+        answer_normalized = action_str.strip().lower()
         correct_answer = self._current_question["answer"].strip().lower()
 
         # Check if correct
@@ -738,7 +757,24 @@ class GameRLChessRangerQAEnv(Env):
         image = board_image.get_image()
 
         obs = Observation(image=image, text=response)
-        return obs, reward, True, False, {}
+
+        terminated = True
+        truncated = False
+        info = {}
+
+        return (
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: reward for agent_id in self._agent_ids},
+            {
+                **{agent_id: terminated for agent_id in self._agent_ids},
+                "__all__": terminated,
+            },
+            {
+                **{agent_id: truncated for agent_id in self._agent_ids},
+                "__all__": truncated,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
+        )
 
     def _generate_steps_to_solve_question(self) -> dict:
         """Type 0: How many steps are needed to solve the puzzle?"""

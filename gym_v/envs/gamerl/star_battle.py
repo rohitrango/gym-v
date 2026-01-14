@@ -95,6 +95,7 @@ class GameRLStarBattleQAEnv(Env):
         stars_per_region: int = 1,
         cell_size: int = 50,
         question_type: int | None = None,
+        num_players: int = 1,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -105,6 +106,8 @@ class GameRLStarBattleQAEnv(Env):
         self._stars_per_region = stars_per_region
         self._cell_size = cell_size
         self._question_type = question_type
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         # Game state (initialized in reset)
         self._grid: list[list[int]] = []
@@ -179,7 +182,7 @@ Grid (*=star, 1-{self._grid_size}=region number):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
 
         # Select question type
@@ -229,21 +232,32 @@ Grid (*=star, 1-{self._grid_size}=region number):
             "question_type": question_type,
         }
 
-        return obs, info
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
+        agent_id = next(iter(self._agent_ids))
+        action_str = action[agent_id]
+
         info: dict[str, Any] = {}
         reward = 0.0
         terminated = True
         truncated = False
 
         # Parse answer
-        action = action.strip()
+        action_str = action_str.strip()
 
         # Check if answer is correct
-        correct = self._check_answer(action)
+        correct = self._check_answer(action_str)
 
         if correct:
             reward = 1.0
@@ -259,12 +273,25 @@ Grid (*=star, 1-{self._grid_size}=region number):
 
         info = {
             "correct": correct,
-            "user_answer": action,
+            "user_answer": action_str,
             "oracle_answer": self._current_question["answer"],
         }
 
         obs = Observation(image=self.render(), text=response)
-        return obs, reward, terminated, truncated, info
+
+        return (
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: reward for agent_id in self._agent_ids},
+            {
+                **{agent_id: terminated for agent_id in self._agent_ids},
+                "__all__": terminated,
+            },
+            {
+                **{agent_id: truncated for agent_id in self._agent_ids},
+                "__all__": truncated,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
+        )
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the current puzzle state as a PIL Image."""

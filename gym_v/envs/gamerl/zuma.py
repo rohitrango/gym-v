@@ -97,6 +97,7 @@ class GameRLZumaQAEnv(Env):
         curve_type: str | None = None,
         num_balls: int | None = None,
         ball_radius: float = 0.3,
+        num_players: int = 1,
         **kwargs,
     ):
         """Initialize Zuma QA environment.
@@ -112,6 +113,8 @@ class GameRLZumaQAEnv(Env):
         self._curve_type = curve_type
         self._num_balls = num_balls
         self._ball_radius = ball_radius
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         # Game state
         self._frog_pos: dict[str, float] = {}
@@ -199,7 +202,7 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         """Reset the environment and generate a new question."""
         super().reset(seed=seed)
 
@@ -253,7 +256,9 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
             "question_type": self._selected_question_type,
         }
 
-        return obs, info
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def _generate_game_state(self, curve_type: str, num_balls: int):
         """Generate the game state with track, frog, and balls."""
@@ -881,11 +886,20 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
         return False, [], 0
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
         """Process the answer."""
-        action = action.strip().lower()
-        correct = action == self._answer.lower()
+        agent_id = next(iter(self._agent_ids))
+        action_str = action[agent_id]
+
+        action_str = action_str.strip().lower()
+        correct = action_str == self._answer.lower()
 
         if correct:
             response = f"Correct! {self._analysis}"
@@ -903,11 +917,26 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
 
         info = {
             "correct": correct,
-            "user_answer": action,
+            "user_answer": action_str,
             "oracle_answer": self._answer,
         }
 
-        return obs, reward, True, False, info
+        terminated = True
+        truncated = False
+
+        return (
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: reward for agent_id in self._agent_ids},
+            {
+                **{agent_id: terminated for agent_id in self._agent_ids},
+                "__all__": terminated,
+            },
+            {
+                **{agent_id: truncated for agent_id in self._agent_ids},
+                "__all__": truncated,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
+        )
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the game state as an image using PIL."""

@@ -73,6 +73,7 @@ class GameRLSokobanQAEnv(Env):
         question_type: str | None = None,
         size: int = 5,
         num_boxes: int = 1,
+        num_players: int = 1,
         **kwargs,
     ):
         """Initialize Sokoban QA environment.
@@ -86,6 +87,8 @@ class GameRLSokobanQAEnv(Env):
         self._question_type = question_type
         self._size = size
         self._num_boxes = num_boxes
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         # Game state
         self._grid: np.ndarray = np.zeros((size, size), dtype=int)
@@ -176,7 +179,7 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         """Reset the environment and generate a new question."""
         super().reset(seed=seed)
 
@@ -213,7 +216,9 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
             "question_type": self._selected_question_type,
         }
 
-        return obs, info
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def _generate_board(self):
         """Generate a random Sokoban board."""
@@ -574,11 +579,20 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
         return " → ".join(moves)
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
         """Process the answer."""
-        action = action.strip()
-        correct = action == self._answer
+        agent_id = next(iter(self._agent_ids))
+        action_str = action[agent_id]
+
+        action_str = action_str.strip()
+        correct = action_str == self._answer
 
         if correct:
             response = f"Correct! {self._analysis}"
@@ -596,11 +610,26 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
 
         info = {
             "correct": correct,
-            "user_answer": action,
+            "user_answer": action_str,
             "oracle_answer": self._answer,
         }
 
-        return obs, reward, True, False, info
+        terminated = True
+        truncated = False
+
+        return (
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: reward for agent_id in self._agent_ids},
+            {
+                **{agent_id: terminated for agent_id in self._agent_ids},
+                "__all__": terminated,
+            },
+            {
+                **{agent_id: truncated for agent_id in self._agent_ids},
+                "__all__": truncated,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
+        )
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the Sokoban board as an image using PIL."""
