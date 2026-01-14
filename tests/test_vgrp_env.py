@@ -58,7 +58,25 @@ class TestVGRP(unittest.TestCase):
         print(f"\n[{env_id}] Using random seed: {test_seed}")
 
         env = gym_v.make(env_id)
-        obs, info = env.reset(seed=test_seed)
+
+        # 1. Reset
+        obs_dict, info_dict = env.reset(seed=test_seed)
+
+        # Check dictionary return structure
+        self.assertIsInstance(
+            obs_dict, dict, f"{env_id}: reset() should return dict of observations"
+        )
+        self.assertIsInstance(
+            info_dict, dict, f"{env_id}: reset() should return dict of infos"
+        )
+
+        # Get agent_0 (default single player)
+        agent_id = "agent_0"
+        self.assertIn(agent_id, obs_dict)
+        self.assertIn(agent_id, info_dict)
+
+        obs = obs_dict[agent_id]
+        info = info_dict[agent_id]
 
         # 1. Save image
         self.assertIsNotNone(obs.image)
@@ -82,29 +100,47 @@ class TestVGRP(unittest.TestCase):
         print("=" * 80 + "\n")
 
         # 3. Verify reward with correct answer
-        obs2, reward, terminated, truncated, info2 = env.step(oracle)
-        self.assertTrue(terminated)
-        self.assertTrue(truncated)
-        self.assertIsInstance(reward, float)
+        actions = {agent_id: oracle}
+        obs_dict2, reward_dict, terminated_dict, truncated_dict, info_dict2 = env.step(
+            actions
+        )
+
+        self.assertIn(agent_id, reward_dict)
+        self.assertIn(agent_id, terminated_dict)
+        self.assertIn(agent_id, truncated_dict)
+
+        self.assertTrue(terminated_dict[agent_id])
+        # truncated is True because max_episode_steps=1 and step count reached 1
+        self.assertTrue(truncated_dict[agent_id])
+        self.assertIsInstance(reward_dict[agent_id], float)
         self.assertEqual(
-            reward, 1.0, f"{env_id}: Expected reward 1.0 for oracle answer"
+            reward_dict[agent_id],
+            1.0,
+            f"{env_id}: Expected reward 1.0 for oracle answer",
         )
 
         # 4. Verify reward with wrong answer
         env.reset(seed=test_seed)
-        _, reward2, terminated2, truncated2, _ = env.step("")
-        self.assertTrue(terminated2)
-        self.assertTrue(truncated2)
-        self.assertIsInstance(reward2, float)
+        actions_wrong = {agent_id: ""}
+        _, reward_dict2, terminated_dict2, truncated_dict2, _ = env.step(actions_wrong)
+
+        self.assertTrue(terminated_dict2[agent_id])
+        self.assertTrue(truncated_dict2[agent_id])
+        self.assertIsInstance(reward_dict2[agent_id], float)
         self.assertEqual(
-            reward2, 0.0, f"{env_id}: Expected reward 0.0 for empty answer"
+            reward_dict2[agent_id],
+            0.0,
+            f"{env_id}: Expected reward 0.0 for empty answer",
         )
 
         # 5. Test with multiple seeds to verify stability
         print(f"[{env_id}] Testing with 3 additional seeds...")
         for i in range(3):
             seed = random.randint(0, 9999)
-            obs_test, info_test = env.reset(seed=seed)
+            obs_dict_test, info_dict_test = env.reset(seed=seed)
+            info_test = info_dict_test[agent_id]
+            obs_test = obs_dict_test[agent_id]
+
             oracle_test = info_test.get("oracle_answer", None)
 
             # Save image
@@ -116,9 +152,9 @@ class TestVGRP(unittest.TestCase):
             self.assertGreater(len(oracle_test), 0)
 
             # Verify reward
-            _, reward_test, _, _, _ = env.step(oracle_test)
+            _, reward_dict_test, _, _, _ = env.step({agent_id: oracle_test})
             self.assertEqual(
-                reward_test,
+                reward_dict_test[agent_id],
                 1.0,
                 f"{env_id}: Expected reward 1.0 for oracle answer (seed={seed})",
             )
