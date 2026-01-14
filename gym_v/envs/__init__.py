@@ -515,6 +515,7 @@ register(
         grid_size=16,
         wall_ratio=0.1,
         cell_size=25,
+        num_players=1,
     ),
 )
 
@@ -526,6 +527,7 @@ register(
         rows=12,
         cols=8,
         cell_size=30,
+        num_players=1,
     ),
 )
 
@@ -539,6 +541,7 @@ register(
         enemy_area_rows=8,
         cell_width=50,
         cell_height=40,
+        num_players=1,
     ),
 )
 
@@ -549,6 +552,7 @@ register(
     kwargs=dict(
         size="small",
         cell_size=40,
+        num_players=1,
     ),
 )
 
@@ -561,6 +565,7 @@ register(
         cell_size=20,
         random_init=True,
         init_density=0.3,
+        num_players=1,
     ),
 )
 
@@ -572,29 +577,7 @@ register(
         grid_size=15,
         cell_size=30,
         init_black_ratio=0.1,
-    ),
-)
-
-register(
-    id="GameRL/Minesweeper-v0",
-    entry_point="gym_v.envs.gamerl_multiturn.minesweeper:GameRLMinesweeperEnv",
-    max_episode_steps=500,
-    kwargs=dict(
-        rows=8,
-        cols=8,
-        mines=10,
-        cell_size=60,
-    ),
-)
-
-register(
-    id="GameRL/Sudoku-v0",
-    entry_point="gym_v.envs.gamerl_multiturn.sudoku:GameRLSudokuEnv",
-    max_episode_steps=1000,
-    kwargs=dict(
-        size=9,
-        difficulty="medium",
-        cell_size=50,
+        num_players=1,
     ),
 )
 

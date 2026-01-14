@@ -49,6 +49,7 @@ class GameRLLifegameEnv(Env):
         cell_size: int = 20,
         random_init: bool = True,
         init_density: float = 0.3,
+        num_players: int = 1,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -57,6 +58,8 @@ class GameRLLifegameEnv(Env):
         self._random_init = random_init
         self._init_density = max(0.0, min(1.0, init_density))
         self._margin = 40  # Margin for coordinate labels
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         # Game state (initialized in reset)
         self._grid: list[list[int]] = []
@@ -92,7 +95,7 @@ class GameRLLifegameEnv(Env):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
 
         self._generation = 0
@@ -101,28 +104,52 @@ class GameRLLifegameEnv(Env):
         logger.info(f"Reset Game of Life with {self._count_live_cells()} live cells.")
 
         obs = Observation(image=self.render(), text=self._get_observation_text())
-        return obs, {}
+        info = {}
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
+        agent_id = next(iter(self._agent_ids))
+        action_str = action[agent_id]
+
         info: dict[str, Any] = {}
         reward = 0.0
         terminated = False
         truncated = False
 
-        action = action.strip().lower()
+        action_str = action_str.strip().lower()
 
         # Validate action
-        if action not in self.ACTIONS:
+        if action_str not in self.ACTIONS:
             logger.warning(
-                f"Invalid action: {action}. Valid actions: {list(self.ACTIONS.keys())}"
+                f"Invalid action: {action_str}. Valid actions: {list(self.ACTIONS.keys())}"
             )
             obs = Observation(
                 image=self.render(),
-                text=f"Invalid action: {action}. Use 'step', 'next', 'n', or 'space'.",
+                text=f"Invalid action: {action_str}. Use 'step', 'next', 'n', or 'space'.",
             )
-            return obs, -1.0, False, False, info
+            return (
+                {agent_id: obs for agent_id in self._agent_ids},
+                {agent_id: -1.0 for agent_id in self._agent_ids},
+                {
+                    **{agent_id: False for agent_id in self._agent_ids},
+                    "__all__": False,
+                },
+                {
+                    **{agent_id: False for agent_id in self._agent_ids},
+                    "__all__": False,
+                },
+                {agent_id: info for agent_id in self._agent_ids},
+            )
 
         # Evolve the grid by one generation
         old_count = self._count_live_cells()
@@ -147,7 +174,20 @@ class GameRLLifegameEnv(Env):
         }
 
         obs = Observation(image=self.render(), text=self._get_observation_text())
-        return obs, reward, terminated, truncated, info
+
+        return (
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: reward for agent_id in self._agent_ids},
+            {
+                **{agent_id: terminated for agent_id in self._agent_ids},
+                "__all__": terminated,
+            },
+            {
+                **{agent_id: truncated for agent_id in self._agent_ids},
+                "__all__": truncated,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
+        )
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the current grid state as a PIL Image."""

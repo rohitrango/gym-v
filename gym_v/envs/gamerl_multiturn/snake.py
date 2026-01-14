@@ -56,6 +56,7 @@ class GameRLSnakeEnv(Env):
         height: int = 10,
         initial_snake_length: int = 3,
         cell_size: int = 40,
+        num_players: int = 1,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -64,6 +65,8 @@ class GameRLSnakeEnv(Env):
         self._initial_snake_length = min(initial_snake_length, width * height - 1)
         self._cell_size = cell_size
         self._margin = 30  # Margin for coordinate labels
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         # Game state (initialized in reset)
         self._snake: list[tuple[int, int]] = []
@@ -78,7 +81,7 @@ class GameRLSnakeEnv(Env):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
 
         self._game_over = False
@@ -88,24 +91,48 @@ class GameRLSnakeEnv(Env):
         logger.info("Reset Snake game.")
 
         obs = Observation(image=self.render(), text=self._get_observation_text())
-        return obs, {}
+        info = {}
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
+        agent_id = next(iter(self._agent_ids))
+        action_str = action[agent_id]
+
         info: dict[str, Any] = {}
         reward = 0.0
         terminated = False
         truncated = False
 
         # Normalize action
-        action_lower = action.lower().strip()
+        action_lower = action_str.lower().strip()
 
         # Check for invalid action
         if action_lower not in self.DIRECTIONS:
             info["invalid_action"] = True
             obs = Observation(image=self.render(), text=self._get_observation_text())
-            return obs, reward, terminated, truncated, info
+            return (
+                {agent_id: obs for agent_id in self._agent_ids},
+                {agent_id: reward for agent_id in self._agent_ids},
+                {
+                    **{agent_id: terminated for agent_id in self._agent_ids},
+                    "__all__": terminated,
+                },
+                {
+                    **{agent_id: truncated for agent_id in self._agent_ids},
+                    "__all__": truncated,
+                },
+                {agent_id: info for agent_id in self._agent_ids},
+            )
 
         info["invalid_action"] = False
 
@@ -125,7 +152,19 @@ class GameRLSnakeEnv(Env):
             terminated = True
             info["death_reason"] = "wall"
             obs = Observation(image=self.render(), text=self._get_observation_text())
-            return obs, reward, terminated, truncated, info
+            return (
+                {agent_id: obs for agent_id in self._agent_ids},
+                {agent_id: reward for agent_id in self._agent_ids},
+                {
+                    **{agent_id: terminated for agent_id in self._agent_ids},
+                    "__all__": terminated,
+                },
+                {
+                    **{agent_id: truncated for agent_id in self._agent_ids},
+                    "__all__": truncated,
+                },
+                {agent_id: info for agent_id in self._agent_ids},
+            )
 
         # Check for collision with self (excluding tail which will move)
         if new_head in self._snake[:-1]:
@@ -133,7 +172,19 @@ class GameRLSnakeEnv(Env):
             terminated = True
             info["death_reason"] = "self"
             obs = Observation(image=self.render(), text=self._get_observation_text())
-            return obs, reward, terminated, truncated, info
+            return (
+                {agent_id: obs for agent_id in self._agent_ids},
+                {agent_id: reward for agent_id in self._agent_ids},
+                {
+                    **{agent_id: terminated for agent_id in self._agent_ids},
+                    "__all__": terminated,
+                },
+                {
+                    **{agent_id: truncated for agent_id in self._agent_ids},
+                    "__all__": truncated,
+                },
+                {agent_id: info for agent_id in self._agent_ids},
+            )
 
         # Check if eating food
         ate_food = new_head == self._food
@@ -154,7 +205,20 @@ class GameRLSnakeEnv(Env):
         info["snake_length"] = len(self._snake)
 
         obs = Observation(image=self.render(), text=self._get_observation_text())
-        return obs, reward, terminated, truncated, info
+
+        return (
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: reward for agent_id in self._agent_ids},
+            {
+                **{agent_id: terminated for agent_id in self._agent_ids},
+                "__all__": terminated,
+            },
+            {
+                **{agent_id: truncated for agent_id in self._agent_ids},
+                "__all__": truncated,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
+        )
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the game state as a PIL Image."""

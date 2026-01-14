@@ -60,6 +60,7 @@ class GameRLSpaceInvadersEnv(Env):
         enemy_area_rows: int = 8,
         cell_width: int = 50,
         cell_height: int = 40,
+        num_players: int = 1,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -73,6 +74,8 @@ class GameRLSpaceInvadersEnv(Env):
         self._cell_height = cell_height
         self._top_border = 40
         self._left_border = 30
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         # Game state (initialized in reset)
         self._enemies: list[Enemy] = []
@@ -125,7 +128,7 @@ class GameRLSpaceInvadersEnv(Env):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
 
         if seed is not None:
@@ -162,11 +165,23 @@ class GameRLSpaceInvadersEnv(Env):
         logger.info("Reset Space Invaders game.")
 
         obs = Observation(image=self.render(), text=self._get_observation_text())
-        return obs, {}
+        info = {}
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
+        agent_id = next(iter(self._agent_ids))
+        action_str = action[agent_id]
+
         info: dict[str, Any] = {}
         reward = 0.0
         terminated = False
@@ -174,9 +189,21 @@ class GameRLSpaceInvadersEnv(Env):
 
         if self._game_over:
             obs = Observation(image=self.render(), text=self._get_observation_text())
-            return obs, reward, True, truncated, info
+            return (
+                {agent_id: obs for agent_id in self._agent_ids},
+                {agent_id: reward for agent_id in self._agent_ids},
+                {
+                    **{agent_id: True for agent_id in self._agent_ids},
+                    "__all__": True,
+                },
+                {
+                    **{agent_id: truncated for agent_id in self._agent_ids},
+                    "__all__": truncated,
+                },
+                {agent_id: info for agent_id in self._agent_ids},
+            )
 
-        action_lower = action.lower().strip()
+        action_lower = action_str.lower().strip()
 
         # Check if action is a column number
         try:
@@ -211,7 +238,20 @@ class GameRLSpaceInvadersEnv(Env):
         info["score"] = self._score
 
         obs = Observation(image=self.render(), text=self._get_observation_text())
-        return obs, reward, terminated, truncated, info
+
+        return (
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: reward for agent_id in self._agent_ids},
+            {
+                **{agent_id: terminated for agent_id in self._agent_ids},
+                "__all__": terminated,
+            },
+            {
+                **{agent_id: truncated for agent_id in self._agent_ids},
+                "__all__": truncated,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
+        )
 
     def _shoot(self) -> float:
         """Shoot at current column. Returns points scored."""
