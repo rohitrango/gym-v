@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 import io
 import json
 import logging
 import random
 from textwrap import dedent
-from typing import Any, Callable
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -30,10 +31,13 @@ class PerceptionPolarPlotEnv(Env):
     def __init__(
         self,
         img_size: tuple[int, int] = (640, 480),
+        num_players: int = 1,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
         self.img_size = img_size
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         self._seed: int | None = None
         self._current_expression: str | None = None
@@ -42,8 +46,14 @@ class PerceptionPolarPlotEnv(Env):
         self._current_image: Image.Image | None = None
 
         self._line_colors = [
-            "#FF0000", "#0000FF", "#00AA00", "#FF6600",
-            "#9900CC", "#00CCCC", "#CC0066", "#006699",
+            "#FF0000",
+            "#0000FF",
+            "#00AA00",
+            "#FF6600",
+            "#9900CC",
+            "#00CCCC",
+            "#CC0066",
+            "#006699",
         ]
 
     @property
@@ -70,7 +80,7 @@ class PerceptionPolarPlotEnv(Env):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
         self._seed = seed
         if seed is not None:
@@ -91,22 +101,40 @@ class PerceptionPolarPlotEnv(Env):
             "oracle_answer": json.dumps(self._current_answer),
         }
 
-        return obs, info
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
-        reward = self._compute_reward(action)
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
+        agent_id = next(iter(self._agent_ids))
+        action_str = action[agent_id]
+        reward = self._compute_reward(action_str)
         info = {
             "oracle_answer": json.dumps(self._current_answer),
         }
 
+        obs = Observation(image=self._current_image, text=None)
+
         return (
-            Observation(image=self._current_image, text=None),
-            reward,
-            True,
-            False,
-            info,
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: reward for agent_id in self._agent_ids},
+            {
+                **{agent_id: True for agent_id in self._agent_ids},
+                "__all__": True,
+            },
+            {
+                **{agent_id: False for agent_id in self._agent_ids},
+                "__all__": False,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
         )
 
     def _compute_reward(self, action: str) -> float:
@@ -116,7 +144,7 @@ class PerceptionPolarPlotEnv(Env):
             if parsed_action == self._current_answer:
                 return 1.0
             return 0.0
-        except:
+        except Exception:
             return 0.0
 
     def render(self) -> Image.Image:
@@ -167,7 +195,11 @@ class PerceptionPolarPlotEnv(Env):
                 self._current_expression = f"{a}*cos({n}*theta)"
 
         self._current_func = lambda theta, a=a, n=n: a * np.cos(n * theta)
-        self._current_answer = {"expression": self._current_expression, "type": "rose", "petals": n if n % 2 == 1 else 2 * n}
+        self._current_answer = {
+            "expression": self._current_expression,
+            "type": "rose",
+            "petals": n if n % 2 == 1 else 2 * n,
+        }
         self._current_func_type = "rose"
 
     def _generate_rose_sin(self):
@@ -187,7 +219,11 @@ class PerceptionPolarPlotEnv(Env):
                 self._current_expression = f"{a}*sin({n}*theta)"
 
         self._current_func = lambda theta, a=a, n=n: a * np.sin(n * theta)
-        self._current_answer = {"expression": self._current_expression, "type": "rose", "petals": n if n % 2 == 1 else 2 * n}
+        self._current_answer = {
+            "expression": self._current_expression,
+            "type": "rose",
+            "petals": n if n % 2 == 1 else 2 * n,
+        }
         self._current_func_type = "rose"
 
     def _generate_spiral(self):
@@ -200,7 +236,10 @@ class PerceptionPolarPlotEnv(Env):
             self._current_expression = f"{a}*theta"
 
         self._current_func = lambda theta, a=a: a * theta
-        self._current_answer = {"expression": self._current_expression, "type": "spiral"}
+        self._current_answer = {
+            "expression": self._current_expression,
+            "type": "spiral",
+        }
         self._current_func_type = "spiral"
 
     def _generate_cardioid(self):
@@ -213,7 +252,10 @@ class PerceptionPolarPlotEnv(Env):
             self._current_expression = f"{a}*(1 + cos(theta))"
 
         self._current_func = lambda theta, a=a: a * (1 + np.cos(theta))
-        self._current_answer = {"expression": self._current_expression, "type": "cardioid"}
+        self._current_answer = {
+            "expression": self._current_expression,
+            "type": "cardioid",
+        }
 
     def _generate_limacon(self):
         """Generate limaçon: r = a + b*cos(theta)"""
@@ -226,14 +268,17 @@ class PerceptionPolarPlotEnv(Env):
             self._current_expression = f"{a} + {b}*cos(theta)"
 
         self._current_func = lambda theta, a=a, b=b: a + b * np.cos(theta)
-        self._current_answer = {"expression": self._current_expression, "type": "limacon"}
+        self._current_answer = {
+            "expression": self._current_expression,
+            "type": "limacon",
+        }
 
     def _render_polar(self) -> Image.Image:
         """Render the polar plot as a PIL Image."""
         fig, ax = plt.subplots(
             figsize=(self.img_size[0] / 100, self.img_size[1] / 100),
             dpi=100,
-            subplot_kw={"projection": "polar"}
+            subplot_kw={"projection": "polar"},
         )
 
         # Generate theta values

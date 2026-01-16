@@ -353,7 +353,6 @@ register(
     max_episode_steps=100,
     kwargs=dict(
         num_disks=3,
-        num_players=1,
     ),
 )
 
@@ -1004,6 +1003,7 @@ register(
     kwargs=dict(
         img_size=(640, 480),
         max_categories=8,
+        num_players=1,
     ),
 )
 
@@ -1016,6 +1016,7 @@ register(
         img_size=(640, 480),
         min_nodes=4,
         max_nodes=8,
+        num_players=1,
     ),
 )
 
@@ -1027,6 +1028,7 @@ register(
         img_size=(640, 480),
         min_nodes=5,
         max_nodes=12,
+        num_players=1,
     ),
 )
 
@@ -1038,6 +1040,7 @@ register(
         img_size=(640, 480),
         min_nodes=5,
         max_nodes=9,
+        num_players=1,
     ),
 )
 
@@ -1049,6 +1052,7 @@ register(
         img_size=(640, 480),
         min_nodes=5,
         max_nodes=8,
+        num_players=1,
     ),
 )
 
@@ -1060,6 +1064,7 @@ register(
         img_size=(640, 480),
         min_nodes=5,
         max_nodes=8,
+        num_players=1,
     ),
 )
 
@@ -1071,6 +1076,7 @@ register(
     kwargs=dict(
         img_size=(640, 480),
         x_range=(-5, 5),
+        num_players=1,
     ),
 )
 
@@ -1081,6 +1087,7 @@ register(
     kwargs=dict(
         img_size=(640, 480),
         xy_range=(-3, 3),
+        num_players=1,
     ),
 )
 
@@ -1090,6 +1097,7 @@ register(
     max_episode_steps=1,
     kwargs=dict(
         img_size=(640, 480),
+        num_players=1,
     ),
 )
 
@@ -1101,6 +1109,7 @@ register(
         img_size=(640, 480),
         xy_range=(-3, 3),
         grid_density=15,
+        num_players=1,
     ),
 )
 
@@ -1110,5 +1119,6 @@ register(
     max_episode_steps=1,
     kwargs=dict(
         img_size=(640, 480),
+        num_players=1,
     ),
 )

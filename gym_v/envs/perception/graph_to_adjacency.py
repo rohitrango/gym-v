@@ -16,7 +16,7 @@ import numpy as np
 from PIL import Image, ImageFilter
 
 # Workaround for networkx + numpy 2.0 compatibility
-if not hasattr(np, 'alltrue'):
+if not hasattr(np, "alltrue"):
     np.alltrue = np.all
 
 from gym_v import Env, Observation, get_logger
@@ -41,6 +41,7 @@ class PerceptionGraphToAdjacencyEnv(Env):
         edge_probability: float = 0.4,
         allow_directed: bool = True,
         allow_weighted: bool = True,
+        num_players: int = 1,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
@@ -50,6 +51,8 @@ class PerceptionGraphToAdjacencyEnv(Env):
         self.edge_probability = edge_probability
         self.allow_directed = allow_directed
         self.allow_weighted = allow_weighted
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         self._seed: int | None = None
         self._current_graph: nx.Graph | nx.DiGraph | None = None
@@ -59,9 +62,18 @@ class PerceptionGraphToAdjacencyEnv(Env):
         self._is_weighted: bool = False
 
         self._node_colors = [
-            "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4",
-            "#FFEAA7", "#DDA0DD", "#98D8C8", "#F7DC6F",
-            "#BB8FCE", "#85C1E9", "#F8B500", "#00CED1",
+            "#FF6B6B",
+            "#4ECDC4",
+            "#45B7D1",
+            "#96CEB4",
+            "#FFEAA7",
+            "#DDA0DD",
+            "#98D8C8",
+            "#F7DC6F",
+            "#BB8FCE",
+            "#85C1E9",
+            "#F8B500",
+            "#00CED1",
         ]
 
         self._layouts = ["spring", "circular", "shell", "kamada_kawai", "spectral"]
@@ -88,7 +100,7 @@ class PerceptionGraphToAdjacencyEnv(Env):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
         self._seed = seed
         if seed is not None:
@@ -114,20 +126,38 @@ class PerceptionGraphToAdjacencyEnv(Env):
             "is_weighted": self._is_weighted,
         }
 
-        return obs, info
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
-        reward = self._compute_reward(action)
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
+        agent_id = next(iter(self._agent_ids))
+        action_str = action[agent_id]
+        reward = self._compute_reward(action_str)
         info = {"oracle_answer": json.dumps(self._current_adjacency)}
 
+        obs = Observation(image=self._current_image, text=None)
+
         return (
-            Observation(image=self._current_image, text=None),
-            reward,
-            True,
-            False,
-            info,
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: reward for agent_id in self._agent_ids},
+            {
+                **{agent_id: True for agent_id in self._agent_ids},
+                "__all__": True,
+            },
+            {
+                **{agent_id: False for agent_id in self._agent_ids},
+                "__all__": False,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
         )
 
     def _compute_reward(self, action: str) -> float:
@@ -137,7 +167,7 @@ class PerceptionGraphToAdjacencyEnv(Env):
             if parsed_action == self._current_adjacency:
                 return 1.0
             return 0.0
-        except:
+        except Exception:
             return 0.0
 
     def render(self) -> Image.Image:
@@ -222,7 +252,9 @@ class PerceptionGraphToAdjacencyEnv(Env):
 
     def _render_graph(self, G: nx.Graph | nx.DiGraph) -> Image.Image:
         """Render the graph as a PIL Image."""
-        fig, ax = plt.subplots(figsize=(self.img_size[0] / 100, self.img_size[1] / 100), dpi=100)
+        fig, ax = plt.subplots(
+            figsize=(self.img_size[0] / 100, self.img_size[1] / 100), dpi=100
+        )
 
         # Choose layout
         layout_name = random.choice(self._layouts)
@@ -245,14 +277,15 @@ class PerceptionGraphToAdjacencyEnv(Env):
         # Node colors
         num_nodes = G.number_of_nodes()
         colors = random.sample(
-            self._node_colors * (num_nodes // len(self._node_colors) + 1),
-            num_nodes
+            self._node_colors * (num_nodes // len(self._node_colors) + 1), num_nodes
         )
 
         # Draw nodes
         node_size = random.randint(1500, 2500)
         nx.draw_networkx_nodes(
-            G, pos, ax=ax,
+            G,
+            pos,
+            ax=ax,
             node_color=colors,
             node_size=node_size,
             edgecolors="black",
@@ -262,7 +295,9 @@ class PerceptionGraphToAdjacencyEnv(Env):
         # Draw node labels
         font_size = random.randint(12, 16)
         nx.draw_networkx_labels(
-            G, pos, ax=ax,
+            G,
+            pos,
+            ax=ax,
             font_size=font_size,
             font_weight="bold",
         )
@@ -273,7 +308,9 @@ class PerceptionGraphToAdjacencyEnv(Env):
 
         if self._is_directed:
             nx.draw_networkx_edges(
-                G, pos, ax=ax,
+                G,
+                pos,
+                ax=ax,
                 edge_color=edge_color,
                 width=edge_width,
                 arrows=True,
@@ -283,7 +320,9 @@ class PerceptionGraphToAdjacencyEnv(Env):
             )
         else:
             nx.draw_networkx_edges(
-                G, pos, ax=ax,
+                G,
+                pos,
+                ax=ax,
                 edge_color=edge_color,
                 width=edge_width,
             )
@@ -292,12 +331,19 @@ class PerceptionGraphToAdjacencyEnv(Env):
         if self._is_weighted:
             edge_labels = nx.get_edge_attributes(G, "weight")
             nx.draw_networkx_edge_labels(
-                G, pos, ax=ax,
+                G,
+                pos,
+                ax=ax,
                 edge_labels=edge_labels,
                 font_size=10,
                 font_color="red",
                 font_weight="bold",
-                bbox=dict(boxstyle="round,pad=0.2", facecolor="white", edgecolor="none", alpha=0.8),
+                bbox=dict(
+                    boxstyle="round,pad=0.2",
+                    facecolor="white",
+                    edgecolor="none",
+                    alpha=0.8,
+                ),
             )
 
         # Add title

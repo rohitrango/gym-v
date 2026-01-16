@@ -35,6 +35,7 @@ class PerceptionDAGToTopoOrderEnv(Env):
         min_nodes: int = 5,
         max_nodes: int = 9,
         edge_probability: float = 0.35,
+        num_players: int = 1,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
@@ -42,6 +43,8 @@ class PerceptionDAGToTopoOrderEnv(Env):
         self.min_nodes = min_nodes
         self.max_nodes = max_nodes
         self.edge_probability = edge_probability
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         self._seed: int | None = None
         self._current_graph: nx.DiGraph | None = None
@@ -49,9 +52,18 @@ class PerceptionDAGToTopoOrderEnv(Env):
         self._current_image: Image.Image | None = None
 
         self._node_colors = [
-            "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4",
-            "#FFEAA7", "#DDA0DD", "#98D8C8", "#F7DC6F",
-            "#BB8FCE", "#85C1E9", "#F8B500", "#00CED1",
+            "#FF6B6B",
+            "#4ECDC4",
+            "#45B7D1",
+            "#96CEB4",
+            "#FFEAA7",
+            "#DDA0DD",
+            "#98D8C8",
+            "#F7DC6F",
+            "#BB8FCE",
+            "#85C1E9",
+            "#F8B500",
+            "#00CED1",
         ]
 
     @property
@@ -72,7 +84,7 @@ class PerceptionDAGToTopoOrderEnv(Env):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
         self._seed = seed
         if seed is not None:
@@ -91,27 +103,49 @@ class PerceptionDAGToTopoOrderEnv(Env):
         )
 
         info = {
-            "oracle_answer": json.dumps({"topological_order": self._current_topo_order}),
+            "oracle_answer": json.dumps(
+                {"topological_order": self._current_topo_order}
+            ),
             "graph_edges": list(self._current_graph.edges()),
         }
 
-        return obs, info
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
-        reward = self._compute_reward(action)
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
+        agent_id = next(iter(self._agent_ids))
+        action_str = action[agent_id]
+        reward = self._compute_reward(action_str)
         info = {
-            "oracle_answer": json.dumps({"topological_order": self._current_topo_order}),
+            "oracle_answer": json.dumps(
+                {"topological_order": self._current_topo_order}
+            ),
             "graph_edges": list(self._current_graph.edges()),
         }
 
+        obs = Observation(image=self._current_image, text=None)
+
         return (
-            Observation(image=self._current_image, text=None),
-            reward,
-            True,
-            False,
-            info,
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: reward for agent_id in self._agent_ids},
+            {
+                **{agent_id: True for agent_id in self._agent_ids},
+                "__all__": True,
+            },
+            {
+                **{agent_id: False for agent_id in self._agent_ids},
+                "__all__": False,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
         )
 
     def _compute_reward(self, action: str) -> float:
@@ -131,7 +165,7 @@ class PerceptionDAGToTopoOrderEnv(Env):
                     return 0.0
 
             return 1.0
-        except:
+        except Exception:
             return 0.0
 
     def render(self) -> Image.Image:
@@ -172,7 +206,9 @@ class PerceptionDAGToTopoOrderEnv(Env):
 
     def _render_dag(self, G: nx.DiGraph) -> Image.Image:
         """Render the DAG as a PIL Image."""
-        fig, ax = plt.subplots(figsize=(self.img_size[0] / 100, self.img_size[1] / 100), dpi=100)
+        fig, ax = plt.subplots(
+            figsize=(self.img_size[0] / 100, self.img_size[1] / 100), dpi=100
+        )
 
         # Use layout that respects topological order somewhat
         layout_choice = random.choice(["spring", "kamada_kawai", "shell", "layered"])
@@ -202,14 +238,15 @@ class PerceptionDAGToTopoOrderEnv(Env):
         # Node colors
         num_nodes = G.number_of_nodes()
         colors = random.sample(
-            self._node_colors * (num_nodes // len(self._node_colors) + 1),
-            num_nodes
+            self._node_colors * (num_nodes // len(self._node_colors) + 1), num_nodes
         )
 
         # Draw nodes
         node_size = random.randint(1500, 2200)
         nx.draw_networkx_nodes(
-            G, pos, ax=ax,
+            G,
+            pos,
+            ax=ax,
             node_color=colors,
             node_size=node_size,
             edgecolors="black",
@@ -219,7 +256,9 @@ class PerceptionDAGToTopoOrderEnv(Env):
         # Draw node labels
         font_size = random.randint(12, 15)
         nx.draw_networkx_labels(
-            G, pos, ax=ax,
+            G,
+            pos,
+            ax=ax,
             font_size=font_size,
             font_weight="bold",
         )
@@ -229,7 +268,9 @@ class PerceptionDAGToTopoOrderEnv(Env):
         edge_width = random.uniform(1.5, 2.5)
 
         nx.draw_networkx_edges(
-            G, pos, ax=ax,
+            G,
+            pos,
+            ax=ax,
             edge_color=edge_color,
             width=edge_width,
             arrows=True,

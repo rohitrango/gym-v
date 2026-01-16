@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 import io
 import json
 import logging
 import random
 from textwrap import dedent
-from typing import Any, Callable
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -31,11 +32,14 @@ class PerceptionFunctionGraphEnv(Env):
         self,
         img_size: tuple[int, int] = (640, 480),
         x_range: tuple[float, float] = (-5, 5),
+        num_players: int = 1,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
         self.img_size = img_size
         self.x_range = x_range
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         self._seed: int | None = None
         self._current_expression: str | None = None
@@ -44,8 +48,14 @@ class PerceptionFunctionGraphEnv(Env):
         self._current_image: Image.Image | None = None
 
         self._line_colors = [
-            "#FF0000", "#0000FF", "#00AA00", "#FF6600",
-            "#9900CC", "#00CCCC", "#CC0066", "#006699",
+            "#FF0000",
+            "#0000FF",
+            "#00AA00",
+            "#FF6600",
+            "#9900CC",
+            "#00CCCC",
+            "#CC0066",
+            "#006699",
         ]
 
     @property
@@ -72,7 +82,7 @@ class PerceptionFunctionGraphEnv(Env):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
         self._seed = seed
         if seed is not None:
@@ -91,31 +101,53 @@ class PerceptionFunctionGraphEnv(Env):
         )
 
         info = {
-            "oracle_answer": json.dumps({
-                "expression": self._current_expression,
-                "type": self._current_func_type,
-            }),
+            "oracle_answer": json.dumps(
+                {
+                    "expression": self._current_expression,
+                    "type": self._current_func_type,
+                }
+            ),
         }
 
-        return obs, info
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
-        reward = self._compute_reward(action)
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
+        agent_id = next(iter(self._agent_ids))
+        action_str = action[agent_id]
+        reward = self._compute_reward(action_str)
         info = {
-            "oracle_answer": json.dumps({
-                "expression": self._current_expression,
-                "type": self._current_func_type,
-            }),
+            "oracle_answer": json.dumps(
+                {
+                    "expression": self._current_expression,
+                    "type": self._current_func_type,
+                }
+            ),
         }
 
+        obs = Observation(image=self._current_image, text=None)
+
         return (
-            Observation(image=self._current_image, text=None),
-            reward,
-            True,
-            False,
-            info,
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: reward for agent_id in self._agent_ids},
+            {
+                **{agent_id: True for agent_id in self._agent_ids},
+                "__all__": True,
+            },
+            {
+                **{agent_id: False for agent_id in self._agent_ids},
+                "__all__": False,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
         )
 
     def _compute_reward(self, action: str) -> float:
@@ -129,7 +161,7 @@ class PerceptionFunctionGraphEnv(Env):
             if parsed_action == oracle:
                 return 1.0
             return 0.0
-        except:
+        except Exception:
             return 0.0
 
     def render(self) -> Image.Image:
@@ -138,8 +170,14 @@ class PerceptionFunctionGraphEnv(Env):
     def _generate_new_problem(self):
         """Generate a random function and render its graph."""
         func_types = [
-            "linear", "quadratic", "cubic", "polynomial",
-            "sin", "cos", "exponential", "logarithmic"
+            "linear",
+            "quadratic",
+            "cubic",
+            "polynomial",
+            "sin",
+            "cos",
+            "exponential",
+            "logarithmic",
         ]
         self._current_func_type = random.choice(func_types)
 
@@ -222,7 +260,9 @@ class PerceptionFunctionGraphEnv(Env):
                 parts.append(f"- {abs(d)}")
 
         self._current_expression = " ".join(parts)
-        self._current_func = lambda x, a=a, b=b, c=c, d=d: a * x**3 + b * x**2 + c * x + d
+        self._current_func = (
+            lambda x, a=a, b=b, c=c, d=d: a * x**3 + b * x**2 + c * x + d
+        )
 
     def _generate_polynomial(self):
         """Generate higher degree polynomial."""
@@ -257,7 +297,7 @@ class PerceptionFunctionGraphEnv(Env):
 
         self._current_expression = " ".join(parts) if parts else "0"
         self._current_func = lambda x, coeffs=coeffs, degree=degree: sum(
-            c * x**(degree - i) for i, c in enumerate(coeffs)
+            c * x ** (degree - i) for i, c in enumerate(coeffs)
         )
         self._current_func_type = "polynomial"
 
@@ -265,7 +305,7 @@ class PerceptionFunctionGraphEnv(Env):
         """Generate sin function: a*sin(b*x + c)"""
         a = random.choice([-2, -1, 1, 2, 3])
         b = random.choice([1, 2, 3])
-        c = random.choice([0, np.pi/4, np.pi/2, np.pi])
+        c = random.choice([0, np.pi / 4, np.pi / 2, np.pi])
 
         if c == 0:
             if b == 1:
@@ -273,7 +313,9 @@ class PerceptionFunctionGraphEnv(Env):
             else:
                 self._current_expression = f"{a}*sin({b}*x)"
         else:
-            c_str = {0: "0", np.pi/4: "pi/4", np.pi/2: "pi/2", np.pi: "pi"}.get(c, str(round(c, 2)))
+            c_str = {0: "0", np.pi / 4: "pi/4", np.pi / 2: "pi/2", np.pi: "pi"}.get(
+                c, str(round(c, 2))
+            )
             if b == 1:
                 self._current_expression = f"{a}*sin(x + {c_str})"
             else:
@@ -286,7 +328,7 @@ class PerceptionFunctionGraphEnv(Env):
         """Generate cos function: a*cos(b*x + c)"""
         a = random.choice([-2, -1, 1, 2, 3])
         b = random.choice([1, 2, 3])
-        c = random.choice([0, np.pi/4, np.pi/2])
+        c = random.choice([0, np.pi / 4, np.pi / 2])
 
         if c == 0:
             if b == 1:
@@ -294,7 +336,9 @@ class PerceptionFunctionGraphEnv(Env):
             else:
                 self._current_expression = f"{a}*cos({b}*x)"
         else:
-            c_str = {0: "0", np.pi/4: "pi/4", np.pi/2: "pi/2"}.get(c, str(round(c, 2)))
+            c_str = {0: "0", np.pi / 4: "pi/4", np.pi / 2: "pi/2"}.get(
+                c, str(round(c, 2))
+            )
             if b == 1:
                 self._current_expression = f"{a}*cos(x + {c_str})"
             else:
@@ -345,13 +389,15 @@ class PerceptionFunctionGraphEnv(Env):
 
     def _render_function(self) -> Image.Image:
         """Render the function as a PIL Image."""
-        fig, ax = plt.subplots(figsize=(self.img_size[0] / 100, self.img_size[1] / 100), dpi=100)
+        fig, ax = plt.subplots(
+            figsize=(self.img_size[0] / 100, self.img_size[1] / 100), dpi=100
+        )
 
         # Generate x values
         x = np.linspace(self.x_range[0], self.x_range[1], 500)
 
         # Compute y values with error handling
-        with np.errstate(all='ignore'):
+        with np.errstate(all="ignore"):
             y = self._current_func(x)
             # Clip extreme values for better visualization
             y = np.clip(y, -50, 50)

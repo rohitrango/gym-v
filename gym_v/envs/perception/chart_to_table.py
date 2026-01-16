@@ -32,11 +32,14 @@ class PerceptionChartToTableEnv(Env):
         self,
         img_size: tuple[int, int] = (640, 480),
         max_categories: int = 12,  # Increased for more complex tables
+        num_players: int = 1,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
         self.img_size = img_size
         self.max_categories = max_categories
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         self._seed: int | None = None
         self._current_data: dict[str, Any] | None = None
@@ -103,7 +106,7 @@ class PerceptionChartToTableEnv(Env):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
         self._seed = seed
         # Seeding numpy and random
@@ -128,21 +131,39 @@ class PerceptionChartToTableEnv(Env):
             "style": self._current_style,
         }
 
-        return obs, info
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
-        reward = self._compute_reward(action)
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
+        agent_id = next(iter(self._agent_ids))
+        action_str = action[agent_id]
+        reward = self._compute_reward(action_str)
 
         info = {"oracle_answer": str(self._current_data)}
 
+        obs = Observation(image=self._current_image, text=None)
+
         return (
-            Observation(image=self._current_image, text=None),
-            reward,
-            True,
-            False,
-            info,
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: reward for agent_id in self._agent_ids},
+            {
+                **{agent_id: True for agent_id in self._agent_ids},
+                "__all__": True,
+            },
+            {
+                **{agent_id: False for agent_id in self._agent_ids},
+                "__all__": False,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
         )
 
     def _compute_reward(self, action: str) -> float:
@@ -151,15 +172,16 @@ class PerceptionChartToTableEnv(Env):
             # Try to parse the action as Python dict or JSON
             try:
                 parsed_action = eval(action)
-            except:
+            except Exception:
                 import json
+
                 parsed_action = json.loads(action)
 
             # Compare with oracle data
             if parsed_action == self._current_data:
                 return 1.0
             return 0.0
-        except:
+        except Exception:
             return 0.0
 
     def render(self) -> Image.Image:

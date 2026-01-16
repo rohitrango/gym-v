@@ -36,6 +36,7 @@ class PerceptionFlowNetworkEnv(Env):
         max_nodes: int = 8,
         min_capacity: int = 1,
         max_capacity: int = 15,
+        num_players: int = 1,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
@@ -44,6 +45,8 @@ class PerceptionFlowNetworkEnv(Env):
         self.max_nodes = max_nodes
         self.min_capacity = min_capacity
         self.max_capacity = max_capacity
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         self._seed: int | None = None
         self._current_graph: nx.DiGraph | None = None
@@ -53,9 +56,18 @@ class PerceptionFlowNetworkEnv(Env):
         self._current_image: Image.Image | None = None
 
         self._node_colors = [
-            "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4",
-            "#FFEAA7", "#DDA0DD", "#98D8C8", "#F7DC6F",
-            "#BB8FCE", "#85C1E9", "#F8B500", "#00CED1",
+            "#FF6B6B",
+            "#4ECDC4",
+            "#45B7D1",
+            "#96CEB4",
+            "#FFEAA7",
+            "#DDA0DD",
+            "#98D8C8",
+            "#F7DC6F",
+            "#BB8FCE",
+            "#85C1E9",
+            "#F8B500",
+            "#00CED1",
         ]
 
     @property
@@ -76,7 +88,7 @@ class PerceptionFlowNetworkEnv(Env):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
         self._seed = seed
         if seed is not None:
@@ -97,33 +109,55 @@ class PerceptionFlowNetworkEnv(Env):
         )
 
         info = {
-            "oracle_answer": json.dumps({
-                "max_flow": self._current_max_flow,
-                "source": self._current_source,
-                "sink": self._current_sink,
-            }),
+            "oracle_answer": json.dumps(
+                {
+                    "max_flow": self._current_max_flow,
+                    "source": self._current_source,
+                    "sink": self._current_sink,
+                }
+            ),
         }
 
-        return obs, info
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
-        reward = self._compute_reward(action)
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
+        agent_id = next(iter(self._agent_ids))
+        action_str = action[agent_id]
+        reward = self._compute_reward(action_str)
         info = {
-            "oracle_answer": json.dumps({
-                "max_flow": self._current_max_flow,
-                "source": self._current_source,
-                "sink": self._current_sink,
-            }),
+            "oracle_answer": json.dumps(
+                {
+                    "max_flow": self._current_max_flow,
+                    "source": self._current_source,
+                    "sink": self._current_sink,
+                }
+            ),
         }
 
+        obs = Observation(image=self._current_image, text=None)
+
         return (
-            Observation(image=self._current_image, text=None),
-            reward,
-            True,
-            False,
-            info,
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: reward for agent_id in self._agent_ids},
+            {
+                **{agent_id: True for agent_id in self._agent_ids},
+                "__all__": True,
+            },
+            {
+                **{agent_id: False for agent_id in self._agent_ids},
+                "__all__": False,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
         )
 
     def _compute_reward(self, action: str) -> float:
@@ -133,7 +167,7 @@ class PerceptionFlowNetworkEnv(Env):
             if parsed_action.get("max_flow") == self._current_max_flow:
                 return 1.0
             return 0.0
-        except:
+        except Exception:
             return 0.0
 
     def render(self) -> Image.Image:
@@ -144,19 +178,25 @@ class PerceptionFlowNetworkEnv(Env):
         num_nodes = random.randint(self.min_nodes, self.max_nodes)
 
         # Use S for source, T for sink, and letters for intermediate nodes
-        intermediate_labels = list(string.ascii_uppercase[:num_nodes - 2])
+        intermediate_labels = list(string.ascii_uppercase[: num_nodes - 2])
         # Remove S and T from intermediate if present
-        intermediate_labels = [l for l in intermediate_labels if l not in ['S', 'T']]
+        intermediate_labels = [
+            lbl for lbl in intermediate_labels if lbl not in ["S", "T"]
+        ]
         while len(intermediate_labels) < num_nodes - 2:
             for c in string.ascii_uppercase:
-                if c not in intermediate_labels and c not in ['S', 'T']:
+                if c not in intermediate_labels and c not in ["S", "T"]:
                     intermediate_labels.append(c)
                     if len(intermediate_labels) >= num_nodes - 2:
                         break
 
         self._current_source = "S"
         self._current_sink = "T"
-        labels = [self._current_source] + intermediate_labels[:num_nodes - 2] + [self._current_sink]
+        labels = (
+            [self._current_source]
+            + intermediate_labels[: num_nodes - 2]
+            + [self._current_sink]
+        )
 
         # Create directed graph
         G = nx.DiGraph()
@@ -179,7 +219,7 @@ class PerceptionFlowNetworkEnv(Env):
         layers = []
         idx = 0
         for count in nodes_per_layer:
-            layer = labels[idx:idx + count]
+            layer = labels[idx : idx + count]
             layers.append(layer)
             idx += count
             if idx >= len(labels):
@@ -201,12 +241,20 @@ class PerceptionFlowNetworkEnv(Env):
         # Ensure source has at least one outgoing edge
         if G.out_degree(self._current_source) == 0 and len(layers) > 1:
             v = random.choice(layers[1])
-            G.add_edge(self._current_source, v, capacity=random.randint(self.min_capacity, self.max_capacity))
+            G.add_edge(
+                self._current_source,
+                v,
+                capacity=random.randint(self.min_capacity, self.max_capacity),
+            )
 
         # Ensure sink has at least one incoming edge
         if G.in_degree(self._current_sink) == 0 and len(layers) > 1:
             u = random.choice(layers[-2])
-            G.add_edge(u, self._current_sink, capacity=random.randint(self.min_capacity, self.max_capacity))
+            G.add_edge(
+                u,
+                self._current_sink,
+                capacity=random.randint(self.min_capacity, self.max_capacity),
+            )
 
         # Add some cross-layer edges for complexity
         for i in range(len(layers) - 2):
@@ -214,7 +262,9 @@ class PerceptionFlowNetworkEnv(Env):
                 for u in layers[i]:
                     for v in layers[j]:
                         if random.random() < 0.15:
-                            capacity = random.randint(self.min_capacity, self.max_capacity)
+                            capacity = random.randint(
+                                self.min_capacity, self.max_capacity
+                            )
                             if not G.has_edge(u, v):
                                 G.add_edge(u, v, capacity=capacity)
 
@@ -222,7 +272,9 @@ class PerceptionFlowNetworkEnv(Env):
 
         # Compute maximum flow
         try:
-            flow_value, _ = nx.maximum_flow(G, self._current_source, self._current_sink, capacity="capacity")
+            flow_value, _ = nx.maximum_flow(
+                G, self._current_source, self._current_sink, capacity="capacity"
+            )
             self._current_max_flow = int(flow_value)
         except nx.NetworkXError:
             # No path exists, regenerate
@@ -233,7 +285,9 @@ class PerceptionFlowNetworkEnv(Env):
 
     def _render_flow_network(self, G: nx.DiGraph) -> Image.Image:
         """Render the flow network as a PIL Image."""
-        fig, ax = plt.subplots(figsize=(self.img_size[0] / 100, self.img_size[1] / 100), dpi=100)
+        fig, ax = plt.subplots(
+            figsize=(self.img_size[0] / 100, self.img_size[1] / 100), dpi=100
+        )
 
         # Use a layered layout
         try:
@@ -284,7 +338,9 @@ class PerceptionFlowNetworkEnv(Env):
         # Draw nodes
         node_size = random.randint(1800, 2400)
         nx.draw_networkx_nodes(
-            G, pos, ax=ax,
+            G,
+            pos,
+            ax=ax,
             node_color=node_colors,
             node_size=node_size,
             edgecolors="black",
@@ -294,7 +350,9 @@ class PerceptionFlowNetworkEnv(Env):
         # Draw node labels
         font_size = random.randint(14, 16)
         nx.draw_networkx_labels(
-            G, pos, ax=ax,
+            G,
+            pos,
+            ax=ax,
             font_size=font_size,
             font_weight="bold",
         )
@@ -302,7 +360,9 @@ class PerceptionFlowNetworkEnv(Env):
         # Draw directed edges with arrows
         edge_width = random.uniform(1.5, 2.5)
         nx.draw_networkx_edges(
-            G, pos, ax=ax,
+            G,
+            pos,
+            ax=ax,
             edge_color="#555555",
             width=edge_width,
             arrows=True,
@@ -316,12 +376,19 @@ class PerceptionFlowNetworkEnv(Env):
         # Draw edge capacities
         edge_labels = nx.get_edge_attributes(G, "capacity")
         nx.draw_networkx_edge_labels(
-            G, pos, ax=ax,
+            G,
+            pos,
+            ax=ax,
             edge_labels=edge_labels,
             font_size=10,
             font_color="darkred",
             font_weight="bold",
-            bbox=dict(boxstyle="round,pad=0.2", facecolor="lightyellow", edgecolor="none", alpha=0.9),
+            bbox=dict(
+                boxstyle="round,pad=0.2",
+                facecolor="lightyellow",
+                edgecolor="none",
+                alpha=0.9,
+            ),
         )
 
         # Add title and legend

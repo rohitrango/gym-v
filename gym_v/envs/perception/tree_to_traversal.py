@@ -9,8 +9,8 @@ import random
 from textwrap import dedent
 from typing import Any
 
-import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image, ImageFilter
 
@@ -42,12 +42,15 @@ class PerceptionTreeToTraversalEnv(Env):
         img_size: tuple[int, int] = (640, 480),
         min_nodes: int = 5,
         max_nodes: int = 12,
+        num_players: int = 1,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
         self.img_size = img_size
         self.min_nodes = min_nodes
         self.max_nodes = max_nodes
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         self._seed: int | None = None
         self._current_root: TreeNode | None = None
@@ -55,9 +58,18 @@ class PerceptionTreeToTraversalEnv(Env):
         self._current_image: Image.Image | None = None
 
         self._node_colors = [
-            "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4",
-            "#FFEAA7", "#DDA0DD", "#98D8C8", "#F7DC6F",
-            "#BB8FCE", "#85C1E9", "#F8B500", "#00CED1",
+            "#FF6B6B",
+            "#4ECDC4",
+            "#45B7D1",
+            "#96CEB4",
+            "#FFEAA7",
+            "#DDA0DD",
+            "#98D8C8",
+            "#F7DC6F",
+            "#BB8FCE",
+            "#85C1E9",
+            "#F8B500",
+            "#00CED1",
         ]
 
     @property
@@ -75,7 +87,7 @@ class PerceptionTreeToTraversalEnv(Env):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
         self._seed = seed
         if seed is not None:
@@ -96,20 +108,38 @@ class PerceptionTreeToTraversalEnv(Env):
             "oracle_answer": json.dumps(self._current_traversals),
         }
 
-        return obs, info
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
-        reward = self._compute_reward(action)
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
+        agent_id = next(iter(self._agent_ids))
+        action_str = action[agent_id]
+        reward = self._compute_reward(action_str)
         info = {"oracle_answer": json.dumps(self._current_traversals)}
 
+        obs = Observation(image=self._current_image, text=None)
+
         return (
-            Observation(image=self._current_image, text=None),
-            reward,
-            True,
-            False,
-            info,
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: reward for agent_id in self._agent_ids},
+            {
+                **{agent_id: True for agent_id in self._agent_ids},
+                "__all__": True,
+            },
+            {
+                **{agent_id: False for agent_id in self._agent_ids},
+                "__all__": False,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
         )
 
     def _compute_reward(self, action: str) -> float:
@@ -119,7 +149,7 @@ class PerceptionTreeToTraversalEnv(Env):
             if parsed_action == self._current_traversals:
                 return 1.0
             return 0.0
-        except:
+        except Exception:
             return 0.0
 
     def render(self) -> Image.Image:
@@ -215,7 +245,9 @@ class PerceptionTreeToTraversalEnv(Env):
 
     def _render_tree(self, root: TreeNode) -> Image.Image:
         """Render the tree as a PIL Image."""
-        fig, ax = plt.subplots(figsize=(self.img_size[0] / 100, self.img_size[1] / 100), dpi=100)
+        fig, ax = plt.subplots(
+            figsize=(self.img_size[0] / 100, self.img_size[1] / 100), dpi=100
+        )
 
         # Compute positions using a simple layout
         positions = {}
@@ -235,20 +267,25 @@ class PerceptionTreeToTraversalEnv(Env):
             color = random.choice(self._node_colors)
 
             circle = mpatches.Circle(
-                (x, y), node_radius,
+                (x, y),
+                node_radius,
                 facecolor=color,
                 edgecolor="black",
                 linewidth=2,
-                zorder=2
+                zorder=2,
             )
             ax.add_patch(circle)
 
             # Draw value
             ax.text(
-                x, y, str(node.val),
-                ha="center", va="center",
-                fontsize=10, fontweight="bold",
-                zorder=3
+                x,
+                y,
+                str(node.val),
+                ha="center",
+                va="center",
+                fontsize=10,
+                fontweight="bold",
+                zorder=3,
             )
 
         # Add title
@@ -286,20 +323,22 @@ class PerceptionTreeToTraversalEnv(Env):
 
         if node.left:
             self._compute_positions(
-                node.left, positions,
-                x=x - dx / (1.5 ** level),
+                node.left,
+                positions,
+                x=x - dx / (1.5**level),
                 y=y - dy,
                 dx=dx,
-                level=level + 1
+                level=level + 1,
             )
 
         if node.right:
             self._compute_positions(
-                node.right, positions,
-                x=x + dx / (1.5 ** level),
+                node.right,
+                positions,
+                x=x + dx / (1.5**level),
                 y=y - dy,
                 dx=dx,
-                level=level + 1
+                level=level + 1,
             )
 
     def _collect_nodes(self, node: TreeNode, nodes: list):
