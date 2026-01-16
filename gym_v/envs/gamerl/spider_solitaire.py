@@ -387,7 +387,7 @@ class GameRLSpiderSolitaireQAEnv(Env):
         # Use path relative to this file
         current_dir = Path(__file__).parent
         cards_dir = current_dir / "assets" / "spider_solitaire" / "cards"
-        
+
         # If cards directory doesn't exist, log a warning and continue without images
         if not cards_dir.exists():
             logger.warning(f"Card images directory not found: {cards_dir}")
@@ -532,18 +532,34 @@ class GameRLSpiderSolitaireQAEnv(Env):
                     # Draw a simple card representation if no image available
                     if card.faceUp():
                         # Face-up card: white with rank
-                        card_rect = [x, current_y, x + CARDWIDTH, current_y + CARDHEIGHT]
-                        draw.rectangle(card_rect, fill=(255, 255, 255), outline=(0, 0, 0))
+                        card_rect = [
+                            x,
+                            current_y,
+                            x + CARDWIDTH,
+                            current_y + CARDHEIGHT,
+                        ]
+                        draw.rectangle(
+                            card_rect, fill=(255, 255, 255), outline=(0, 0, 0)
+                        )
                         try:
                             font = ImageFont.truetype("arial.ttf", 12)
                         except OSError:
                             font = ImageFont.load_default()
                         text = RANKNAMES[card.rank]
-                        draw.text((x + 5, current_y + 5), text, fill=(0, 0, 0), font=font)
+                        draw.text(
+                            (x + 5, current_y + 5), text, fill=(0, 0, 0), font=font
+                        )
                     else:
                         # Face-down card: blue
-                        card_rect = [x, current_y, x + CARDWIDTH, current_y + CARDHEIGHT]
-                        draw.rectangle(card_rect, fill=(0, 0, 139), outline=(255, 255, 255))
+                        card_rect = [
+                            x,
+                            current_y,
+                            x + CARDWIDTH,
+                            current_y + CARDHEIGHT,
+                        ]
+                        draw.rectangle(
+                            card_rect, fill=(0, 0, 139), outline=(255, 255, 255)
+                        )
 
                 # Update y position
                 if card.faceUp():

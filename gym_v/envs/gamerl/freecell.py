@@ -459,18 +459,22 @@ Do not include any explanation or extra text.
 
         # Card color
         color = (255, 0, 0) if card.color == Color.RED else (0, 0, 0)
-        
+
         value_str = self.VALUE_MAP[card.value]
         suit_symbol = card.suit.value
-        
+
         # Load fonts for card display
         try:
-            corner_font = ImageFont.truetype(str(self.assets_dir / "DejaVuSans.ttf"), 10)
-            symbol_font = ImageFont.truetype(str(self.assets_dir / "DejaVuSans.ttf"), 14)
+            corner_font = ImageFont.truetype(
+                str(self.assets_dir / "DejaVuSans.ttf"), 10
+            )
+            symbol_font = ImageFont.truetype(
+                str(self.assets_dir / "DejaVuSans.ttf"), 14
+            )
         except Exception:
             corner_font = ImageFont.load_default()
             symbol_font = ImageFont.load_default()
-        
+
         # Draw value and suit in top-left corner
         draw.text(
             (x + 5, y + 5),
@@ -486,7 +490,7 @@ Do not include any explanation or extra text.
             font=corner_font,
             anchor="lt",
         )
-        
+
         # Draw value and suit in bottom-right corner (upside down effect)
         draw.text(
             (x + width - 5, y + height - 5),
@@ -502,10 +506,12 @@ Do not include any explanation or extra text.
             font=corner_font,
             anchor="rb",
         )
-        
+
         # Draw suit symbols in the center based on card value
-        self._draw_card_symbols(draw, x, y, width, height, card.value, suit_symbol, color, symbol_font)
-    
+        self._draw_card_symbols(
+            draw, x, y, width, height, card.value, suit_symbol, color, symbol_font
+        )
+
     def _draw_card_symbols(
         self,
         draw: ImageDraw.ImageDraw,
@@ -521,7 +527,7 @@ Do not include any explanation or extra text.
         """Draw suit symbols in the center of the card based on value."""
         cx = x + width // 2
         cy = y + height // 2
-        
+
         # Define symbol positions for different card values
         # Positions are relative offsets from center
         if value == 1:  # Ace
@@ -532,57 +538,78 @@ Do not include any explanation or extra text.
             positions = [(0, -height // 4), (0, 0), (0, height // 4)]
         elif value == 4:
             positions = [
-                (-width // 4, -height // 4), (width // 4, -height // 4),
-                (-width // 4, height // 4), (width // 4, height // 4)
+                (-width // 4, -height // 4),
+                (width // 4, -height // 4),
+                (-width // 4, height // 4),
+                (width // 4, height // 4),
             ]
         elif value == 5:
             positions = [
-                (-width // 4, -height // 4), (width // 4, -height // 4),
+                (-width // 4, -height // 4),
+                (width // 4, -height // 4),
                 (0, 0),
-                (-width // 4, height // 4), (width // 4, height // 4)
+                (-width // 4, height // 4),
+                (width // 4, height // 4),
             ]
         elif value == 6:
             positions = [
-                (-width // 4, -height // 4), (width // 4, -height // 4),
-                (-width // 4, 0), (width // 4, 0),
-                (-width // 4, height // 4), (width // 4, height // 4)
+                (-width // 4, -height // 4),
+                (width // 4, -height // 4),
+                (-width // 4, 0),
+                (width // 4, 0),
+                (-width // 4, height // 4),
+                (width // 4, height // 4),
             ]
         elif value == 7:
             positions = [
-                (-width // 4, -height // 4), (width // 4, -height // 4),
+                (-width // 4, -height // 4),
+                (width // 4, -height // 4),
                 (0, -height // 8),
-                (-width // 4, 0), (width // 4, 0),
-                (-width // 4, height // 4), (width // 4, height // 4)
+                (-width // 4, 0),
+                (width // 4, 0),
+                (-width // 4, height // 4),
+                (width // 4, height // 4),
             ]
         elif value == 8:
             positions = [
-                (-width // 4, -height // 4), (width // 4, -height // 4),
+                (-width // 4, -height // 4),
+                (width // 4, -height // 4),
                 (0, -height // 8),
-                (-width // 4, 0), (width // 4, 0),
+                (-width // 4, 0),
+                (width // 4, 0),
                 (0, height // 8),
-                (-width // 4, height // 4), (width // 4, height // 4)
+                (-width // 4, height // 4),
+                (width // 4, height // 4),
             ]
         elif value == 9:
             positions = [
-                (-width // 4, -height // 4), (width // 4, -height // 4),
-                (-width // 4, -height // 8), (width // 4, -height // 8),
+                (-width // 4, -height // 4),
+                (width // 4, -height // 4),
+                (-width // 4, -height // 8),
+                (width // 4, -height // 8),
                 (0, 0),
-                (-width // 4, height // 8), (width // 4, height // 8),
-                (-width // 4, height // 4), (width // 4, height // 4)
+                (-width // 4, height // 8),
+                (width // 4, height // 8),
+                (-width // 4, height // 4),
+                (width // 4, height // 4),
             ]
         elif value == 10:
             positions = [
-                (-width // 4, -height // 4), (width // 4, -height // 4),
+                (-width // 4, -height // 4),
+                (width // 4, -height // 4),
                 (0, -height // 3),
-                (-width // 4, -height // 8), (width // 4, -height // 8),
-                (-width // 4, height // 8), (width // 4, height // 8),
+                (-width // 4, -height // 8),
+                (width // 4, -height // 8),
+                (-width // 4, height // 8),
+                (width // 4, height // 8),
                 (0, height // 3),
-                (-width // 4, height // 4), (width // 4, height // 4)
+                (-width // 4, height // 4),
+                (width // 4, height // 4),
             ]
         else:  # J, Q, K (11, 12, 13)
             # For face cards, just draw one large symbol in center
             positions = [(0, 0)]
-        
+
         # Draw symbols at calculated positions
         for dx, dy in positions:
             draw.text(

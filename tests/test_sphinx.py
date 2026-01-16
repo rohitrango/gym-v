@@ -59,7 +59,12 @@ class TestSphinx(unittest.TestCase):
         print(f"\n[{env_id}] Using random seed: {test_seed}")
 
         env = gym_v.make(env_id)
-        obs, info = env.reset(seed=test_seed)
+        obs_dict, info_dict = env.reset(seed=test_seed)
+
+        # Get the first agent's data
+        agent_id = next(iter(obs_dict.keys()))
+        obs = obs_dict[agent_id]
+        info = info_dict[agent_id]
 
         # 1. Save image
         self.assertIsNotNone(obs.image)
@@ -82,22 +87,35 @@ class TestSphinx(unittest.TestCase):
         print("=" * 80 + "\n")
 
         # 3. Verify reward with correct answer
-        obs2, reward, terminated, truncated, info2 = env.step(oracle)
-        self.assertTrue(terminated)
-        self.assertIsInstance(reward, float)
+        # The env expects a dict of actions
+        action_dict = {agent_id: oracle}
+        obs2_dict, reward_dict, terminated_dict, truncated_dict, info2_dict = env.step(
+            action_dict
+        )
+
+        self.assertTrue(terminated_dict[agent_id])
+        self.assertIsInstance(reward_dict[agent_id], float)
         self.assertEqual(
-            reward, 1.0, f"{env_id}: Expected reward 1.0 for oracle answer"
+            reward_dict[agent_id],
+            1.0,
+            f"{env_id}: Expected reward 1.0 for oracle answer",
         )
 
         # 4. Verify reward with wrong answer
-        env.reset(seed=test_seed)
+        obs_dict, info_dict = env.reset(seed=test_seed)
+        agent_id = next(iter(obs_dict.keys()))
+
         # Use a clearly wrong answer
         wrong_answer = "(z)"
-        _, reward2, terminated2, truncated2, _ = env.step(wrong_answer)
-        self.assertTrue(terminated2)
-        self.assertIsInstance(reward2, float)
+        action_dict = {agent_id: wrong_answer}
+
+        _, reward2_dict, terminated2_dict, _, _ = env.step(action_dict)
+        self.assertTrue(terminated2_dict[agent_id])
+        self.assertIsInstance(reward2_dict[agent_id], float)
         self.assertEqual(
-            reward2, 0.0, f"{env_id}: Expected reward 0.0 for wrong answer"
+            reward2_dict[agent_id],
+            0.0,
+            f"{env_id}: Expected reward 0.0 for wrong answer",
         )
 
         print(
@@ -111,10 +129,19 @@ class TestSphinx(unittest.TestCase):
         env = gym_v.make(env_id)
 
         # Reset twice with same seed
-        obs1, info1 = env.reset(seed=test_seed)
+        obs1_dict, info1_dict = env.reset(seed=test_seed)
+        agent_id = next(iter(obs1_dict.keys()))
+
+        obs1 = obs1_dict[agent_id]
+        info1 = info1_dict[agent_id]
         oracle1 = info1.get("oracle_answer")
 
-        obs2, info2 = env.reset(seed=test_seed)
+        obs2_dict, info2_dict = env.reset(seed=test_seed)
+        agent_id2 = next(iter(obs2_dict.keys()))
+        assert agent_id == agent_id2
+
+        obs2 = obs2_dict[agent_id]
+        info2 = info2_dict[agent_id]
         oracle2 = info2.get("oracle_answer")
 
         # Answers must match
@@ -134,7 +161,11 @@ class TestSphinx(unittest.TestCase):
         )
 
         # Reset with different seed should produce different result
-        obs3, info3 = env.reset(seed=test_seed + 1)
+        obs3_dict, info3_dict = env.reset(seed=test_seed + 1)
+        agent_id3 = next(iter(obs3_dict.keys()))
+
+        obs3 = obs3_dict[agent_id3]
+        info3 = info3_dict[agent_id3]
         oracle3 = info3.get("oracle_answer")
         img3_bytes = obs3.image.tobytes()
 
@@ -153,7 +184,11 @@ class TestSphinx(unittest.TestCase):
         env = gym_v.make(env_id)
 
         for i in range(num_resets):
-            obs, info = env.reset(seed=i * 100)
+            obs_dict, info_dict = env.reset(seed=i * 100)
+            agent_id = next(iter(obs_dict.keys()))
+
+            obs = obs_dict[agent_id]
+            info = info_dict[agent_id]
 
             # Image must exist
             self.assertIsNotNone(obs.image)
@@ -168,9 +203,10 @@ class TestSphinx(unittest.TestCase):
             )
 
             # Step with oracle answer must give reward 1.0
-            _, reward, _, _, _ = env.step(oracle)
+            action_dict = {agent_id: oracle}
+            _, reward_dict, _, _, _ = env.step(action_dict)
             self.assertEqual(
-                reward,
+                reward_dict[agent_id],
                 1.0,
                 f"{env_id}: Reset {i} - Oracle answer should give reward 1.0",
             )

@@ -316,10 +316,12 @@ Grid (#=unrevealed, F=flagged, .=revealed empty, 1-8=numbers, M=mine):
 
         # Calculate appropriate cell_size to maximize board fill
         max_board_width = image_width - 80  # Leave margins for row and column labels
-        max_board_height = image_height - title_height - 40  # Position board close to bottom
+        max_board_height = (
+            image_height - title_height - 40
+        )  # Position board close to bottom
         cell_size = min(max_board_width // self._cols, max_board_height // self._rows)
 
-        board_width = self._cols * cell_size
+        # board_width = self._cols * cell_size  # Unused variable
         board_height = self._rows * cell_size
 
         # Create canvas
@@ -328,7 +330,9 @@ Grid (#=unrevealed, F=flagged, .=revealed empty, 1-8=numbers, M=mine):
 
         # Set fonts (matching original sizes - use larger cell font for better visibility)
         title_font_size = 45
-        cell_font_size = int(cell_size * 0.5)  # Increased from 0.4 to 0.5 for better visibility
+        cell_font_size = int(
+            cell_size * 0.5
+        )  # Increased from 0.4 to 0.5 for better visibility
         number_font_size = int(cell_size * 0.35)  # Increased from 0.3 to 0.35
 
         try:
@@ -359,9 +363,14 @@ Grid (#=unrevealed, F=flagged, .=revealed empty, 1-8=numbers, M=mine):
 
         # Color mapping for numbers
         num_color = {
-            1: "blue", 2: "green", 3: "red",
-            4: "purple", 5: "maroon", 6: "turquoise",
-            7: "black", 8: "gray"
+            1: "blue",
+            2: "green",
+            3: "red",
+            4: "purple",
+            5: "maroon",
+            6: "turquoise",
+            7: "black",
+            8: "gray",
         }
 
         # Draw row numbers and tick marks
@@ -370,7 +379,13 @@ Grid (#=unrevealed, F=flagged, .=revealed empty, 1-8=numbers, M=mine):
             number_x = offset_x - cell_size * 0.3
             number_y = offset_y + r * cell_size + cell_size // 2
             # Use anchor="mm" for proper centering
-            draw.text((number_x, number_y), str(r), fill="black", font=number_font, anchor="mm")
+            draw.text(
+                (number_x, number_y),
+                str(r),
+                fill="black",
+                font=number_font,
+                anchor="mm",
+            )
 
             # Draw tick marks close to the left of the board
             tick_x1 = offset_x - 5
@@ -384,7 +399,13 @@ Grid (#=unrevealed, F=flagged, .=revealed empty, 1-8=numbers, M=mine):
             number_x = offset_x + c * cell_size + cell_size // 2
             number_y = offset_y - cell_size * 0.4  # Position closer to the top of board
             # Use anchor="mm" for proper centering
-            draw.text((number_x, number_y), str(c), fill="black", font=number_font, anchor="mm")
+            draw.text(
+                (number_x, number_y),
+                str(c),
+                fill="black",
+                font=number_font,
+                anchor="mm",
+            )
 
             # Draw tick marks close to the top of the board
             tick_y1 = offset_y - 5
@@ -409,7 +430,13 @@ Grid (#=unrevealed, F=flagged, .=revealed empty, 1-8=numbers, M=mine):
                     draw.rectangle([x0, y0, x1, y1], fill=(192, 192, 192))
                     if self._flagged[r][c]:
                         # Draw red flag using anchor="mm" for proper centering
-                        draw.text((center_x, center_y), "F", fill="red", font=cell_font, anchor="mm")
+                        draw.text(
+                            (center_x, center_y),
+                            "F",
+                            fill="red",
+                            font=cell_font,
+                            anchor="mm",
+                        )
                 else:
                     # Revealed cell (white)
                     draw.rectangle([x0, y0, x1, y1], fill=(255, 255, 255))
@@ -417,12 +444,24 @@ Grid (#=unrevealed, F=flagged, .=revealed empty, 1-8=numbers, M=mine):
                     cell_value = self._board[r][c]
                     if cell_value == "M":
                         # Draw mine symbol
-                        draw.text((center_x, center_y), "M", fill="black", font=cell_font, anchor="mm")
+                        draw.text(
+                            (center_x, center_y),
+                            "M",
+                            fill="black",
+                            font=cell_font,
+                            anchor="mm",
+                        )
                     elif isinstance(cell_value, int) and cell_value > 0:
                         # Draw colored number using anchor="mm" for proper centering
                         num_str = str(cell_value)
                         text_color = num_color.get(cell_value, "black")
-                        draw.text((center_x, center_y), num_str, fill=text_color, font=cell_font, anchor="mm")
+                        draw.text(
+                            (center_x, center_y),
+                            num_str,
+                            fill=text_color,
+                            font=cell_font,
+                            anchor="mm",
+                        )
 
                 # Draw cell border
                 draw.rectangle([x0, y0, x1, y1], outline="black")

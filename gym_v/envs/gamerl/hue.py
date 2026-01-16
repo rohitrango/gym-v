@@ -271,7 +271,7 @@ Do not include any explanation or extra text.
         board_size = self._board_size * self._cell_size
         title_height = 50  # Space for title
         border_width = 10  # Decorative border
-        
+
         # Only add options area if shuffled_colors exist (matching original)
         if self._shuffled_colors:
             options_height = 70
@@ -279,25 +279,31 @@ Do not include any explanation or extra text.
             content_height = board_size + index_margin + options_height + padding
         else:
             content_height = board_size + index_margin
-        
+
         content_width = board_size + index_margin
-        
+
         # Total image size with title and border
         img_width = content_width + 2 * border_width
         img_height = content_height + title_height + 2 * border_width
 
         # Create image with border color (tan/beige)
-        img = Image.new("RGB", (img_width, img_height), (222, 184, 135))  # Burlywood color
+        img = Image.new(
+            "RGB", (img_width, img_height), (222, 184, 135)
+        )  # Burlywood color
         draw = ImageDraw.Draw(img)
-        
+
         # Draw white content area
         draw.rectangle(
-            [border_width, border_width + title_height, 
-             img_width - border_width, img_height - border_width],
+            [
+                border_width,
+                border_width + title_height,
+                img_width - border_width,
+                img_height - border_width,
+            ],
             fill=(255, 255, 255),
-            outline=None
+            outline=None,
         )
-        
+
         # Adjust drawing offset for border and title
         x_offset = border_width
         y_offset = border_width + title_height
@@ -309,7 +315,7 @@ Do not include any explanation or extra text.
         except Exception:
             title_font = ImageFont.load_default()
             font = ImageFont.load_default()
-        
+
         # Draw title
         title_text = "Color Hue"
         # Get text bbox for centering
@@ -327,7 +333,14 @@ Do not include any explanation or extra text.
         for i in range(self._board_size):
             text = str(i + 1)
             draw.text(
-                (x_offset + 10, y_offset + index_margin + i * self._cell_size + self._cell_size // 2 + 5),
+                (
+                    x_offset + 10,
+                    y_offset
+                    + index_margin
+                    + i * self._cell_size
+                    + self._cell_size // 2
+                    + 5,
+                ),
                 text,
                 fill=(0, 0, 0),
                 font=font,
@@ -337,7 +350,13 @@ Do not include any explanation or extra text.
         for j in range(self._board_size):
             text = str(j + 1)
             draw.text(
-                (x_offset + index_margin + j * self._cell_size + self._cell_size // 3, y_offset + 25),
+                (
+                    x_offset
+                    + index_margin
+                    + j * self._cell_size
+                    + self._cell_size // 3,
+                    y_offset + 25,
+                ),
                 text,
                 fill=(0, 0, 0),
                 font=font,
@@ -396,11 +415,13 @@ Do not include any explanation or extra text.
                         outline=(0, 0, 0),
                         width=1,
                     )
-                    
+
                     # Create a temporary image for the cell to ensure lines don't overflow
-                    cell_img = Image.new("RGB", (self._cell_size, self._cell_size), (245, 245, 245))
+                    cell_img = Image.new(
+                        "RGB", (self._cell_size, self._cell_size), (245, 245, 245)
+                    )
                     cell_draw = ImageDraw.Draw(cell_img)
-                    
+
                     # Parameters matching original OpenCV code
                     line_spacing = 12
                     line_color = (200, 200, 200)
@@ -412,10 +433,13 @@ Do not include any explanation or extra text.
                         start_y = max(0, -k)
                         end_x = min(self._cell_size - 1, k + self._cell_size)
                         end_y = min(self._cell_size - 1, -k + self._cell_size)
-                        
+
                         if start_x <= end_x and start_y <= end_y:
-                            cell_draw.line([(start_x, start_y), (end_x, end_y)],
-                                         fill=line_color, width=line_thickness)
+                            cell_draw.line(
+                                [(start_x, start_y), (end_x, end_y)],
+                                fill=line_color,
+                                width=line_thickness,
+                            )
 
                     # Draw lines from top-right to bottom-left (matching OpenCV exactly)
                     for k in range(-self._cell_size, self._cell_size * 2, line_spacing):
@@ -423,11 +447,14 @@ Do not include any explanation or extra text.
                         start_y = max(0, k - self._cell_size)
                         end_x = max(0, k - self._cell_size)
                         end_y = min(self._cell_size - 1, k)
-                        
+
                         if start_x >= end_x and start_y <= end_y:
-                            cell_draw.line([(start_x, start_y), (end_x, end_y)],
-                                         fill=line_color, width=line_thickness)
-                    
+                            cell_draw.line(
+                                [(start_x, start_y), (end_x, end_y)],
+                                fill=line_color,
+                                width=line_thickness,
+                            )
+
                     # Paste the cell image onto the main image (ensures lines stay within bounds)
                     img.paste(cell_img, (x, y))
 

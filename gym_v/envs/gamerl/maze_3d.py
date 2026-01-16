@@ -8,7 +8,7 @@ from textwrap import dedent
 from typing import Any
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 
 from gym_v import Env, Observation, get_logger
 
@@ -748,162 +748,234 @@ Goal: ({self._goal_pos.x if self._goal_pos else 'N/A'}, {self._goal_pos.y if sel
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the 3D maze as an image using matplotlib 3D visualization."""
         import io
+
         import matplotlib.pyplot as plt
         from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-        
+
         # Create figure with tight layout
         fig = plt.figure(figsize=(6, 6))
-        ax = fig.add_subplot(111, projection='3d')
-        
+        ax = fig.add_subplot(111, projection="3d")
+
         # Common view and styling settings
         ax.view_init(elev=25, azim=30)
         ax.grid(False)
-        ax.set_facecolor('white')
+        ax.set_facecolor("white")
         ax.set_xticks([])
         ax.set_yticks([])
         ax.set_zticks([])
         ax.set_axis_off()
-        
+
         margin = 0.5
         ax.set_xlim(-margin, self._grid_size[0] + margin)
         ax.set_ylim(-margin, self._grid_size[1] + margin)
         ax.set_zlim(-margin, self._grid_size[2] + margin)
-        
+
         # Draw base grid
         x = np.arange(-margin, self._grid_size[0] + margin, 1)
         y = np.arange(-margin, self._grid_size[1] + margin, 1)
         X, Y = np.meshgrid(x, y)
         Z = np.zeros_like(X)
-        ax.plot_surface(X, Y, Z, alpha=0.1, color='gray', zorder=1)
-        
+        ax.plot_surface(X, Y, Z, alpha=0.1, color="gray", zorder=1)
+
         # Helper function to create cube vertices (only visible faces)
         def create_cube_verts(pos: Position, cubes_set: set) -> list:
             """Create vertices for a cube at given position, omitting hidden faces."""
             x, y, z = pos.x, pos.y, pos.z
             verts = []
-            
+
             # Only add top face if there's no cube above
-            if Position(x, y, z+1) not in cubes_set:
-                verts.append([(x, y, z+1), (x+1, y, z+1), (x+1, y+1, z+1), (x, y+1, z+1)])
-            
+            if Position(x, y, z + 1) not in cubes_set:
+                verts.append(
+                    [
+                        (x, y, z + 1),
+                        (x + 1, y, z + 1),
+                        (x + 1, y + 1, z + 1),
+                        (x, y + 1, z + 1),
+                    ]
+                )
+
             # Only add right face if there's no cube to the right
-            if Position(x+1, y, z) not in cubes_set:
-                verts.append([(x+1, y, z), (x+1, y+1, z), (x+1, y+1, z+1), (x+1, y, z+1)])
-            
+            if Position(x + 1, y, z) not in cubes_set:
+                verts.append(
+                    [
+                        (x + 1, y, z),
+                        (x + 1, y + 1, z),
+                        (x + 1, y + 1, z + 1),
+                        (x + 1, y, z + 1),
+                    ]
+                )
+
             # Only add back face if there's no cube behind
-            if Position(x, y+1, z) not in cubes_set:
-                verts.append([(x, y+1, z), (x+1, y+1, z), (x+1, y+1, z+1), (x, y+1, z+1)])
-            
+            if Position(x, y + 1, z) not in cubes_set:
+                verts.append(
+                    [
+                        (x, y + 1, z),
+                        (x + 1, y + 1, z),
+                        (x + 1, y + 1, z + 1),
+                        (x, y + 1, z + 1),
+                    ]
+                )
+
             return verts
-        
+
         # Sort cubes by distance from camera for proper transparency
-        camera_pos = np.array([self._grid_size[0] + 2, self._grid_size[1] + 2, self._grid_size[2] + 2])
+        camera_pos = np.array(
+            [self._grid_size[0] + 2, self._grid_size[1] + 2, self._grid_size[2] + 2]
+        )
         sorted_cubes = sorted(
             self._cubes,
             key=lambda pos: -np.linalg.norm(
                 np.array([pos.x, pos.y, pos.z]) - camera_pos
-            )
+            ),
         )
-        
+
         cubes_set = set(self._cubes)
-        
+
         # Draw cubes
         for cube_pos in sorted_cubes:
             verts = create_cube_verts(cube_pos, cubes_set)
-            
+
             alpha = 0.8
-            
+
             # Determine cube color based on type
             if cube_pos == self._start_pos:
-                color = '#FF4444'  # Red for start (note: swapped in original)
+                color = "#FF4444"  # Red for start (note: swapped in original)
             elif cube_pos == self._goal_pos:
-                color = '#4444FF'  # Blue for goal (note: swapped in original)
+                color = "#4444FF"  # Blue for goal (note: swapped in original)
             elif any(sp.pos == cube_pos for sp in self._sequence_points):
-                color = '#44FF44'  # Green for sequence points
+                color = "#44FF44"  # Green for sequence points
             elif any(b.pos == cube_pos for b in self._branches):
-                color = '#44FF44'  # Green for branches
+                color = "#44FF44"  # Green for branches
             else:
-                color = '#888888'  # Gray for regular cubes
-            
+                color = "#888888"  # Gray for regular cubes
+
             pc = Poly3DCollection(verts, alpha=alpha, zorder=2)
             pc.set_facecolor(color)
-            pc.set_edgecolor('black')
+            pc.set_edgecolor("black")
             pc.set_linewidth(1.0)
             ax.add_collection3d(pc)
-        
+
         # Draw ladders
         for segment in self._path:
             if segment.type == "ladder":
                 base = segment.start
                 height = segment.end.z - segment.start.z
                 x, y, z = base.x + 0.5, base.y, base.z + 0.5
-                ax.plot([x, x], [y, y], [z, z + height], 'k-', linewidth=3, zorder=300)
-                ax.plot([x, x], [y + 0.2, y + 0.2], [z, z + height], 'k-', linewidth=3, zorder=300)
+                ax.plot([x, x], [y, y], [z, z + height], "k-", linewidth=3, zorder=300)
+                ax.plot(
+                    [x, x],
+                    [y + 0.2, y + 0.2],
+                    [z, z + height],
+                    "k-",
+                    linewidth=3,
+                    zorder=300,
+                )
                 for h in np.linspace(z, z + height, 6):
-                    ax.plot([x, x], [y, y + 0.2], [h, h], 'k-', linewidth=2, zorder=300)
-        
+                    ax.plot([x, x], [y, y + 0.2], [h, h], "k-", linewidth=2, zorder=300)
+
         # Draw sequence point numbers or branch numbers
         for sp in self._sequence_points:
             # Draw white outline
-            for dx, dy in [(-1,0), (1,0), (0,-1), (0,1), (-1,-1), (-1,1), (1,-1), (1,1)]:
-                ax.text(sp.pos.x + 0.5 + dx*0.01, 
-                        sp.pos.y + 0.5 + dy*0.01, 
-                        sp.pos.z + 1.1,
-                        str(sp.label), 
-                        size=24, 
-                        ha='center', 
-                        va='center',
-                        weight='bold', 
-                        color='white', zorder=400, clip_on=True)
-            
-            # Draw main text in black
-            ax.text(sp.pos.x + 0.5, 
-                    sp.pos.y + 0.5, 
+            for dx, dy in [
+                (-1, 0),
+                (1, 0),
+                (0, -1),
+                (0, 1),
+                (-1, -1),
+                (-1, 1),
+                (1, -1),
+                (1, 1),
+            ]:
+                ax.text(
+                    sp.pos.x + 0.5 + dx * 0.01,
+                    sp.pos.y + 0.5 + dy * 0.01,
                     sp.pos.z + 1.1,
-                    str(sp.label), 
-                    size=24, 
-                    ha='center', 
-                    va='center',
-                    weight='bold', 
-                    color='black', zorder=400, clip_on=True)
-        
+                    str(sp.label),
+                    size=24,
+                    ha="center",
+                    va="center",
+                    weight="bold",
+                    color="white",
+                    zorder=400,
+                    clip_on=True,
+                )
+
+            # Draw main text in black
+            ax.text(
+                sp.pos.x + 0.5,
+                sp.pos.y + 0.5,
+                sp.pos.z + 1.1,
+                str(sp.label),
+                size=24,
+                ha="center",
+                va="center",
+                weight="bold",
+                color="black",
+                zorder=400,
+                clip_on=True,
+            )
+
         for b in self._branches:
             # Draw white outline
-            for dx, dy in [(-1,0), (1,0), (0,-1), (0,1), (-1,-1), (-1,1), (1,-1), (1,1)]:
-                ax.text(b.pos.x + 0.5 + dx*0.01, 
-                        b.pos.y + 0.5 + dy*0.01, 
-                        b.pos.z + 1.1,
-                        str(b.branch_id), 
-                        size=24, 
-                        ha='center', 
-                        va='center',
-                        weight='bold', 
-                        color='white', zorder=400, clip_on=True)
-            
-            # Draw main text in black
-            ax.text(b.pos.x + 0.5, 
-                    b.pos.y + 0.5, 
+            for dx, dy in [
+                (-1, 0),
+                (1, 0),
+                (0, -1),
+                (0, 1),
+                (-1, -1),
+                (-1, 1),
+                (1, -1),
+                (1, 1),
+            ]:
+                ax.text(
+                    b.pos.x + 0.5 + dx * 0.01,
+                    b.pos.y + 0.5 + dy * 0.01,
                     b.pos.z + 1.1,
-                    str(b.branch_id), 
-                    size=24, 
-                    ha='center', 
-                    va='center',
-                    weight='bold', 
-                    color='black', zorder=400, clip_on=True)
-        
+                    str(b.branch_id),
+                    size=24,
+                    ha="center",
+                    va="center",
+                    weight="bold",
+                    color="white",
+                    zorder=400,
+                    clip_on=True,
+                )
+
+            # Draw main text in black
+            ax.text(
+                b.pos.x + 0.5,
+                b.pos.y + 0.5,
+                b.pos.z + 1.1,
+                str(b.branch_id),
+                size=24,
+                ha="center",
+                va="center",
+                weight="bold",
+                color="black",
+                zorder=400,
+                clip_on=True,
+            )
+
         # Set axis limits (set twice - first with margin, then without)
         # This matches the original implementation behavior
         ax.set_xlim(0, self._grid_size[0])
         ax.set_ylim(0, self._grid_size[1])
         ax.set_zlim(0, self._grid_size[2])
-        
+
         # Remove extra white space
         plt.subplots_adjust(left=0, right=1, bottom=0, top=1)
-        
+
         # Save with tight bbox (matching original pad_inches=-0.3)
         buf = io.BytesIO()
-        plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=-0.3, facecolor='white', dpi=100)
+        plt.savefig(
+            buf,
+            format="png",
+            bbox_inches="tight",
+            pad_inches=-0.3,
+            facecolor="white",
+            dpi=100,
+        )
         plt.close(fig)
         buf.seek(0)
-        
+
         return Image.open(buf).convert("RGB")

@@ -11,12 +11,12 @@ This environment provides 5 question types about game moves and strategy.
 
 from __future__ import annotations
 
-import random
+from importlib import resources
 import logging
+from pathlib import Path
+import random
 from textwrap import dedent
 from typing import Any
-from pathlib import Path
-from importlib import resources
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -234,16 +234,18 @@ class KlondikeGame:
 # ============================================================================
 
 
-def render_klondike_board(game: KlondikeGame, assets_dir: Path | None = None) -> Image.Image:
+def render_klondike_board(
+    game: KlondikeGame, assets_dir: Path | None = None
+) -> Image.Image:
     """Render Klondike board using PIL with actual card graphics from assets."""
     if assets_dir is None:
         assets_dir = resources.files("gym_v.envs") / "assets" / "klondike"
-    
+
     # Load card templates
     try:
         card_front_template = Image.open(assets_dir / "card_front.png").convert("RGBA")
         card_back = Image.open(assets_dir / "card_back.png").convert("RGBA")
-        
+
         # Load suit images
         big_suits = {
             "heart": Image.open(assets_dir / "big_heart.png").convert("RGBA"),
@@ -251,14 +253,14 @@ def render_klondike_board(game: KlondikeGame, assets_dir: Path | None = None) ->
             "spade": Image.open(assets_dir / "big_spade.png").convert("RGBA"),
             "club": Image.open(assets_dir / "big_club.png").convert("RGBA"),
         }
-        
+
         small_suits = {
             "heart": Image.open(assets_dir / "small_heart.png").convert("RGBA"),
             "diamond": Image.open(assets_dir / "small_diamond.png").convert("RGBA"),
             "spade": Image.open(assets_dir / "small_spade.png").convert("RGBA"),
             "club": Image.open(assets_dir / "small_club.png").convert("RGBA"),
         }
-        
+
         # Load face cards
         face_cards = {
             "red": {
@@ -270,28 +272,28 @@ def render_klondike_board(game: KlondikeGame, assets_dir: Path | None = None) ->
                 "J": Image.open(assets_dir / "blue_J.png").convert("RGBA"),
                 "Q": Image.open(assets_dir / "blue_Q.png").convert("RGBA"),
                 "K": Image.open(assets_dir / "blue_K.png").convert("RGBA"),
-            }
+            },
         }
-        
+
         # Load number/letter sprites
         letters_img = Image.open(assets_dir / "letters.png").convert("RGBA")
         numbers_img = Image.open(assets_dir / "numbers.png").convert("RGBA")
-        
+
     except Exception as e:
         logger.warning(f"Failed to load klondike assets: {e}, using fallback rendering")
         return _render_klondike_fallback(game)
-    
+
     # Card dimensions (from original implementation)
     card_width = card_front_template.width
     card_height = card_front_template.height
-    
+
     # Create main image with title and decorative elements
     title_height = 60
-    border = 10
+    # border = 10  # Unused variable
     padding = 15
     width = 800
     height = 650
-    
+
     # Create image with dark green background (matching Klondike theme)
     img = Image.new("RGB", (width, height), (53, 101, 77))  # Dark green felt
     draw = ImageDraw.Draw(img)
@@ -303,40 +305,37 @@ def render_klondike_board(game: KlondikeGame, assets_dir: Path | None = None) ->
     except Exception:
         title_font = ImageFont.load_default()
         label_font = ImageFont.load_default()
-    
+
     # Draw title
     title_text = "Klondike"
     bbox = draw.textbbox((0, 0), title_text, font=title_font)
     title_w = bbox[2] - bbox[0]
     draw.text(
-        ((width - title_w) // 2, 15),
-        title_text,
-        fill=(255, 255, 255),
-        font=title_font
+        ((width - title_w) // 2, 15), title_text, fill=(255, 255, 255), font=title_font
     )
-    
+
     # Helper function to extract character from sprite sheet
     def get_char_image(img, index, char_width=5, char_height=8, is_ten=False):
         width = 8 if is_ten else char_width
         box = (index * char_width, 0, index * char_width + width, char_height)
         return img.crop(box)
-    
+
     # Helper function to create card image
     def create_card(card_obj):
         """Create a complete card image with suit symbols and rank."""
         card_img = card_front_template.copy()
-        card_draw = ImageDraw.Draw(card_img)
-        
+        # card_draw = ImageDraw.Draw(card_img)  # Unused variable
+
         rank = card_obj.rank
         suit = card_obj.suit
         color = card_obj.color
-        
+
         # Get suit images
         big_suit = big_suits[suit]
         small_suit = small_suits[suit]
-        
+
         # Get rank image
-        if rank in ['J', 'Q', 'K']:
+        if rank in ["J", "Q", "K"]:
             # Use face card image
             face_color = "red" if color == "red" else "blue"
             face_img = face_cards[face_color][rank]
@@ -344,11 +343,11 @@ def render_klondike_board(game: KlondikeGame, assets_dir: Path | None = None) ->
             x = (card_img.width - face_img.width) // 2
             y = (card_img.height - face_img.height) // 2
             card_img.paste(face_img, (x, y), face_img)
-            
+
             # Get letter for corners
-            letter_map = {'A': 0, 'K': 1, 'Q': 2, 'J': 3}
+            letter_map = {"A": 0, "K": 1, "Q": 2, "J": 3}
             rank_img = get_char_image(letters_img, letter_map[rank])
-        elif rank == 'A':
+        elif rank == "A":
             # Ace - one large suit in center
             x = (card_img.width - big_suit.width) // 2
             y = (card_img.height - big_suit.height) // 2
@@ -356,91 +355,108 @@ def render_klondike_board(game: KlondikeGame, assets_dir: Path | None = None) ->
             rank_img = get_char_image(letters_img, 0)  # 'A'
         else:
             # Number cards - draw suit pattern
-            num = int(rank) if rank not in ['J', 'Q', 'K', 'A'] else 1
+            num = int(rank) if rank not in ["J", "Q", "K", "A"] else 1
             _draw_suit_pattern(card_img, big_suit, num, suit)
-            
+
             # Get number image
             num_map = {2: 7, 3: 6, 4: 5, 5: 4, 6: 3, 7: 2, 8: 1, 9: 0, 10: 8}
-            rank_img = get_char_image(numbers_img, num_map[num], is_ten=(num==10))
-        
+            rank_img = get_char_image(numbers_img, num_map[num], is_ten=(num == 10))
+
         # Color the rank image to match suit color
         rank_colored = Image.new("RGBA", rank_img.size)
-        suit_color = big_suit.getpixel((big_suit.width//2, big_suit.height//2))
+        suit_color = big_suit.getpixel((big_suit.width // 2, big_suit.height // 2))
         for y in range(rank_img.height):
             for x in range(rank_img.width):
                 r, g, b, a = rank_img.getpixel((x, y))
                 if a > 0:
-                    rank_colored.putpixel((x, y), (suit_color[0], suit_color[1], suit_color[2], a))
-        
+                    rank_colored.putpixel(
+                        (x, y), (suit_color[0], suit_color[1], suit_color[2], a)
+                    )
+
         # Paste rank in corners
         card_img.paste(rank_colored, (4, 3), rank_colored)
         rank_rotated = rank_colored.rotate(180)
-        card_img.paste(rank_rotated, (card_img.width - rank_colored.width - 4, 
-                                      card_img.height - rank_colored.height - 3), rank_rotated)
-        
+        card_img.paste(
+            rank_rotated,
+            (
+                card_img.width - rank_colored.width - 4,
+                card_img.height - rank_colored.height - 3,
+            ),
+            rank_rotated,
+        )
+
         # Paste small suits in corners
-        card_img.paste(small_suit, (6 - small_suit.width//2, 12), small_suit)
+        card_img.paste(small_suit, (6 - small_suit.width // 2, 12), small_suit)
         small_suit_rotated = small_suit.rotate(180)
-        card_img.paste(small_suit_rotated, 
-                      (card_img.width - 6 - small_suit.width//2, 
-                       card_img.height - 12 - small_suit.height), small_suit_rotated)
-        
+        card_img.paste(
+            small_suit_rotated,
+            (
+                card_img.width - 6 - small_suit.width // 2,
+                card_img.height - 12 - small_suit.height,
+            ),
+            small_suit_rotated,
+        )
+
         return card_img
-    
+
     def _draw_suit_pattern(card_img, suit_img, rank, suit):
         """Draw suit symbols in pattern based on rank."""
         cw = card_img.width
         ch = card_img.height
         sw = suit_img.width
         sh = suit_img.height
-        
+
         x_margin = 13
         y_margin = 9
-        
+
         positions = []
-        
+
         # Define positions for each rank
         if rank in [1, 3, 5, 7, 9]:
             # Center position
-            positions.append((cw//2 - sw//2, ch//2 - sh//2))
-        
+            positions.append((cw // 2 - sw // 2, ch // 2 - sh // 2))
+
         if rank in [2, 3]:
-            positions.extend([
-                (cw//2 - sw//2, y_margin),
-                (cw//2 - sw//2, ch - y_margin - sh)
-            ])
-        
+            positions.extend(
+                [(cw // 2 - sw // 2, y_margin), (cw // 2 - sw // 2, ch - y_margin - sh)]
+            )
+
         if rank >= 4:
-            positions.extend([
-                (x_margin, y_margin),
-                (cw - x_margin - sw, y_margin),
-                (x_margin, ch - y_margin - sh),
-                (cw - x_margin - sw, ch - y_margin - sh)
-            ])
-        
+            positions.extend(
+                [
+                    (x_margin, y_margin),
+                    (cw - x_margin - sw, y_margin),
+                    (x_margin, ch - y_margin - sh),
+                    (cw - x_margin - sw, ch - y_margin - sh),
+                ]
+            )
+
         if rank in [6, 7, 8]:
-            positions.extend([
-                (x_margin, ch//2 - sh//2),
-                (cw - x_margin - sw, ch//2 - sh//2)
-            ])
-        
+            positions.extend(
+                [(x_margin, ch // 2 - sh // 2), (cw - x_margin - sw, ch // 2 - sh // 2)]
+            )
+
         if rank == 7:
-            positions.append((cw//2 - sw//2, ch//4))
-        
+            positions.append((cw // 2 - sw // 2, ch // 4))
+
         if rank >= 8:
-            positions.extend([
-                (x_margin, ch//2 - sh - 2),
-                (cw - x_margin - sw, ch//2 - sh - 2),
-                (x_margin, ch//2 + 2),
-                (cw - x_margin - sw, ch//2 + 2)
-            ])
-        
+            positions.extend(
+                [
+                    (x_margin, ch // 2 - sh - 2),
+                    (cw - x_margin - sw, ch // 2 - sh - 2),
+                    (x_margin, ch // 2 + 2),
+                    (cw - x_margin - sw, ch // 2 + 2),
+                ]
+            )
+
         if rank == 10:
-            positions.extend([
-                (cw//2 - sw//2, ch//4 - sh//4),
-                (cw//2 - sw//2, ch - ch//4 + sh//4)
-            ])
-        
+            positions.extend(
+                [
+                    (cw // 2 - sw // 2, ch // 4 - sh // 4),
+                    (cw // 2 - sw // 2, ch - ch // 4 + sh // 4),
+                ]
+            )
+
         # Paste suits at positions
         for i, (x, y) in enumerate(positions):
             if i >= len(positions) // 2 and rank >= 2:
@@ -453,20 +469,24 @@ def render_klondike_board(game: KlondikeGame, assets_dir: Path | None = None) ->
     # Layout parameters
     top_y = title_height + 20
     stock_x = 20
-    
+
     # Draw Stock pile
     if game.stock:
         # Show card back
         img.paste(card_back, (stock_x, top_y), card_back)
         # Draw count
-        draw.text((stock_x + 5, top_y + card_height + 3), 
-                 f"{len(game.stock)}", fill="white", font=label_font)
+        draw.text(
+            (stock_x + 5, top_y + card_height + 3),
+            f"{len(game.stock)}",
+            fill="white",
+            font=label_font,
+        )
     else:
         # Empty outline
         draw.rectangle(
             [stock_x, top_y, stock_x + card_width, top_y + card_height],
             outline=(150, 150, 150),
-            width=2
+            width=2,
         )
     draw.text((stock_x, top_y - 15), "Stock", fill="white", font=label_font)
 
@@ -480,7 +500,7 @@ def render_klondike_board(game: KlondikeGame, assets_dir: Path | None = None) ->
         draw.rectangle(
             [waste_x, top_y, waste_x + card_width, top_y + card_height],
             outline=(150, 150, 150),
-            width=2
+            width=2,
         )
     draw.text((waste_x, top_y - 15), "Waste", fill="white", font=label_font)
 
@@ -496,45 +516,47 @@ def render_klondike_board(game: KlondikeGame, assets_dir: Path | None = None) ->
             draw.rectangle(
                 [found_x, top_y, found_x + card_width, top_y + card_height],
                 outline=(150, 150, 150),
-                width=2
+                width=2,
             )
             draw.text(
-                (found_x + card_width//2 - 10, top_y + card_height//2 - 6), 
-                f"F{i+1}", fill=(180, 180, 180), font=label_font
+                (found_x + card_width // 2 - 10, top_y + card_height // 2 - 6),
+                f"F{i+1}",
+                fill=(180, 180, 180),
+                font=label_font,
             )
         draw.text((found_x, top_y - 15), f"F{i+1}", fill="white", font=label_font)
 
     # Draw Tableau piles
     tab_y = top_y + card_height + 50
     overlap = 25  # How much cards overlap
-    
+
     for i in range(7):
         tab_x = 20 + i * (card_width + padding)
-        
+
         # Draw label
         draw.text((tab_x, tab_y - 15), f"Tab{i+1}", fill="white", font=label_font)
-        
+
         if game.tableau[i]:
             y_offset = 0
             for card in game.tableau[i]:
                 card_y = tab_y + y_offset
-                
+
                 if card.faceup:
                     card_img = create_card(card)
                     img.paste(card_img, (tab_x, card_y), card_img)
                 else:
                     # Show card back
                     img.paste(card_back, (tab_x, card_y), card_back)
-                
+
                 y_offset += overlap
         else:
             # Empty tableau outline
             draw.rectangle(
                 [tab_x, tab_y, tab_x + card_width, tab_y + card_height],
                 outline=(150, 150, 150),
-                width=2
+                width=2,
             )
-    
+
     return img
 
 
@@ -544,16 +566,16 @@ def _render_klondike_fallback(game: KlondikeGame) -> Image.Image:
     height = 600
     img = Image.new("RGB", (width, height), (0, 100, 0))
     draw = ImageDraw.Draw(img)
-    
+
     try:
         font = ImageFont.truetype("arial.ttf", 14)
-    except:
+    except Exception:
         font = ImageFont.load_default()
-    
+
     draw.text((20, 20), "Klondike (Asset Loading Failed)", fill="white", font=font)
     draw.text((20, 50), f"Stock: {len(game.stock)} cards", fill="white", font=font)
     draw.text((20, 80), f"Waste: {len(game.waste)} cards", fill="white", font=font)
-    
+
     return img
 
 

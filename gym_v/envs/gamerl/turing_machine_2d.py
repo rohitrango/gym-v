@@ -8,9 +8,9 @@ import random
 from textwrap import dedent
 from typing import Any
 
-import numpy as np
 import matplotlib.pyplot as plt
-from PIL import Image, ImageDraw, ImageFont
+import numpy as np
+from PIL import Image
 
 from gym_v import Env, Observation, get_logger
 
@@ -68,14 +68,14 @@ class GameRL2dTuringMachineQAEnv(Env):
 
     # Colors for symbols (matplotlib color names)
     COLORS = [
-        'red',
-        'green',
-        'blue',
-        'magenta',
-        'cyan',
-        'yellow',
-        'orange',
-        'purple',
+        "red",
+        "green",
+        "blue",
+        "magenta",
+        "cyan",
+        "yellow",
+        "orange",
+        "purple",
     ]
     COLOR_NAMES = [
         "red",
@@ -314,33 +314,35 @@ Do not include any explanation or extra text.
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the current Turing machine state using matplotlib (matching original)."""
         rows, cols = self._grid_size
-        
+
         fig, ax = plt.subplots(figsize=(6, 6))
-        
+
         # Assign colors for each symbol
-        color_map = [self.COLORS[i % len(self.COLORS)] for i in range(self._grid.max() + 1)]
-        
+        color_map = [
+            self.COLORS[i % len(self.COLORS)] for i in range(self._grid.max() + 1)
+        ]
+
         # Display the grid with the assigned colors
         color_grid = np.empty(self._grid.shape, dtype=object)
         for y in range(self._grid.shape[0]):
             for x in range(self._grid.shape[1]):
                 color_grid[y, x] = color_map[self._grid[y, x]]
-        
+
         # Draw colored rectangles for each cell
         for y in range(self._grid.shape[0]):
             for x in range(self._grid.shape[1]):
                 ax.add_patch(plt.Rectangle((x, y), 1, 1, color=color_grid[y, x]))
-        
+
         # Mark the head position with a black circle
         ax.scatter(
-            self._head_x + 0.5, 
-            self._head_y + 0.5, 
-            color='black', 
-            s=200, 
-            edgecolors='white', 
-            label='Head'
+            self._head_x + 0.5,
+            self._head_y + 0.5,
+            color="black",
+            s=200,
+            edgecolors="white",
+            label="Head",
         )
-        
+
         # Set limits, labels, and legend
         ax.set_xlim(0, self._grid.shape[1])
         ax.set_ylim(0, self._grid.shape[0])
@@ -350,17 +352,17 @@ Do not include any explanation or extra text.
         ax.set_xticklabels(range(self._grid.shape[1]))
         ax.set_yticklabels(range(self._grid.shape[0]))
         ax.xaxis.tick_top()  # Move x-axis ticks to the top
-        ax.set_aspect('equal')
-        ax.set_title(f"2D Turning Machine", fontsize=14, fontweight='bold')
-        ax.legend(loc='upper center', bbox_to_anchor=(1.15, 1))
+        ax.set_aspect("equal")
+        ax.set_title("2D Turning Machine", fontsize=14, fontweight="bold")
+        ax.legend(loc="upper center", bbox_to_anchor=(1.15, 1))
         plt.gca().invert_yaxis()  # Flip the y-axis
-        
+
         # Save to buffer
         buf = io.BytesIO()
-        plt.savefig(buf, format='PNG', bbox_inches='tight')
+        plt.savefig(buf, format="PNG", bbox_inches="tight")
         plt.close(fig)
         buf.seek(0)
-        
+
         return Image.open(buf).convert("RGB")
 
     def _generate_puzzle(self):

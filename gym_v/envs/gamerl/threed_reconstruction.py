@@ -15,19 +15,19 @@ Source: /mnt/petrelfs/gujiawei/jiawei/env-v/Game-RL/src/3DReconstruction/
 
 from __future__ import annotations
 
+import io
 from itertools import combinations
 import random
 from textwrap import dedent
 from typing import Any
 
-import io
-
 import matplotlib
-matplotlib.use('Agg')  # Use non-interactive backend
-import matplotlib.pyplot as plt
+
+matplotlib.use("Agg")  # Use non-interactive backend
 from matplotlib.gridspec import GridSpec
+import matplotlib.pyplot as plt
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 
 from gym_v import Env, Observation
 
@@ -871,7 +871,9 @@ class GameRL3DReconstructionQAEnv(Env):
         # 3D Structure plot
         ax_3d = fig.add_subplot(gs[:, 0], projection="3d")
         remaining = len(self._game.target_voxels) - len(self._game.current_voxels)
-        self._setup_3d_plot(ax_3d, self._game.current_voxels, remaining, "Current Structure")
+        self._setup_3d_plot(
+            ax_3d, self._game.current_voxels, remaining, "Current Structure"
+        )
 
         # Calculate projections of current state
         current_yz, current_xz = self._game._calculate_projections(
@@ -900,7 +902,7 @@ class GameRL3DReconstructionQAEnv(Env):
         ax.set_zlim(0, 3)
 
         # Draw coordinate axes and labels
-        for axis, color in zip(["X", "Y", "Z"], ["r", "g", "b"]):
+        for axis, color in zip(["X", "Y", "Z"], ["r", "g", "b"], strict=False):
             if axis == "X":
                 ax.plot([0, 3.1], [0, 0], [0, 0], color=color, linewidth=2)
                 ax.text(
@@ -945,7 +947,9 @@ class GameRL3DReconstructionQAEnv(Env):
         voxel_grid = np.zeros((3, 3, 3), dtype=bool)
         for x, y, z in structure:
             voxel_grid[x - 1, y - 1, z - 1] = True
-        ax.voxels(voxel_grid, facecolors="cyan", edgecolors="k", linewidth=0.5, alpha=0.7)
+        ax.voxels(
+            voxel_grid, facecolors="cyan", edgecolors="k", linewidth=0.5, alpha=0.7
+        )
 
         # Add coordinate labels
         self._add_coordinate_labels(ax)
@@ -990,7 +994,7 @@ class GameRL3DReconstructionQAEnv(Env):
     def _add_coordinate_labels(self, ax):
         """Add coordinate labels to the 3D plot."""
         label_props = dict(fontsize=8, ha="center", va="center")
-        for axis, color in zip(["X", "Y", "Z"], ["r", "g", "b"]):
+        for axis, color in zip(["X", "Y", "Z"], ["r", "g", "b"], strict=False):
             for i in range(1, 4):
                 if axis == "X":
                     ax.text(i - 0.5, 3.2, -0.2, str(i), color=color, **label_props)

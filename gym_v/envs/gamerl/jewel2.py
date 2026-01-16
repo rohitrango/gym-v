@@ -452,7 +452,7 @@ class GameRLJewel2QAEnv(Env):
         # Use path relative to this file
         current_dir = Path(__file__).parent
         images_dir = current_dir / "assets" / "jewel2" / "images"
-        
+
         # If images directory doesn't exist, log a warning and continue without images
         if not images_dir.exists():
             logger.warning(f"Element images directory not found: {images_dir}")
@@ -562,9 +562,9 @@ class GameRLJewel2QAEnv(Env):
                     if element != " ":
                         # Define colors for different elements
                         colors = {
-                            "A": (255, 0, 0),    # Red
-                            "B": (0, 255, 0),    # Green
-                            "C": (0, 0, 255),    # Blue
+                            "A": (255, 0, 0),  # Red
+                            "B": (0, 255, 0),  # Green
+                            "C": (0, 0, 255),  # Blue
                             "D": (255, 255, 0),  # Yellow
                             "E": (255, 0, 255),  # Magenta
                             "a": (200, 100, 100),  # Light red
@@ -573,11 +573,14 @@ class GameRLJewel2QAEnv(Env):
                             "d": (200, 200, 100),  # Light yellow
                             "e": (200, 100, 200),  # Light magenta
                             "+": (128, 128, 128),  # Gray
-                            "|": (64, 64, 64),     # Dark gray
+                            "|": (64, 64, 64),  # Dark gray
                         }
                         color = colors.get(element, (128, 128, 128))
-                        draw.rectangle([x0, y0, x0 + cell_size, y0 + cell_size], 
-                                     fill=color, outline="black")
+                        draw.rectangle(
+                            [x0, y0, x0 + cell_size, y0 + cell_size],
+                            fill=color,
+                            outline="black",
+                        )
                         # Draw element text
                         try:
                             elem_font = ImageFont.truetype("arial.ttf", cell_size // 2)
@@ -588,11 +591,16 @@ class GameRLJewel2QAEnv(Env):
                         text_height = text_bbox[3] - text_bbox[1]
                         text_x = x0 + (cell_size - text_width) // 2
                         text_y = y0 + (cell_size - text_height) // 2
-                        draw.text((text_x, text_y), element, fill="white", font=elem_font)
+                        draw.text(
+                            (text_x, text_y), element, fill="white", font=elem_font
+                        )
                     else:
                         # Draw empty cell
-                        draw.rectangle([x0, y0, x0 + cell_size, y0 + cell_size],
-                                     fill=(240, 240, 240), outline="black")
+                        draw.rectangle(
+                            [x0, y0, x0 + cell_size, y0 + cell_size],
+                            fill=(240, 240, 240),
+                            outline="black",
+                        )
 
         # Draw total cleared
         cleared_text = f"Total Cleared: {self._total_cleared}"

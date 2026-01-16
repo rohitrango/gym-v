@@ -372,11 +372,11 @@ Grid (T=tree, X=tent, .=empty):
             )
             # Row number (black) - further from grid
             draw.text(
-                (margin - int(self._cell_size * 1.2), y), 
-                str(i), 
-                fill=(0, 0, 0), 
-                font=small_font, 
-                anchor="mm"
+                (margin - int(self._cell_size * 1.2), y),
+                str(i),
+                fill=(0, 0, 0),
+                font=small_font,
+                anchor="mm",
             )
 
         # Draw column numbers and tent counts (on top)
@@ -393,40 +393,44 @@ Grid (T=tree, X=tent, .=empty):
             )
             # Column number (black) - further from grid
             draw.text(
-                (x, margin - int(self._cell_size * 1.2)), 
-                str(j), 
-                fill=(0, 0, 0), 
-                font=small_font, 
-                anchor="mm"
+                (x, margin - int(self._cell_size * 1.2)),
+                str(j),
+                fill=(0, 0, 0),
+                font=small_font,
+                anchor="mm",
             )
 
         # Draw trees and tents using actual images (matching original matplotlib implementation)
         try:
             # Load tree and tent images
-            tree_img = Image.open(self.assets_dir / "tents" / "tree.png").convert("RGBA")
-            tent_img = Image.open(self.assets_dir / "tents" / "tent.png").convert("RGBA")
-            
+            tree_img = Image.open(self.assets_dir / "tents" / "tree.png").convert(
+                "RGBA"
+            )
+            tent_img = Image.open(self.assets_dir / "tents" / "tent.png").convert(
+                "RGBA"
+            )
+
             # Resize images to fit in cells
             img_size = int(self._cell_size * 0.9)  # 90% of cell size
             tree_img = tree_img.resize((img_size, img_size), Image.Resampling.LANCZOS)
             tent_img = tent_img.resize((img_size, img_size), Image.Resampling.LANCZOS)
-            
+
             # Draw trees
             for row, col in self._tree_positions:
                 x = margin + col * self._cell_size + (self._cell_size - img_size) // 2
                 y = margin + row * self._cell_size + (self._cell_size - img_size) // 2
                 img.paste(tree_img, (x, y), tree_img)
-            
+
             # Draw tents
             for row, col in self._tent_positions:
                 x = margin + col * self._cell_size + (self._cell_size - img_size) // 2
                 y = margin + row * self._cell_size + (self._cell_size - img_size) // 2
                 img.paste(tent_img, (x, y), tent_img)
-                
+
         except Exception as e:
             # Fallback to simple shapes if images can't be loaded
             logger.warning(f"Could not load tree/tent images: {e}, using simple shapes")
-            
+
             # Draw trees (green circles with brown trunk - fallback)
             for row, col in self._tree_positions:
                 x = margin + col * self._cell_size + self._cell_size // 2

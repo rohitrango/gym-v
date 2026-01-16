@@ -285,42 +285,42 @@ Do not include any explanation or extra text.
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the rhythm game grid (matching original pygame style)."""
         rows, cols = self._grid_size
-        
+
         # Constants matching original pygame implementation
         MARGIN_X = 30
         MARGIN_Y_BOTTOM = 30
         MARGIN_Y_TOP = 10
         BLOCK_SCALE = 0.8
-        
+
         # Calculate dimensions
         cell_width = 400 // cols
         cell_height = 500 // rows
         grid_width = cell_width * cols
         grid_height = cell_height * rows
-        
+
         # Total image size
         img_width = grid_width + MARGIN_X
         img_height = grid_height + MARGIN_Y_BOTTOM + MARGIN_Y_TOP
-        
+
         # Create image with light green background (matching original)
         img = Image.new("RGB", (img_width, img_height), (204, 242, 153))
         draw = ImageDraw.Draw(img)
-        
+
         # Load font
         try:
             label_font = ImageFont.truetype(str(self.assets_dir / "DejaVuSans.ttf"), 18)
         except Exception:
             label_font = ImageFont.load_default()
-        
+
         # Offset for grid
         grid_offset_y = MARGIN_Y_TOP
-        
+
         # Fill grid background with white
         draw.rectangle(
             [MARGIN_X, grid_offset_y, img_width, grid_offset_y + grid_height],
-            fill=self.WHITE
+            fill=self.WHITE,
         )
-        
+
         # Draw horizontal grid lines
         for i in range(rows + 1):
             y = grid_offset_y + i * cell_height
@@ -329,7 +329,7 @@ Do not include any explanation or extra text.
                 fill=self.BLACK,
                 width=1,
             )
-        
+
         # Draw vertical grid lines
         for j in range(cols + 1):
             x = MARGIN_X + j * cell_width
@@ -338,7 +338,7 @@ Do not include any explanation or extra text.
                 fill=self.BLACK,
                 width=1,
             )
-        
+
         # Draw row labels (left side, from top to bottom: rows, rows-1, ..., 1)
         for i in range(rows):
             row_num = rows - i
@@ -350,7 +350,7 @@ Do not include any explanation or extra text.
                 font=label_font,
                 anchor="mm",
             )
-        
+
         # Draw column labels (bottom, 1-based)
         for j in range(cols):
             col_num = j + 1
@@ -363,27 +363,33 @@ Do not include any explanation or extra text.
                 font=label_font,
                 anchor="mm",
             )
-        
+
         # Draw blocks
         block_width = int(cell_width * BLOCK_SCALE)
         block_height = int(cell_height * BLOCK_SCALE)
-        
+
         for block in self._blocks:
             row, col = block["row"], block["col"]
             color = block["color"]
-            
+
             # Convert to screen coordinates (row 1 is at bottom)
             screen_row = rows - row
-            block_x = MARGIN_X + (col - 1) * cell_width + (cell_width - block_width) // 2
-            block_y = grid_offset_y + screen_row * cell_height + (cell_height - block_height) // 2
-            
+            block_x = (
+                MARGIN_X + (col - 1) * cell_width + (cell_width - block_width) // 2
+            )
+            block_y = (
+                grid_offset_y
+                + screen_row * cell_height
+                + (cell_height - block_height) // 2
+            )
+
             # Draw colored block
             draw.rectangle(
                 [block_x, block_y, block_x + block_width, block_y + block_height],
                 fill=color,
                 outline=None,
             )
-        
+
         return img
 
     def _generate_puzzle(self):

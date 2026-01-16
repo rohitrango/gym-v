@@ -33,11 +33,14 @@ class SphinxOddOneOutBaseEnv(Env):
         self,
         option_size: int = 200,
         padding: int = 15,
+        num_players: int = 1,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
         self._option_size = option_size
         self._padding = padding
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         self._composed_image: Image.Image | None = None
         self._oracle_answer: str | None = None
@@ -89,7 +92,7 @@ class SphinxOddOneOutBaseEnv(Env):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
         self._prepare_reset()
 
@@ -148,13 +151,24 @@ class SphinxOddOneOutBaseEnv(Env):
             "odd_idx": self._odd_idx,
             **self._get_metadata(),
         }
-        return obs, info
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
         """Evaluate the action against the correct answer."""
-        action_clean = action.strip().lower()
+        agent_id = next(iter(self._agent_ids))
+        single_action = action[agent_id]
+
+        action_clean = single_action.strip().lower()
         if not action_clean.startswith("("):
             action_clean = f"({action_clean})"
         if not action_clean.endswith(")"):
@@ -168,7 +182,7 @@ class SphinxOddOneOutBaseEnv(Env):
             text=None,
             metadata={
                 "odd_idx": self._odd_idx,
-                "user_answer": action,
+                "user_answer": single_action,
                 "correct": correct,
             },
         )
@@ -178,7 +192,22 @@ class SphinxOddOneOutBaseEnv(Env):
             "correct": correct,
         }
 
-        return obs, reward, True, False, info
+        terminated = True
+        truncated = False
+
+        return (
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: reward for agent_id in self._agent_ids},
+            {
+                **{agent_id: terminated for agent_id in self._agent_ids},
+                "__all__": terminated,
+            },
+            {
+                **{agent_id: truncated for agent_id in self._agent_ids},
+                "__all__": truncated,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
+        )
 
     def render(self) -> Image.Image:
         """Return the composed image with 8 options."""

@@ -570,7 +570,7 @@ Ship Row: {ship_str}"""
             score_text,
             fill=self.COLORS["text"],
             font=font,
-            anchor="rt"
+            anchor="rt",
         )
 
         return img

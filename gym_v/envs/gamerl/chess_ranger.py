@@ -493,8 +493,12 @@ class ChessBoardImage:
             self._use_text_pieces = True
             # Unicode chess symbols for fallback
             self._piece_symbols = {
-                "R": "♜", "N": "♞", "B": "♝",
-                "Q": "♛", "K": "♚", "P": "♟"
+                "R": "♜",
+                "N": "♞",
+                "B": "♝",
+                "Q": "♛",
+                "K": "♚",
+                "P": "♟",
             }
             return
 
@@ -508,8 +512,12 @@ class ChessBoardImage:
                 logger.warning(f"Chess piece image not found: {image_path}")
                 self._use_text_pieces = True
                 self._piece_symbols = {
-                    "R": "♜", "N": "♞", "B": "♝",
-                    "Q": "♛", "K": "♚", "P": "♟"
+                    "R": "♜",
+                    "N": "♞",
+                    "B": "♝",
+                    "Q": "♛",
+                    "K": "♚",
+                    "P": "♟",
                 }
                 return
 
