@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from importlib import resources
+import io
 import random
 from textwrap import dedent
 from typing import Any
 
 import numpy as np
+import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation, get_logger
@@ -64,16 +66,16 @@ class GameRL2dTuringMachineQAEnv(Env):
         },
     ]
 
-    # Colors for symbols
+    # Colors for symbols (matplotlib color names)
     COLORS = [
-        (255, 0, 0),
-        (0, 255, 0),
-        (0, 0, 255),
-        (255, 0, 255),
-        (0, 255, 255),
-        (255, 255, 0),
-        (255, 128, 0),
-        (128, 0, 255),
+        'red',
+        'green',
+        'blue',
+        'magenta',
+        'cyan',
+        'yellow',
+        'orange',
+        'purple',
     ]
     COLOR_NAMES = [
         "red",
@@ -310,91 +312,56 @@ Do not include any explanation or extra text.
         )
 
     def render(self) -> Image.Image | list[Image.Image] | None:
-        """Render the current Turing machine state as a PIL Image."""
+        """Render the current Turing machine state using matplotlib (matching original)."""
         rows, cols = self._grid_size
-        margin = 40
-        img_width = cols * self._cell_size + 2 * margin
-        img_height = rows * self._cell_size + 2 * margin
-
-        img = Image.new("RGB", (img_width, img_height), (255, 255, 255))
-        draw = ImageDraw.Draw(img)
-
-        # Load font
-        try:
-            font = ImageFont.truetype(str(self.assets_dir / "DejaVuSans.ttf"), 20)
-            small_font = ImageFont.truetype(str(self.assets_dir / "DejaVuSans.ttf"), 14)
-        except Exception:
-            font = ImageFont.load_default()
-            small_font = ImageFont.load_default()
-
-        # Draw grid with symbols
-        for y in range(rows):
-            for x in range(cols):
-                cell_x = margin + x * self._cell_size
-                cell_y = margin + y * self._cell_size
-
-                # Draw cell border
-                draw.rectangle(
-                    [
-                        cell_x,
-                        cell_y,
-                        cell_x + self._cell_size,
-                        cell_y + self._cell_size,
-                    ],
-                    outline=(0, 0, 0),
-                    width=2,
-                )
-
-                # Draw symbol color
-                symbol = self._grid[y, x]
-                color = self.COLORS[symbol % len(self.COLORS)]
-                padding = 5
-                draw.rectangle(
-                    [
-                        cell_x + padding,
-                        cell_y + padding,
-                        cell_x + self._cell_size - padding,
-                        cell_y + self._cell_size - padding,
-                    ],
-                    fill=color,
-                    outline=(0, 0, 0),
-                    width=1,
-                )
-
-                # Draw head if at this position
-                if x == self._head_x and y == self._head_y:
-                    left, right = self.STATE_BRACKETS[self._current_state]
-                    text = f"{left}{symbol}{right}"
-                    draw.text(
-                        (cell_x + self._cell_size // 2, cell_y + self._cell_size // 2),
-                        text,
-                        fill=(255, 255, 255),
-                        font=font,
-                        anchor="mm",
-                        stroke_width=2,
-                        stroke_fill=(0, 0, 0),
-                    )
-
-        # Draw row/column labels
-        for y in range(rows):
-            draw.text(
-                (margin // 2, margin + y * self._cell_size + self._cell_size // 2),
-                str(y),
-                fill=(0, 0, 0),
-                font=small_font,
-                anchor="mm",
-            )
-
-        for x in range(cols):
-            draw.text(
-                (margin + x * self._cell_size + self._cell_size // 2, margin // 2),
-                str(x),
-                fill=(0, 0, 0),
-                font=small_font,
-                anchor="mm",
-            )
-
-        return img
+        
+        fig, ax = plt.subplots(figsize=(6, 6))
+        
+        # Assign colors for each symbol
+        color_map = [self.COLORS[i % len(self.COLORS)] for i in range(self._grid.max() + 1)]
+        
+        # Display the grid with the assigned colors
+        color_grid = np.empty(self._grid.shape, dtype=object)
+        for y in range(self._grid.shape[0]):
+            for x in range(self._grid.shape[1]):
+                color_grid[y, x] = color_map[self._grid[y, x]]
+        
+        # Draw colored rectangles for each cell
+        for y in range(self._grid.shape[0]):
+            for x in range(self._grid.shape[1]):
+                ax.add_patch(plt.Rectangle((x, y), 1, 1, color=color_grid[y, x]))
+        
+        # Mark the head position with a black circle
+        ax.scatter(
+            self._head_x + 0.5, 
+            self._head_y + 0.5, 
+            color='black', 
+            s=200, 
+            edgecolors='white', 
+            label='Head'
+        )
+        
+        # Set limits, labels, and legend
+        ax.set_xlim(0, self._grid.shape[1])
+        ax.set_ylim(0, self._grid.shape[0])
+        num_rows, num_cols = self._grid.shape
+        ax.set_xticks([x + 0.5 for x in range(num_cols)])
+        ax.set_yticks([y + 0.5 for y in range(num_rows)])
+        ax.set_xticklabels(range(self._grid.shape[1]))
+        ax.set_yticklabels(range(self._grid.shape[0]))
+        ax.xaxis.tick_top()  # Move x-axis ticks to the top
+        ax.set_aspect('equal')
+        ax.set_title(f"2D Turning Machine", fontsize=14, fontweight='bold')
+        ax.legend(loc='upper center', bbox_to_anchor=(1.15, 1))
+        plt.gca().invert_yaxis()  # Flip the y-axis
+        
+        # Save to buffer
+        buf = io.BytesIO()
+        plt.savefig(buf, format='PNG', bbox_inches='tight')
+        plt.close(fig)
+        buf.seek(0)
+        
+        return Image.open(buf).convert("RGB")
 
     def _generate_puzzle(self):
         """Generate a random 2D Turing machine configuration."""

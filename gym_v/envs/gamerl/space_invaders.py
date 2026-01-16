@@ -156,7 +156,7 @@ class GameRLSpaceInvadersQAEnv(Env):
         self._total_cols = enemy_cols + 4
         self._cell_width = cell_width
         self._cell_height = cell_height
-        self._top_border = 40
+        self._top_border = 50  # Increased to match original (was 40)
         self._left_border = 30
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
@@ -516,11 +516,11 @@ Ship Row: {ship_str}"""
             y = self._top_border + (row - 1) * self._cell_height
             draw.line([(0, y), (width, y)], fill=self.COLORS["grid_line"], width=1)
 
-        # Column numbers
+        # Column numbers (positioned to avoid overlap with Score)
         for col in range(1, self._total_cols + 1):
             x = self._left_border + (col - 1) * self._cell_width + self._cell_width // 2
             draw.text(
-                (x, 10), str(col), fill=self.COLORS["text"], font=font, anchor="mt"
+                (x, 20), str(col), fill=self.COLORS["text"], font=font, anchor="mt"
             )
 
         # Row numbers
@@ -563,12 +563,14 @@ Ship Row: {ship_str}"""
                 fill=self.COLORS["ship"],
             )
 
-        # Score
+        # Score (positioned in top-right corner, avoiding overlap with column numbers)
+        score_text = f"Score: {self._score:03d}"
         draw.text(
-            (width - 100, 10),
-            f"Score: {self._score}",
+            (width - 105, 5),
+            score_text,
             fill=self.COLORS["text"],
             font=font,
+            anchor="rt"
         )
 
         return img

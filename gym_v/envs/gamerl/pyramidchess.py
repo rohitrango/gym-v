@@ -372,107 +372,149 @@ def count_ball(board_dict: dict):
 # ============================================================================
 
 
-def draw_pyramid_combined(layers: dict, plot_level: str) -> Image.Image:
-    """Draw combined 2D and 3D representation of pyramid using PIL."""
+def draw_pyramid_2d(layers: dict, plot_level: str) -> Image.Image:
+    """Draw 2D representation of pyramid layers using matplotlib."""
+    import io
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
     PLOT_LEVEL_MAP = {"Easy": 3, "Medium": 4, "Hard": 5}
     num_levels = PLOT_LEVEL_MAP[plot_level]
+    
+    fig, axs = plt.subplots(1, num_levels, figsize=(25, 6))
+    if num_levels == 1:
+        axs = [axs]
+    
+    # Define color mapping
+    color_map = {'P0': 'blue', 'P1': 'red', '--': 'none'}
+    
+    # Draw each layer
+    for i, (layer_id, layer_data) in enumerate(layers.items()):
+        if i >= num_levels:
+            break
+        ax = axs[i]
+        ax.set_title(f'Level {layer_id}', fontsize=40)
+        
+        # Set axis range
+        ax.set_xlim(-0.5, len(layer_data[0]) - 0.5)
+        ax.set_ylim(-0.5, len(layer_data) - 0.5)
+        
+        # Set axis ticks
+        ax.set_xticks(np.arange(len(layer_data[0])))
+        ax.set_yticks(np.arange(len(layer_data)))
+        ax.set_xticklabels([str(x) for x in range(len(layer_data[0]))], fontsize=40)
+        ax.set_yticklabels([str(y) for y in range(len(layer_data))], fontsize=40)
+        
+        ax.invert_xaxis()
+        ax.set_xlabel("x-axis", fontsize=30)
+        ax.set_ylabel("y-axis", fontsize=30)
+        ax.yaxis.set_ticks_position('right')
+        ax.yaxis.set_label_position('right')
+        
+        # Draw circles
+        for x, row in enumerate(layer_data):
+            for y, cell in enumerate(row):
+                if cell != '--':
+                    ax.scatter(x, y, s=2000, c=color_map[cell], marker='o', edgecolor='black')
+    
+    # Adjust spacing
+    plt.subplots_adjust(left=0.05, right=0.95, top=0.9, bottom=0.2, wspace=0.3)
+    
+    buf = io.BytesIO()
+    plt.savefig(buf, format="PNG")
+    plt.close(fig)
+    buf.seek(0)
+    
+    return Image.open(buf)
 
-    # Create canvas
-    img_width = 550
-    img_height = 550
-    img = Image.new("RGB", (img_width, img_height), (255, 255, 255))
-    draw = ImageDraw.Draw(img)
 
-    try:
-        font_large = ImageFont.truetype("arial.ttf", 20)
-        font_small = ImageFont.truetype("arial.ttf", 14)
-    except OSError:
-        font_large = ImageFont.load_default()
-        font_small = ImageFont.load_default()
-
+def draw_pyramid_3d(layers: dict, plot_level: str) -> Image.Image:
+    """Draw 3D representation of pyramid using matplotlib."""
+    import io
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    PLOT_LEVEL_MAP = {"Easy": 3, "Medium": 4, "Hard": 5}
+    num_levels = PLOT_LEVEL_MAP[plot_level]
+    
+    # Define colors for the balls
     color_map = {"P0": "blue", "P1": "red", "--": None}
-
-    # Draw title
-    title = f"Pyramid Chess - {plot_level}"
-    draw.text((img_width // 2 - 80, 10), title, fill="black", font=font_large)
-
-    # Draw 2D grids (top section)
-    grid_size = 100
-    grid_spacing = 10
-    start_y = 50
-    start_x = 50
-    cell_size = grid_size // (num_levels + 1)
-
-    for level in range(num_levels):
-        level_data = layers[level]
-
-        # Position for this level's grid
-        x_offset = start_x + level * (grid_size + grid_spacing)
-        y_offset = start_y
-
-        # Draw level label
-        draw.text((x_offset, y_offset - 20), f"L{level}", fill="black", font=font_small)
-
-        # Draw grid and balls
-        for row_idx, row in enumerate(level_data):
-            for col_idx, cell in enumerate(row):
-                x1 = x_offset + col_idx * cell_size
-                y1 = y_offset + row_idx * cell_size
-                x2 = x1 + cell_size
-                y2 = y1 + cell_size
-
-                # Draw cell border
-                draw.rectangle([x1, y1, x2, y2], outline="gray")
-
-                # Draw ball if present
+    
+    fig = plt.figure(figsize=(12, 12))
+    ax = fig.add_subplot(111, projection='3d')
+    
+    ball_radius = 0.6  # Radius of the balls
+    
+    # Draw each layer in 3D
+    for level, grid in layers.items():
+        if level >= num_levels:
+            break
+        for i, row in enumerate(grid):
+            for j, cell in enumerate(row):
                 if cell != "--":
-                    color = color_map[cell]
-                    padding = 3
-                    draw.ellipse(
-                        [x1 + padding, y1 + padding, x2 - padding, y2 - padding],
-                        fill=color,
-                        outline="black",
-                    )
-
-    # Draw 3D isometric view (bottom section)
-    iso_start_y = 200
-    iso_center_x = img_width // 2
-    ball_radius = 15
-
-    # Draw legend
-    draw.text((20, iso_start_y - 30), "PLAYER_0 (Blue)", fill="blue", font=font_small)
-    draw.text((20, iso_start_y - 15), "PLAYER_1 (Red)", fill="red", font=font_small)
-
-    # Draw isometric pyramid
-    for level in range(num_levels):
-        level_data = layers[level]
-        for row_idx, row in enumerate(level_data):
-            for col_idx, cell in enumerate(row):
-                if cell != "--":
-                    # Isometric projection
-                    x = row_idx + level * 0.5
-                    y = col_idx + level * 0.5
+                    # Calculate positions to align higher layers' balls on the center of lower layers
+                    x = i + level * 0.5
+                    y = j + level * 0.5
                     z = level
+                    
+                    # Draw a sphere to represent the ball
+                    u, v = np.mgrid[0:2*np.pi:20j, 0:np.pi:10j]
+                    sphere_x = ball_radius * np.cos(u) * np.sin(v) + x
+                    sphere_y = ball_radius * np.sin(u) * np.sin(v) + y
+                    sphere_z = ball_radius * np.cos(v) + z
+                    ax.plot_surface(sphere_x, sphere_y, sphere_z, color=color_map[cell], edgecolor="k", linewidth=0.5)
+    
+    # Add legend
+    legend_elements = [
+        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='blue', markersize=15, label='PLAYER_0'),
+        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markersize=15, label='PLAYER_1')
+    ]
+    ax.legend(handles=legend_elements, loc='upper left', prop={'size': 20}, markerscale=2.0)
+    
+    # Set axis limits (matching original: X-axis inverted, Y-axis normal)
+    ax.set_xlim(num_levels, -1)  # X-axis: from large to small (inverted)
+    ax.set_ylim(-1, num_levels)  # Y-axis: from small to large (normal)
+    ax.set_zlim(-0.5, num_levels)
+    ax.set_xlabel("X-axis", fontsize=15)
+    ax.set_ylabel("Y-axis", fontsize=15)
+    ax.set_zlabel("Z-axis", fontsize=15)
+    ax.set_xticks(range(0, num_levels))
+    ax.set_yticks(range(0, num_levels))
+    ax.set_zticks(range(0, num_levels))
+    ax.tick_params(axis='x', labelsize=15)
+    ax.tick_params(axis='y', labelsize=15)
+    ax.tick_params(axis='z', labelsize=15)
+    
+    buf = io.BytesIO()
+    plt.savefig(buf, format="PNG")
+    plt.close(fig)
+    buf.seek(0)
+    
+    return Image.open(buf)
 
-                    # Convert to 2D isometric coordinates
-                    iso_x = iso_center_x + (x - y) * ball_radius
-                    iso_y = iso_start_y + (x + y) * ball_radius * 0.5 - z * ball_radius
 
-                    # Draw ball
-                    color = color_map[cell]
-                    draw.ellipse(
-                        [
-                            iso_x - ball_radius,
-                            iso_y - ball_radius,
-                            iso_x + ball_radius,
-                            iso_y + ball_radius,
-                        ],
-                        fill=color,
-                        outline="black",
-                        width=2,
-                    )
-
-    return img
+def draw_pyramid_combined(layers: dict, plot_level: str) -> Image.Image:
+    """Draw combined 2D and 3D representation of pyramid using matplotlib."""
+    # Draw both representations
+    image_3d = draw_pyramid_3d(layers, plot_level)
+    image_2d = draw_pyramid_2d(layers, plot_level)
+    
+    # Resize 2D image to be shorter (like original implementation)
+    image_2d = image_2d.resize((1200, 300))
+    
+    # Crop 3D image to remove excess whitespace (like original)
+    crop_box = (0, 155, 1200, 1020)
+    image_3d = image_3d.crop(crop_box)
+    
+    # Combine images vertically (2D on top, 3D on bottom)
+    new_image = Image.new('RGB', (image_3d.width, image_3d.height + image_2d.height))
+    new_image.paste(image_2d, (0, 0))
+    new_image.paste(image_3d, (0, image_2d.height))
+    
+    # Resize to final size
+    new_image = new_image.resize((550, 550))
+    
+    return new_image
 
 
 # ============================================================================

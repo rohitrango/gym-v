@@ -266,39 +266,78 @@ Do not include any explanation or extra text.
         )
 
     def render(self) -> Image.Image | list[Image.Image] | None:
-        """Render the current puzzle state as a PIL Image."""
+        """Render the current puzzle state as a PIL Image (matching original with title and border)."""
         index_margin = 30
-        options_height = 100 if self._shuffled_colors else 0
-        padding = 20
-
         board_size = self._board_size * self._cell_size
-        img_width = board_size + index_margin
-        img_height = board_size + index_margin + options_height + padding
+        title_height = 50  # Space for title
+        border_width = 10  # Decorative border
+        
+        # Only add options area if shuffled_colors exist (matching original)
+        if self._shuffled_colors:
+            options_height = 70
+            padding = 20
+            content_height = board_size + index_margin + options_height + padding
+        else:
+            content_height = board_size + index_margin
+        
+        content_width = board_size + index_margin
+        
+        # Total image size with title and border
+        img_width = content_width + 2 * border_width
+        img_height = content_height + title_height + 2 * border_width
 
-        img = Image.new("RGB", (img_width, img_height), (255, 255, 255))
+        # Create image with border color (tan/beige)
+        img = Image.new("RGB", (img_width, img_height), (222, 184, 135))  # Burlywood color
         draw = ImageDraw.Draw(img)
+        
+        # Draw white content area
+        draw.rectangle(
+            [border_width, border_width + title_height, 
+             img_width - border_width, img_height - border_width],
+            fill=(255, 255, 255),
+            outline=None
+        )
+        
+        # Adjust drawing offset for border and title
+        x_offset = border_width
+        y_offset = border_width + title_height
 
-        # Load font
+        # Load fonts
         try:
+            title_font = ImageFont.truetype(str(self.assets_dir / "DejaVuSans.ttf"), 28)
             font = ImageFont.truetype(str(self.assets_dir / "DejaVuSans.ttf"), 14)
         except Exception:
+            title_font = ImageFont.load_default()
             font = ImageFont.load_default()
+        
+        # Draw title
+        title_text = "Color Hue"
+        # Get text bbox for centering
+        bbox = draw.textbbox((0, 0), title_text, font=title_font)
+        title_width = bbox[2] - bbox[0]
+        title_x = (img_width - title_width) // 2
+        draw.text(
+            (title_x, border_width + 10),
+            title_text,
+            fill=(0, 0, 0),
+            font=title_font,
+        )
 
-        # Draw row indices
+        # Draw row indices (1-based, matching original OpenCV positions)
         for i in range(self._board_size):
             text = str(i + 1)
             draw.text(
-                (10, index_margin + i * self._cell_size + self._cell_size // 2 - 5),
+                (x_offset + 10, y_offset + index_margin + i * self._cell_size + self._cell_size // 2 + 5),
                 text,
                 fill=(0, 0, 0),
                 font=font,
             )
 
-        # Draw column indices
+        # Draw column indices (1-based, matching original OpenCV positions)
         for j in range(self._board_size):
             text = str(j + 1)
             draw.text(
-                (index_margin + j * self._cell_size + self._cell_size // 3, 10),
+                (x_offset + index_margin + j * self._cell_size + self._cell_size // 3, y_offset + 25),
                 text,
                 fill=(0, 0, 0),
                 font=font,
@@ -308,12 +347,12 @@ Do not include any explanation or extra text.
         for i in range(self._board_size):
             for j in range(self._board_size):
                 pos = (i, j)
-                x = index_margin + j * self._cell_size
-                y = index_margin + i * self._cell_size
+                x = x_offset + index_margin + j * self._cell_size
+                y = y_offset + index_margin + i * self._cell_size
 
                 # Determine cell appearance
                 if pos in self._cells_to_fill:
-                    # Empty cell with label
+                    # Empty cell with label (matching original OpenCV position)
                     draw.rectangle(
                         [x, y, x + self._cell_size, y + self._cell_size],
                         fill=(255, 255, 255),
@@ -321,12 +360,12 @@ Do not include any explanation or extra text.
                         width=1,
                     )
                     label = self._cells_to_fill[pos]
+                    # Original OpenCV uses (cell_size//3, 2*cell_size//3) position
                     draw.text(
-                        (x + self._cell_size // 2, y + self._cell_size // 2),
+                        (x + self._cell_size // 3, y + 2 * self._cell_size // 3),
                         label,
                         fill=(0, 0, 0),
                         font=font,
-                        anchor="mm",
                     )
                 elif pos in self._colored_cells:
                     # Colored cell
@@ -349,34 +388,59 @@ Do not include any explanation or extra text.
                         outline=None,
                     )
                 else:
-                    # Empty cell with diagonal lines
+                    # Empty cell with diagonal lines - using safer approach with clipping
+                    # First draw the background
                     draw.rectangle(
                         [x, y, x + self._cell_size, y + self._cell_size],
                         fill=(245, 245, 245),
                         outline=(0, 0, 0),
                         width=1,
                     )
-                    # Draw diagonal lines
-                    for offset in range(-self._cell_size, self._cell_size * 2, 12):
-                        draw.line(
-                            [
-                                (x + offset, y),
-                                (x + offset + self._cell_size, y + self._cell_size),
-                            ],
-                            fill=(200, 200, 200),
-                            width=2,
-                        )
+                    
+                    # Create a temporary image for the cell to ensure lines don't overflow
+                    cell_img = Image.new("RGB", (self._cell_size, self._cell_size), (245, 245, 245))
+                    cell_draw = ImageDraw.Draw(cell_img)
+                    
+                    # Parameters matching original OpenCV code
+                    line_spacing = 12
+                    line_color = (200, 200, 200)
+                    line_thickness = 2
 
-        # Draw color options if present
+                    # Draw lines from top-left to bottom-right (matching OpenCV exactly)
+                    for k in range(-self._cell_size, self._cell_size * 2, line_spacing):
+                        start_x = max(0, k)
+                        start_y = max(0, -k)
+                        end_x = min(self._cell_size - 1, k + self._cell_size)
+                        end_y = min(self._cell_size - 1, -k + self._cell_size)
+                        
+                        if start_x <= end_x and start_y <= end_y:
+                            cell_draw.line([(start_x, start_y), (end_x, end_y)],
+                                         fill=line_color, width=line_thickness)
+
+                    # Draw lines from top-right to bottom-left (matching OpenCV exactly)
+                    for k in range(-self._cell_size, self._cell_size * 2, line_spacing):
+                        start_x = min(self._cell_size - 1, k)
+                        start_y = max(0, k - self._cell_size)
+                        end_x = max(0, k - self._cell_size)
+                        end_y = min(self._cell_size - 1, k)
+                        
+                        if start_x >= end_x and start_y <= end_y:
+                            cell_draw.line([(start_x, start_y), (end_x, end_y)],
+                                         fill=line_color, width=line_thickness)
+                    
+                    # Paste the cell image onto the main image (ensures lines stay within bounds)
+                    img.paste(cell_img, (x, y))
+
+        # Draw color options if present (matching original OpenCV layout)
         if self._shuffled_colors:
-            option_width = img_width // len(self._shuffled_colors)
-            y_start = board_size + index_margin + padding + 20
+            option_width = (board_size + index_margin) // len(self._shuffled_colors)
+            y_start = y_offset + board_size + index_margin + padding + 20
 
             for idx, color in enumerate(self._shuffled_colors):
-                x_start = idx * option_width + 5
-                # Draw option number
+                x_start = x_offset + idx * option_width + 5
+                # Draw option number (matching original position)
                 draw.text(
-                    (x_start, y_start - 15), f"{idx + 1}", fill=(0, 0, 0), font=font
+                    (x_start, y_start - 5), f"{idx + 1}", fill=(0, 0, 0), font=font
                 )
                 # Draw color swatch
                 draw.rectangle(

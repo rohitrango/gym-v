@@ -20,6 +20,12 @@ import random
 from textwrap import dedent
 from typing import Any
 
+import io
+
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend
+import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
@@ -839,186 +845,200 @@ class GameRL3DReconstructionQAEnv(Env):
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the 3D reconstruction game as a PIL Image.
 
-        Creates a composite image showing:
-        - 3D voxel structure (isometric view)
+        Creates a composite image using matplotlib showing:
+        - 3D voxel structure with coordinate axes and grid
         - Front View (Y-Z projection)
         - Side View (X-Z projection)
 
         Returns:
-            800x600 PIL Image
+            PIL Image (approximately 760x570 pixels)
         """
-        img_width = 800
-        img_height = 600
-        img = Image.new("RGB", (img_width, img_height), (255, 255, 255))
-        draw = ImageDraw.Draw(img)
-
-        # Try to load font
-        try:
-            title_font = ImageFont.truetype(
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 16
-            )
-            label_font = ImageFont.truetype(
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 12
-            )
-        except OSError:
-            title_font = ImageFont.load_default()
-            label_font = ImageFont.load_default()
-
-        # Title
-        draw.text(
-            (img_width // 2, 20),
-            "3D Voxel Reconstruction Game",
-            fill=(0, 0, 0),
-            font=title_font,
-            anchor="mm",
+        # Create figure with GridSpec layout
+        fig = plt.figure(figsize=(8, 6), dpi=95)
+        gs = GridSpec(
+            2,
+            2,
+            width_ratios=[1.5, 1],
+            height_ratios=[1, 1],
+            figure=fig,
+            wspace=0.25,
+            hspace=0.2,
         )
 
-        # Draw 3D isometric view (left side)
-        self._draw_isometric_view(draw, 50, 100, self._game.current_voxels, label_font)
+        # Main title
+        fig.suptitle("3D Voxel Reconstruction Game", fontsize=16, y=0.95)
+
+        # 3D Structure plot
+        ax_3d = fig.add_subplot(gs[:, 0], projection="3d")
+        remaining = len(self._game.target_voxels) - len(self._game.current_voxels)
+        self._setup_3d_plot(ax_3d, self._game.current_voxels, remaining, "Current Structure")
 
         # Calculate projections of current state
         current_yz, current_xz = self._game._calculate_projections(
             self._game.current_voxels
         )
 
-        # Draw projections (right side)
-        self._draw_projection(
-            draw,
-            500,
-            100,
-            current_yz,
-            "Front View (Y-Z)",
-            label_font,
-        )
-        self._draw_projection(
-            draw,
-            500,
-            350,
-            current_xz,
-            "Side View (X-Z)",
-            label_font,
-        )
+        # Side view plots
+        ax_yz = fig.add_subplot(gs[0, 1])
+        ax_xz = fig.add_subplot(gs[1, 1])
+        self._setup_side_views(ax_yz, ax_xz, current_yz, current_xz)
 
-        # Show remaining voxels
-        remaining = len(self._game.target_voxels) - len(self._game.current_voxels)
-        draw.text(
-            (400, 560),
-            f"Remaining Available Voxels: {remaining}",
-            fill=(255, 100, 0),
-            font=label_font,
-        )
+        # Convert matplotlib figure to PIL Image
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png", dpi=95, bbox_inches="tight")
+        buf.seek(0)
+        img = Image.open(buf)
+        plt.close(fig)
 
         return img
 
-    def _draw_isometric_view(self, draw, x_offset, y_offset, voxels, font):
-        """Draw isometric 3D view of voxels."""
-        # Isometric projection constants
-        cube_size = 40
+    def _setup_3d_plot(self, ax, structure, remaining, title_prefix):
+        """Setup the 3D plot with grid, axes, and voxels."""
+        # Set axis limits
+        ax.set_xlim(0, 3)
+        ax.set_ylim(0, 3)
+        ax.set_zlim(0, 3)
 
-        # Draw grid lines first
-        draw.text(
-            (x_offset + 150, y_offset - 20),
-            "3D Structure",
-            fill=(0, 0, 0),
-            font=font,
-            anchor="mm",
-        )
-
-        # Draw voxels
-        for vx, vy, vz in voxels:
-            # Convert 3D coordinates to isometric 2D
-            iso_x = x_offset + (vx - vy) * cube_size * 0.5
-            iso_y = y_offset + (vx + vy) * cube_size * 0.25 - vz * cube_size * 0.5
-
-            # Draw cube faces
-            # Top face
-            points_top = [
-                (iso_x, iso_y),
-                (iso_x + cube_size * 0.5, iso_y + cube_size * 0.25),
-                (iso_x, iso_y + cube_size * 0.5),
-                (iso_x - cube_size * 0.5, iso_y + cube_size * 0.25),
-            ]
-            draw.polygon(points_top, fill=(100, 180, 255), outline=(0, 0, 0))
-
-            # Right face
-            points_right = [
-                (iso_x + cube_size * 0.5, iso_y + cube_size * 0.25),
-                (iso_x, iso_y + cube_size * 0.5),
-                (iso_x, iso_y + cube_size),
-                (iso_x + cube_size * 0.5, iso_y + cube_size * 0.75),
-            ]
-            draw.polygon(points_right, fill=(70, 140, 200), outline=(0, 0, 0))
-
-            # Left face
-            points_left = [
-                (iso_x - cube_size * 0.5, iso_y + cube_size * 0.25),
-                (iso_x, iso_y + cube_size * 0.5),
-                (iso_x, iso_y + cube_size),
-                (iso_x - cube_size * 0.5, iso_y + cube_size * 0.75),
-            ]
-            draw.polygon(points_left, fill=(50, 120, 180), outline=(0, 0, 0))
-
-    def _draw_projection(self, draw, x_offset, y_offset, projection, title, font):
-        """Draw a 2D projection grid."""
-        cell_size = 60
-
-        draw.text(
-            (x_offset + cell_size * 1.5, y_offset - 20),
-            title,
-            fill=(0, 0, 0),
-            font=font,
-            anchor="mm",
-        )
-
-        # Draw grid
-        for row in range(3):
-            for col in range(3):
-                x = x_offset + col * cell_size
-                y = y_offset + (2 - row) * cell_size  # Flip vertically
-
-                # Fill cell
-                # Note: row is flipped (2-row maps to screen position), so we need to access projection[col, 2-row]
-                # to correctly map: col -> horizontal (y or x), row -> vertical (z with flip)
-                color = (
-                    (100, 150, 255)
-                    if projection[col, 2 - row] == 1
-                    else (240, 240, 240)
+        # Draw coordinate axes and labels
+        for axis, color in zip(["X", "Y", "Z"], ["r", "g", "b"]):
+            if axis == "X":
+                ax.plot([0, 3.1], [0, 0], [0, 0], color=color, linewidth=2)
+                ax.text(
+                    3.3,
+                    0,
+                    0,
+                    axis,
+                    color=color,
+                    fontsize=10,
+                    ha="center",
+                    va="center",
                 )
-                draw.rectangle(
-                    [x, y, x + cell_size, y + cell_size],
-                    fill=color,
-                    outline=(0, 0, 0),
-                    width=2,
+            elif axis == "Y":
+                ax.plot([0, 0], [0, 3.1], [0, 0], color=color, linewidth=2)
+                ax.text(
+                    0,
+                    3.3,
+                    0,
+                    axis,
+                    color=color,
+                    fontsize=10,
+                    ha="center",
+                    va="center",
+                )
+            else:  # Z
+                ax.plot([0, 0], [0, 0], [0, 3.1], color=color, linewidth=2)
+                ax.text(
+                    0,
+                    0,
+                    3.3,
+                    axis,
+                    color=color,
+                    fontsize=10,
+                    ha="center",
+                    va="center",
                 )
 
-                # Draw value
-                value = str(projection[col, 2 - row])
-                draw.text(
-                    (x + cell_size // 2, y + cell_size // 2),
-                    value,
-                    fill=(0, 0, 0),
-                    font=font,
-                    anchor="mm",
-                )
+        # Draw grid lines
+        self._draw_grid_lines(ax)
 
-        # Draw axis labels
-        for i in range(3):
-            # Horizontal axis labels (Y or X)
-            draw.text(
-                (
-                    x_offset + i * cell_size + cell_size // 2,
-                    y_offset + 3 * cell_size + 15,
-                ),
-                str(i + 1),
-                fill=(0, 0, 0),
-                font=font,
-                anchor="mm",
+        # Plot voxels
+        voxel_grid = np.zeros((3, 3, 3), dtype=bool)
+        for x, y, z in structure:
+            voxel_grid[x - 1, y - 1, z - 1] = True
+        ax.voxels(voxel_grid, facecolors="cyan", edgecolors="k", linewidth=0.5, alpha=0.7)
+
+        # Add coordinate labels
+        self._add_coordinate_labels(ax)
+
+        # Set title
+        ax.set_title(title_prefix, fontsize=12, pad=10)
+
+        # Adjust view and remove default elements
+        ax.view_init(elev=15, azim=55)
+        ax.grid(False)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_zticks([])
+
+        # Add remaining voxels text if applicable
+        if remaining is not None:
+            ax.text2D(
+                0.5,
+                0.00001,
+                f"Remaining Available Voxels: {remaining}",
+                transform=ax.transAxes,
+                ha="center",
+                va="bottom",
+                fontsize=10,
+                bbox={"facecolor": "orange", "alpha": 0.5, "pad": 3},
             )
-            # Vertical axis labels (Z)
-            draw.text(
-                (x_offset - 15, y_offset + (2 - i) * cell_size + cell_size // 2),
-                str(i + 1),
-                fill=(0, 0, 0),
-                font=font,
-                anchor="mm",
-            )
+
+    def _draw_grid_lines(self, ax):
+        """Draw grid lines on the 3D plot."""
+        grid_color = "lightgrey"
+        for i in range(4):
+            # XY plane
+            ax.plot([0, 3], [i, i], [0, 0], color=grid_color, linewidth=0.5)
+            ax.plot([i, i], [0, 3], [0, 0], color=grid_color, linewidth=0.5)
+            # XZ plane
+            ax.plot([0, 3], [0, 0], [i, i], color=grid_color, linewidth=0.5)
+            ax.plot([i, i], [0, 0], [0, 3], color=grid_color, linewidth=0.5)
+            # YZ plane
+            ax.plot([0, 0], [0, 3], [i, i], color=grid_color, linewidth=0.5)
+            ax.plot([0, 0], [i, i], [0, 3], color=grid_color, linewidth=0.5)
+
+    def _add_coordinate_labels(self, ax):
+        """Add coordinate labels to the 3D plot."""
+        label_props = dict(fontsize=8, ha="center", va="center")
+        for axis, color in zip(["X", "Y", "Z"], ["r", "g", "b"]):
+            for i in range(1, 4):
+                if axis == "X":
+                    ax.text(i - 0.5, 3.2, -0.2, str(i), color=color, **label_props)
+                elif axis == "Y":
+                    ax.text(3.2, i - 0.5, -0.2, str(i), color=color, **label_props)
+                else:  # Z
+                    ax.text(-0.2, 3.2, i - 0.5, str(i), color=color, **label_props)
+
+    def _setup_side_views(self, ax_yz, ax_xz, yz_projection, xz_projection):
+        """Setup the side view projections."""
+        view_settings = {
+            "extent": [0, 3, 0, 3],
+            "origin": "lower",  # Ensure Z axis goes from bottom to top
+            "aspect": "equal",
+            "vmin": 0,  # Set color map minimum value
+            "vmax": 1,  # Set color map maximum value
+            "cmap": "Blues",  # Use Blues colormap
+        }
+
+        # Plot projections
+        # Transpose matrix so Y/X axis is horizontal and Z axis is vertical
+        ax_yz.imshow(yz_projection.T, **view_settings)
+        ax_xz.imshow(xz_projection.T, **view_settings)
+
+        # Adjust size
+        for ax in [ax_yz, ax_xz]:
+            box = ax.get_position()
+            ax.set_position([box.x0, box.y0, box.width * 0.9, box.height * 0.9])
+
+        # Add labels and formatting
+        self._format_side_view(ax_yz, "Front View (Y-Z Plane)", "Y")
+        self._format_side_view(ax_xz, "Side View (X-Z Plane)", "X")
+
+    def _format_side_view(self, ax, title, xlabel):
+        """Format a side view projection plot."""
+        # Grid lines
+        for i in range(4):
+            ax.axhline(i, color="lightgrey", linewidth=0.5)
+            ax.axvline(i, color="lightgrey", linewidth=0.5)
+
+        # Coordinate labels
+        for i in range(1, 4):
+            ax.text(i - 0.5, -0.13, str(i), ha="center", va="center", fontsize=8)
+            ax.text(-0.08, i - 0.5, str(i), ha="center", va="center", fontsize=8)
+
+        # Labels and formatting
+        ax.set_xlabel(xlabel, fontsize=10, labelpad=10)
+        ax.set_ylabel("Z", fontsize=10, labelpad=5)
+        ax.set_title(title, fontsize=12, pad=5)
+        ax.set_xticks([])
+        ax.set_yticks([])

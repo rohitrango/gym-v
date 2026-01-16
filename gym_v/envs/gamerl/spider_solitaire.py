@@ -314,6 +314,7 @@ class GameRLSpiderSolitaireQAEnv(Env):
         circular=False,
         open=False,
         question_type: int | None = None,
+        num_players: int = 1,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -321,6 +322,8 @@ class GameRLSpiderSolitaireQAEnv(Env):
         self.circular = circular
         self.open = open
         self._question_type = question_type
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
         self._card_images = None
         self._current_question = None
 
@@ -381,9 +384,15 @@ class GameRLSpiderSolitaireQAEnv(Env):
             return  # Already loaded
 
         self._card_images = {}
-        cards_dir = Path(
-            "/mnt/petrelfs/gujiawei/jiawei/env-v/Game-RL/src/spider_solitaire/cards"
-        )
+        # Use path relative to this file
+        current_dir = Path(__file__).parent
+        cards_dir = current_dir / "assets" / "spider_solitaire" / "cards"
+        
+        # If cards directory doesn't exist, log a warning and continue without images
+        if not cards_dir.exists():
+            logger.warning(f"Card images directory not found: {cards_dir}")
+            logger.warning("Spider Solitaire will render without card images")
+            return
 
         # Load card back
         blue_back_path = cards_dir / "blueBackVert.gif"
@@ -442,6 +451,10 @@ class GameRLSpiderSolitaireQAEnv(Env):
                         (pos_x, pos_y),
                         self._card_images["blue"],
                     )
+                else:
+                    # Draw a simple rectangle if no image available
+                    card_rect = [pos_x, pos_y, pos_x + CARDWIDTH, pos_y + CARDHEIGHT]
+                    draw.rectangle(card_rect, fill=(0, 0, 139), outline=(255, 255, 255))
 
             remaining_deals = deals_left - display_n
             if remaining_deals > 0:
@@ -472,6 +485,17 @@ class GameRLSpiderSolitaireQAEnv(Env):
                     img.paste(
                         self._card_images[img_key], (x, y), self._card_images[img_key]
                     )
+                else:
+                    # Draw a simple card representation if no image available
+                    card_rect = [x, y, x + CARDWIDTH, y + CARDHEIGHT]
+                    draw.rectangle(card_rect, fill=(255, 255, 255), outline=(0, 0, 0))
+                    # Draw card rank
+                    try:
+                        font = ImageFont.truetype("arial.ttf", 12)
+                    except OSError:
+                        font = ImageFont.load_default()
+                    text = RANKNAMES[card.rank]
+                    draw.text((x + 5, y + 5), text, fill=(0, 0, 0), font=font)
 
             x += XSPACING
 
@@ -504,6 +528,22 @@ class GameRLSpiderSolitaireQAEnv(Env):
                         (x, current_y),
                         self._card_images[img_key],
                     )
+                else:
+                    # Draw a simple card representation if no image available
+                    if card.faceUp():
+                        # Face-up card: white with rank
+                        card_rect = [x, current_y, x + CARDWIDTH, current_y + CARDHEIGHT]
+                        draw.rectangle(card_rect, fill=(255, 255, 255), outline=(0, 0, 0))
+                        try:
+                            font = ImageFont.truetype("arial.ttf", 12)
+                        except OSError:
+                            font = ImageFont.load_default()
+                        text = RANKNAMES[card.rank]
+                        draw.text((x + 5, current_y + 5), text, fill=(0, 0, 0), font=font)
+                    else:
+                        # Face-down card: blue
+                        card_rect = [x, current_y, x + CARDWIDTH, current_y + CARDHEIGHT]
+                        draw.rectangle(card_rect, fill=(0, 0, 139), outline=(255, 255, 255))
 
                 # Update y position
                 if card.faceUp():

@@ -283,111 +283,259 @@ Do not include any explanation or extra text.
         )
 
     def render(self) -> Image.Image | list[Image.Image] | None:
-        """Render the Rubik's Cube in unfolded view."""
-        cell_size = 40
-        margin = 20
-
-        # Layout: cross pattern
-        #       U U U
-        #       U U U
-        #       U U U
-        # L L L F F F R R R B B B
-        # L L L F F F R R R B B B
-        # L L L F F F R R R B B B
-        #       D D D
-        #       D D D
-        #       D D D
-
-        img_width = margin * 2 + 12 * cell_size
-        img_height = margin * 2 + 9 * cell_size
-
-        img = Image.new("RGB", (img_width, img_height), (240, 240, 240))
-        draw = ImageDraw.Draw(img)
-
-        try:
-            font = ImageFont.truetype(str(self.assets_dir / "DejaVuSans.ttf"), 12)
-            label_font = ImageFont.truetype(str(self.assets_dir / "DejaVuSans.ttf"), 16)
-        except Exception:
-            font = ImageFont.load_default()
-            label_font = ImageFont.load_default()
-
-        # Face positions in the unfolded layout (row_offset, col_offset)
-        face_positions = {
-            "U": (0, 3),
-            "L": (3, 0),
-            "F": (3, 3),
-            "R": (3, 6),
-            "B": (3, 9),
-            "D": (6, 3),
+        """Render the Rubik's Cube with 3D views using matplotlib."""
+        import io
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+        
+        # Create figure with improved size ratio
+        fig = plt.figure(figsize=(12, 9))
+        
+        # Create grid with better proportions - left side split into 70% top, 30% bottom
+        grid = plt.GridSpec(10, 2, width_ratios=[2, 1], hspace=0.3, wspace=0.15)
+        
+        # Draw main unfolded cube (top left, larger size)
+        ax_main = fig.add_subplot(grid[0:7, 0])  # Takes up first 7 units vertically
+        self._draw_unfolded_cube_improved(ax_main)
+        
+        # Draw coordinate reference (bottom left)
+        ax_coord = fig.add_subplot(grid[7:, 0])  # Takes up remaining 3 units vertically
+        self._draw_coordinate_reference(ax_coord)
+        
+        # Draw 3D views (right column)
+        ax_front = fig.add_subplot(grid[0:5, 1], projection='3d')
+        self._draw_3d_cube_improved(ax_front, angle_front=30, angle_side=45)
+        ax_front.set_title("Front view (F, R, U faces)", pad=8, fontsize=16)
+        
+        ax_back = fig.add_subplot(grid[5:, 1], projection='3d')
+        self._draw_3d_cube_improved(ax_back, angle_front=-30, angle_side=225)
+        ax_back.set_title("Back view (L, D, B faces)", pad=8, fontsize=16)
+        
+        # Save with higher resolution
+        buf = io.BytesIO()
+        plt.savefig(buf, format='PNG', bbox_inches='tight', dpi=65)
+        plt.close(fig)
+        buf.seek(0)
+        
+        return Image.open(buf).convert("RGB")
+    
+    def _draw_unfolded_cube_improved(self, ax):
+        """Draw improved unfolded cube layout with thicker borders but no coordinates."""
+        ax.set_aspect('equal')
+        ax.axis('off')
+        
+        # Standard layout positions
+        layouts = {
+            'U': (0, 3),   # Upper face at top
+            'L': (3, 0),   # Left face on left
+            'F': (3, 3),   # Front face in center
+            'R': (3, 6),   # Right face on right
+            'B': (3, 9),   # Back face on far right
+            'D': (6, 3)    # Down face at bottom
         }
-
-        # Draw each face
-        for face_name, (row_offset, col_offset) in face_positions.items():
-            face_data = self._faces[face_name]
-
-            # Draw face label
-            label_x = margin + col_offset * cell_size + cell_size * 1.5
-            label_y = margin + row_offset * cell_size - 15
-            draw.text(
-                (label_x, label_y),
-                face_name,
-                fill=(0, 0, 0),
-                font=label_font,
-                anchor="mm",
-            )
-
-            # Draw face cells
+        
+        # Draw faces with thicker borders
+        for face, (row_offset, col_offset) in layouts.items():
+            # Draw face outline with thicker border
+            import matplotlib.pyplot as plt
+            rect = plt.Rectangle((col_offset, row_offset), 3, 3, 
+                            fill=False, edgecolor='black', linewidth=2)
+            ax.add_patch(rect)
+            
+            # Draw individual cells
             for i in range(3):
                 for j in range(3):
-                    color_idx = face_data[i, j]
-                    _, rgb_color = self.COLORS[color_idx]
+                    color_name, _ = self.COLORS[self._faces[face][i, j]]
+                    cell = plt.Rectangle((col_offset + j, row_offset + i), 1, 1,
+                                    facecolor=color_name, edgecolor='black', linewidth=1)
+                    ax.add_patch(cell)
+            
+            # Add face labels with better positioning
+            label_offset = 1.0  # Reduced offset for more compact layout
+            if face in ['U', 'D', 'L', 'B', 'R']:
+                ax.annotate(f'{face}', 
+                        xy=(col_offset + 1.5, row_offset + 1.5),
+                        xytext=(col_offset + 1.5, row_offset + (-label_offset if face == 'U' else 4)),
+                        ha='center', va='center', fontsize=20,
+                        bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'),
+                        arrowprops=dict(arrowstyle='->', linewidth=1.5))
+            else:
+                ax.annotate(f'{face}',
+                        xy=(col_offset + 1.5, row_offset + 1.5),
+                        xytext=(col_offset + 4.5, row_offset - label_offset),
+                        va='center', fontsize=20,
+                        bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'),
+                        arrowprops=dict(arrowstyle='->', linewidth=1.5))
+        
+        ax.set_xlim(-1, 13)
+        ax.set_ylim(-1, 10)
+    
+    def _draw_coordinate_reference(self, ax):
+        """Draw a reference grid showing the coordinate system with pink background."""
+        import matplotlib.pyplot as plt
+        ax.set_aspect('equal')
+        ax.axis('off')
+        
+        # Draw title first
+        ax.text(1.5, 3.2, 'Coordinate Reference',
+                ha='center', va='bottom', fontsize=12,
+                bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
+        
+        # Draw 3x3 grid with coordinates
+        coords = [(2,0), (2,1), (2,2),
+                (1,0), (1,1), (1,2),
+                (0,0), (0,1), (0,2)]
+        
+        for idx, (i, j) in enumerate(coords):
+            row = idx // 3
+            col = idx % 3
+            # Draw cell with pink background
+            rect = plt.Rectangle((col, 2-row), 1, 1, 
+                            facecolor='pink', 
+                            edgecolor='black',
+                            linewidth=1.5)
+            ax.add_patch(rect)
+            
+            # Add coordinates with larger font
+            ax.text(col + 0.5, 2-row + 0.5, f'({i},{j})',
+                ha='center', va='center', fontsize=12,
+                weight='bold')
+        
+        ax.set_xlim(-0.2, 3.2)
+        ax.set_ylim(-0.2, 3.5)
+    
+    def _draw_3d_cube_improved(self, ax, angle_front: int, angle_side: int):
+        """Draw improved 3D view with better visibility."""
+        from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+        scale = 3
+        cell_size = scale / 3
 
-                    x = margin + (col_offset + j) * cell_size
-                    y = margin + (row_offset + i) * cell_size
+        def draw_cell(vertices, color):
+            """Draw a single colored cell with thicker edges"""
+            x = [v[0] for v in vertices]
+            y = [v[1] for v in vertices]
+            z = [v[2] for v in vertices]
+            verts = [list(zip(x, y, z))]
+            poly = Poly3DCollection(verts)
+            poly.set_color(color)
+            poly.set_alpha(1.0)
+            poly.set_edgecolor('black')
+            poly.set_linewidth(1.5)
+            ax.add_collection3d(poly)
 
-                    # Draw cell
-                    draw.rectangle(
-                        [x, y, x + cell_size - 2, y + cell_size - 2],
-                        fill=rgb_color,
-                        outline=(0, 0, 0),
-                        width=2,
-                    )
+        def is_face_visible(face: str, elev: float, azim: float) -> bool:
+            """Determine if a face should be visible from the current viewing angle."""
+            elev_rad = np.radians(elev)
+            azim_rad = np.radians(azim)
+            
+            view_vector = np.array([
+                np.cos(elev_rad) * np.sin(azim_rad),
+                np.cos(elev_rad) * np.cos(azim_rad),
+                np.sin(elev_rad)
+            ])
+            
+            normals = {
+                'F': np.array([0, 0, 1]),
+                'B': np.array([0, 0, -1]),
+                'R': np.array([1, 0, 0]),
+                'L': np.array([-1, 0, 0]),
+                'U': np.array([0, 1, 0]),
+                'D': np.array([0, -1, 0])
+            }
+            
+            normal = normals[face]
+            visibility = np.dot(view_vector, normal)
+            
+            return visibility > -0.2
 
-                    # Draw coordinates (row, col) - using bottom-to-top convention
-                    coord_row = 2 - i  # Flip: 0 at bottom, 2 at top
-                    coord_text = f"({coord_row},{j})"
-                    draw.text(
-                        (x + cell_size // 2, y + cell_size // 2),
-                        coord_text,
-                        fill=(0, 0, 0)
-                        if rgb_color != (255, 255, 255)
-                        else (100, 100, 100),
-                        font=font,
-                        anchor="mm",
-                    )
+        def map_coordinates(face, i, j):
+            """Map coordinates from 2D to 3D space."""
+            if face == 'F':  # Front face
+                return [
+                    (j * cell_size, (2-i) * cell_size, scale),
+                    ((j+1) * cell_size, (2-i) * cell_size, scale),
+                    ((j+1) * cell_size, (3-i) * cell_size, scale),
+                    (j * cell_size, (3-i) * cell_size, scale)
+                ]
+            elif face == 'B':  # Back face
+                return [
+                    ((2-j) * cell_size, (2-i) * cell_size, 0),
+                    ((3-j) * cell_size, (2-i) * cell_size, 0),
+                    ((3-j) * cell_size, (3-i) * cell_size, 0),
+                    ((2-j) * cell_size, (3-i) * cell_size, 0)
+                ]
+            elif face == 'R':  # Right face
+                return [
+                    (scale, (2-i) * cell_size, scale - j * cell_size),
+                    (scale, (2-i) * cell_size, scale - (j+1) * cell_size),
+                    (scale, (3-i) * cell_size, scale - (j+1) * cell_size),
+                    (scale, (3-i) * cell_size, scale - j * cell_size)
+                ]
+            elif face == 'L':  # Left face
+                return [
+                    (0, (2-i) * cell_size, j * cell_size),
+                    (0, (2-i) * cell_size, (j+1) * cell_size),
+                    (0, (3-i) * cell_size, (j+1) * cell_size),
+                    (0, (3-i) * cell_size, j * cell_size)
+                ]
+            elif face == 'U':  # Upper face
+                return [
+                    (j * cell_size, scale, scale - (2-i) * cell_size),
+                    ((j+1) * cell_size, scale, scale - (2-i) * cell_size),
+                    ((j+1) * cell_size, scale, scale - (3-i) * cell_size),
+                    (j * cell_size, scale, scale - (3-i) * cell_size)
+                ]
+            elif face == 'D':  # Down face
+                return [
+                    (j * cell_size, 0, (2-i) * cell_size),
+                    ((j+1) * cell_size, 0, (2-i) * cell_size),
+                    ((j+1) * cell_size, 0, (3-i) * cell_size),
+                    (j * cell_size, 0, (3-i) * cell_size)
+                ]
 
-        # Draw color legend
-        legend_y = img_height - margin - 60
-        legend_x = margin
-        draw.text(
-            (legend_x, legend_y - 20), "Color Legend:", fill=(0, 0, 0), font=label_font
-        )
+        # Draw all faces
+        faces = ['F', 'B', 'U', 'D', 'L', 'R']
+        for face in faces:
+            if is_face_visible(face, angle_front, angle_side):
+                for i in range(3):
+                    for j in range(3):
+                        color_name, _ = self.COLORS[self._faces[face][i, j]]
+                        vertices = map_coordinates(face, i, j)
+                        draw_cell(vertices, color_name)
 
-        for idx, (color_name, rgb) in enumerate(self.COLORS.values()):
-            x = legend_x + (idx % 3) * 130
-            y = legend_y + (idx // 3) * 30
+        # Update label positions
+        label_positions = {
+            'F': (scale/2, scale/2, scale + 0.01),
+            'B': (scale/2, scale/2, -0.01),
+            'R': (scale + 0.01, scale/2, scale/2),
+            'L': (-0.01, scale/2, scale/2),
+            'U': (scale/2, scale + 0.01, scale/2),
+            'D': (scale/2, -0.01, scale/2)
+        }
 
-            # Color swatch
-            draw.rectangle([x, y, x + 20, y + 20], fill=rgb, outline=(0, 0, 0), width=1)
-            draw.text(
-                (x + 25, y + 10),
-                color_name.capitalize(),
-                fill=(0, 0, 0),
-                font=font,
-                anchor="lm",
-            )
+        # Draw labels with improved visibility
+        for face, pos in label_positions.items():
+            if is_face_visible(face, angle_front, angle_side):
+                x, y, z = pos
+                ax.text(x, y, z, face,
+                    fontsize=30,
+                    color='black',
+                    ha='center',
+                    va='center',
+                    weight='bold',
+                    bbox=dict(boxstyle='square,pad=0.3', facecolor='white', 
+                            edgecolor='black', linewidth=2, alpha=0.9))
 
-        return img
+        # Set view angle and appearance
+        ax.view_init(elev=angle_front, azim=angle_side)
+        ax.set_xlim([0, scale])
+        ax.set_ylim([0, scale])
+        ax.set_zlim([0, scale])
+        ax.set_box_aspect([1, 1, 1])
+        
+        # Remove axes and grid
+        ax.set_axis_off()
+        ax.grid(False)
 
     def _make_move(self, move: str):
         """Execute a move on the cube."""

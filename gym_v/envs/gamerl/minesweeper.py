@@ -301,99 +301,131 @@ Grid (#=unrevealed, F=flagged, .=revealed empty, 1-8=numbers, M=mine):
         )
 
     def render(self) -> Image.Image | list[Image.Image] | None:
-        """Render the current board state as a PIL Image."""
-        # Calculate dimensions
-        board_width = self._cols * self._cell_size
-        board_height = self._rows * self._cell_size
-        title_height = 60
-        img_width = board_width + self._margin * 2
-        img_height = board_height + self._margin * 2 + title_height
+        """Render the current board state as a PIL Image.
+
+        Matches the original Game-RL implementation with:
+        - Fixed 480x640 resolution
+        - Proper spacing and layout with tick marks
+        - Colored numbers for mine counts
+        - Gray unrevealed cells with red flags
+        """
+        # Fixed image resolution (matching original)
+        image_width = 480
+        image_height = 640
+        title_height = image_height - image_width  # 160 pixels for title area
+
+        # Calculate appropriate cell_size to maximize board fill
+        max_board_width = image_width - 80  # Leave margins for row and column labels
+        max_board_height = image_height - title_height - 40  # Position board close to bottom
+        cell_size = min(max_board_width // self._cols, max_board_height // self._rows)
+
+        board_width = self._cols * cell_size
+        board_height = self._rows * cell_size
 
         # Create canvas
-        img = Image.new("RGB", (img_width, img_height), (255, 255, 255))
+        img = Image.new("RGB", (image_width, image_height), "white")
         draw = ImageDraw.Draw(img)
 
-        # Load fonts
+        # Set fonts (matching original sizes - use larger cell font for better visibility)
+        title_font_size = 45
+        cell_font_size = int(cell_size * 0.5)  # Increased from 0.4 to 0.5 for better visibility
+        number_font_size = int(cell_size * 0.35)  # Increased from 0.3 to 0.35
+
         try:
-            title_font = ImageFont.truetype(
-                str(self.assets_dir / "DejaVuSans-Bold.ttf"), 36
-            )
-            cell_font = ImageFont.truetype(
-                str(self.assets_dir / "DejaVuSans-Bold.ttf"), int(self._cell_size * 0.5)
-            )
-            label_font = ImageFont.truetype(str(self.assets_dir / "DejaVuSans.ttf"), 18)
-        except Exception:
+            # Use Arial font like the original implementation
+            arial_path = str(self.assets_dir / "minesweeper" / "Arial.ttf")
+            title_font = ImageFont.truetype(arial_path, title_font_size)
+            cell_font = ImageFont.truetype(arial_path, cell_font_size)
+            number_font = ImageFont.truetype(arial_path, number_font_size)
+        except Exception as e:
+            # Fallback to default font if Arial is not available
+            logger.warning(f"Could not load Arial font: {e}, using default font")
             title_font = ImageFont.load_default()
             cell_font = ImageFont.load_default()
-            label_font = ImageFont.load_default()
+            number_font = ImageFont.load_default()
 
         # Draw title
         title = "Minesweeper Board"
         title_bbox = draw.textbbox((0, 0), title, font=title_font)
-        title_width = title_bbox[2] - title_bbox[0]
-        title_x = (img_width - title_width) // 2
-        draw.text((title_x, 15), title, fill=(0, 0, 0), font=title_font)
+        text_width = title_bbox[2] - title_bbox[0]
+        text_height = title_bbox[3] - title_bbox[1]
+        title_x = (image_width - text_width) // 2
+        title_y = (title_height - text_height) // 2
+        draw.text((title_x, title_y), title, fill="black", font=title_font)
 
-        offset_x = self._margin
-        offset_y = title_height + self._margin
+        # Starting position of the board area
+        offset_x = 40  # Leave space for row numbers on the left
+        offset_y = image_height - board_height - 40  # Position board close to bottom
 
-        # Draw row numbers
+        # Color mapping for numbers
+        num_color = {
+            1: "blue", 2: "green", 3: "red",
+            4: "purple", 5: "maroon", 6: "turquoise",
+            7: "black", 8: "gray"
+        }
+
+        # Draw row numbers and tick marks
         for r in range(self._rows):
-            text = str(r)
-            bbox = draw.textbbox((0, 0), text, font=label_font)
-            text_height = bbox[3] - bbox[1]
-            y_pos = (
-                offset_y + r * self._cell_size + self._cell_size // 2 - text_height // 2
-            )
-            draw.text((offset_x - 25, y_pos), text, fill=(0, 0, 0), font=label_font)
+            # Position row numbers closer to the board
+            number_x = offset_x - cell_size * 0.3
+            number_y = offset_y + r * cell_size + cell_size // 2
+            # Use anchor="mm" for proper centering
+            draw.text((number_x, number_y), str(r), fill="black", font=number_font, anchor="mm")
 
-        # Draw column numbers
+            # Draw tick marks close to the left of the board
+            tick_x1 = offset_x - 5
+            tick_x2 = offset_x
+            tick_y = offset_y + r * cell_size + cell_size // 2
+            draw.line([(tick_x1, tick_y), (tick_x2, tick_y)], fill="black", width=1)
+
+        # Draw column numbers and tick marks
         for c in range(self._cols):
-            text = str(c)
-            bbox = draw.textbbox((0, 0), text, font=label_font)
-            text_width = bbox[2] - bbox[0]
-            x_pos = (
-                offset_x + c * self._cell_size + self._cell_size // 2 - text_width // 2
-            )
-            draw.text((x_pos, offset_y - 25), text, fill=(0, 0, 0), font=label_font)
+            # Position column numbers closer to the board
+            number_x = offset_x + c * cell_size + cell_size // 2
+            number_y = offset_y - cell_size * 0.4  # Position closer to the top of board
+            # Use anchor="mm" for proper centering
+            draw.text((number_x, number_y), str(c), fill="black", font=number_font, anchor="mm")
 
-        # Draw cells
+            # Draw tick marks close to the top of the board
+            tick_y1 = offset_y - 5
+            tick_y2 = offset_y
+            tick_x = offset_x + c * cell_size + cell_size // 2
+            draw.line([(tick_x, tick_y1), (tick_x, tick_y2)], fill="black", width=1)
+
+        # Draw the board
         for r in range(self._rows):
             for c in range(self._cols):
-                x0 = offset_x + c * self._cell_size
-                y0 = offset_y + r * self._cell_size
-                x1 = x0 + self._cell_size
-                y1 = y0 + self._cell_size
+                x0 = offset_x + c * cell_size
+                y0 = offset_y + r * cell_size
+                x1 = x0 + cell_size
+                y1 = y0 + cell_size
+
+                # Cell center coordinates for text
+                center_x = x0 + cell_size // 2
+                center_y = y0 + cell_size // 2
 
                 if not self._revealed[r][c]:
                     # Unrevealed cell (gray)
-                    color = (192, 192, 192)
-                    draw.rectangle([x0, y0, x1, y1], fill=color, outline=(0, 0, 0))
+                    draw.rectangle([x0, y0, x1, y1], fill=(192, 192, 192))
                     if self._flagged[r][c]:
-                        # Draw flag
-                        bbox = draw.textbbox((0, 0), "F", font=cell_font)
-                        text_width = bbox[2] - bbox[0]
-                        text_height = bbox[3] - bbox[1]
-                        text_x = x0 + self._cell_size // 2 - text_width // 2
-                        text_y = y0 + self._cell_size // 2 - text_height // 2
-                        draw.text(
-                            (text_x, text_y), "F", fill=(255, 0, 0), font=cell_font
-                        )
+                        # Draw red flag using anchor="mm" for proper centering
+                        draw.text((center_x, center_y), "F", fill="red", font=cell_font, anchor="mm")
                 else:
                     # Revealed cell (white)
-                    color = (255, 255, 255)
-                    draw.rectangle([x0, y0, x1, y1], fill=color, outline=(0, 0, 0))
+                    draw.rectangle([x0, y0, x1, y1], fill=(255, 255, 255))
 
-                    if self._board[r][c] > 0:
-                        # Draw number
-                        num = str(self._board[r][c])
-                        num_color = self.NUMBER_COLORS.get(self._board[r][c], (0, 0, 0))
-                        bbox = draw.textbbox((0, 0), num, font=cell_font)
-                        text_width = bbox[2] - bbox[0]
-                        text_height = bbox[3] - bbox[1]
-                        text_x = x0 + self._cell_size // 2 - text_width // 2
-                        text_y = y0 + self._cell_size // 2 - text_height // 2
-                        draw.text((text_x, text_y), num, fill=num_color, font=cell_font)
+                    cell_value = self._board[r][c]
+                    if cell_value == "M":
+                        # Draw mine symbol
+                        draw.text((center_x, center_y), "M", fill="black", font=cell_font, anchor="mm")
+                    elif isinstance(cell_value, int) and cell_value > 0:
+                        # Draw colored number using anchor="mm" for proper centering
+                        num_str = str(cell_value)
+                        text_color = num_color.get(cell_value, "black")
+                        draw.text((center_x, center_y), num_str, fill=text_color, font=cell_font, anchor="mm")
+
+                # Draw cell border
+                draw.rectangle([x0, y0, x1, y1], outline="black")
 
         return img
 

@@ -20,7 +20,9 @@ from typing import Any
 
 from PIL import Image, ImageDraw, ImageFont
 
-from gym_v import Env, Observation
+from gym_v import Env, Observation, get_logger
+
+logger = get_logger()
 
 # ============================================================================
 # Core Game Classes (from cr_solver.py)
@@ -468,7 +470,7 @@ class ChessBoardImage:
             )
 
     def load_pieces(self):
-        """Load piece images from disk."""
+        """Load piece images from disk, with fallback to text rendering."""
         pieces = {
             "R": "rook",
             "N": "knight",
@@ -478,15 +480,38 @@ class ChessBoardImage:
             "P": "pawn",
         }
         self.piece_images = {}
-        pieces_dir = Path(
-            "/mnt/petrelfs/gujiawei/jiawei/env-v/Game-RL/src/chess_ranger/plot_image"
-        )
+        self._use_text_pieces = False
+
+        # Use path relative to this file
+        current_dir = Path(__file__).parent
+        pieces_dir = current_dir / "assets" / "chess_ranger"
+
+        # If pieces directory doesn't exist, use text fallback
+        if not pieces_dir.exists():
+            logger.warning(f"Chess piece images directory not found: {pieces_dir}")
+            logger.warning("ChessRanger will render pieces as text symbols")
+            self._use_text_pieces = True
+            # Unicode chess symbols for fallback
+            self._piece_symbols = {
+                "R": "♜", "N": "♞", "B": "♝",
+                "Q": "♛", "K": "♚", "P": "♟"
+            }
+            return
 
         for key, value in pieces.items():
             image_path = pieces_dir / f"{value}.png"
-            img = Image.open(image_path)
-            img = img.resize((self.cell_size, self.cell_size), Image.LANCZOS)
-            self.piece_images[key] = img
+            if image_path.exists():
+                img = Image.open(image_path).convert("RGBA")
+                img = img.resize((self.cell_size, self.cell_size), Image.LANCZOS)
+                self.piece_images[key] = img
+            else:
+                logger.warning(f"Chess piece image not found: {image_path}")
+                self._use_text_pieces = True
+                self._piece_symbols = {
+                    "R": "♜", "N": "♞", "B": "♝",
+                    "Q": "♛", "K": "♚", "P": "♟"
+                }
+                return
 
     def set_up_board(self, fen: str, offset_x: int, offset_y: int):
         """Place pieces on the board according to FEN notation."""
@@ -505,8 +530,26 @@ class ChessBoardImage:
         for piece, col, row in board_setup:
             x = col * self.cell_size + offset_x
             y = row * self.cell_size + offset_y
-            piece_image = self.piece_images[piece]
-            self.image.paste(piece_image, (x, y), mask=piece_image)
+
+            if self._use_text_pieces:
+                # Use text symbols as fallback
+                symbol = self._piece_symbols.get(piece, "?")
+                # Use a larger font for piece symbols
+                try:
+                    piece_font = ImageFont.truetype("arial.ttf", self.cell_size - 10)
+                except OSError:
+                    piece_font = ImageFont.load_default()
+                # Center the symbol in the cell
+                self.draw.text(
+                    (x + self.cell_size // 2, y + self.cell_size // 2),
+                    symbol,
+                    fill="black",
+                    font=piece_font,
+                    anchor="mm",
+                )
+            else:
+                piece_image = self.piece_images[piece]
+                self.image.paste(piece_image, (x, y), mask=piece_image)
 
     def get_image(self) -> Image.Image:
         """Return the rendered board image."""

@@ -324,19 +324,19 @@ Grid (T=tree, X=tent, .=empty):
         )
 
     def render(self) -> Image.Image | list[Image.Image] | None:
-        """Render the current puzzle state as a PIL Image."""
+        """Render the current puzzle state as a PIL Image (matching original matplotlib implementation)."""
         width, height = self._grid_size
-        margin = 60
+        margin = 80  # Increased margin to avoid overlap
         img_width = width * self._cell_size + 2 * margin
         img_height = height * self._cell_size + 2 * margin
 
         img = Image.new("RGB", (img_width, img_height), (255, 255, 255))
         draw = ImageDraw.Draw(img)
 
-        # Load font
+        # Load font (matching original fontsize=18 and fontsize=15)
         try:
-            font = ImageFont.truetype(str(self.assets_dir / "DejaVuSans.ttf"), 20)
-            small_font = ImageFont.truetype(str(self.assets_dir / "DejaVuSans.ttf"), 16)
+            font = ImageFont.truetype(str(self.assets_dir / "DejaVuSans.ttf"), 18)
+            small_font = ImageFont.truetype(str(self.assets_dir / "DejaVuSans.ttf"), 15)
         except Exception:
             font = ImageFont.load_default()
             small_font = ImageFont.load_default()
@@ -359,61 +359,98 @@ Grid (T=tree, X=tent, .=empty):
             )
 
         # Draw row numbers and tent counts (on the left)
+        # Matching original: row number at -width/7-0.1, tent count closer
         for i in range(height):
             y = margin + i * self._cell_size + self._cell_size // 2
-            # Row number (black)
+            # Row tent count (blue) - closer to grid (matching original position)
             draw.text(
-                (margin // 4, y), str(i), fill=(0, 0, 0), font=small_font, anchor="mm"
-            )
-            # Row tent count (blue)
-            draw.text(
-                (margin // 2, y),
+                (margin - self._cell_size // 3, y),
                 str(self._row_tent_counts[i]),
                 fill=(0, 51, 204),
                 font=font,
                 anchor="mm",
             )
+            # Row number (black) - further from grid
+            draw.text(
+                (margin - int(self._cell_size * 1.2), y), 
+                str(i), 
+                fill=(0, 0, 0), 
+                font=small_font, 
+                anchor="mm"
+            )
 
         # Draw column numbers and tent counts (on top)
+        # Matching original: column number at -width/7-0.1, tent count closer
         for j in range(width):
             x = margin + j * self._cell_size + self._cell_size // 2
-            # Column number (black)
+            # Column tent count (blue) - closer to grid (matching original position)
             draw.text(
-                (x, margin // 4), str(j), fill=(0, 0, 0), font=small_font, anchor="mm"
-            )
-            # Column tent count (blue)
-            draw.text(
-                (x, margin // 2),
+                (x, margin - self._cell_size // 3),
                 str(self._col_tent_counts[j]),
                 fill=(0, 51, 204),
                 font=font,
                 anchor="mm",
             )
-
-        # Draw trees (green circles)
-        for row, col in self._tree_positions:
-            x = margin + col * self._cell_size + self._cell_size // 2
-            y = margin + row * self._cell_size + self._cell_size // 2
-            radius = self._cell_size // 4
-            draw.ellipse(
-                [x - radius, y - radius, x + radius, y + radius],
-                fill=(34, 139, 34),  # Forest green
-                outline=(0, 100, 0),
-                width=2,
+            # Column number (black) - further from grid
+            draw.text(
+                (x, margin - int(self._cell_size * 1.2)), 
+                str(j), 
+                fill=(0, 0, 0), 
+                font=small_font, 
+                anchor="mm"
             )
 
-        # Draw tents (orange triangles)
-        for row, col in self._tent_positions:
-            x = margin + col * self._cell_size + self._cell_size // 2
-            y = margin + row * self._cell_size + self._cell_size // 2
-            size = self._cell_size // 3
-            # Triangle pointing up
-            points = [
-                (x, y - size),  # Top
-                (x - size, y + size // 2),  # Bottom left
-                (x + size, y + size // 2),  # Bottom right
-            ]
-            draw.polygon(points, fill=(255, 140, 0), outline=(200, 100, 0), width=2)
+        # Draw trees and tents using actual images (matching original matplotlib implementation)
+        try:
+            # Load tree and tent images
+            tree_img = Image.open(self.assets_dir / "tents" / "tree.png").convert("RGBA")
+            tent_img = Image.open(self.assets_dir / "tents" / "tent.png").convert("RGBA")
+            
+            # Resize images to fit in cells
+            img_size = int(self._cell_size * 0.9)  # 90% of cell size
+            tree_img = tree_img.resize((img_size, img_size), Image.Resampling.LANCZOS)
+            tent_img = tent_img.resize((img_size, img_size), Image.Resampling.LANCZOS)
+            
+            # Draw trees
+            for row, col in self._tree_positions:
+                x = margin + col * self._cell_size + (self._cell_size - img_size) // 2
+                y = margin + row * self._cell_size + (self._cell_size - img_size) // 2
+                img.paste(tree_img, (x, y), tree_img)
+            
+            # Draw tents
+            for row, col in self._tent_positions:
+                x = margin + col * self._cell_size + (self._cell_size - img_size) // 2
+                y = margin + row * self._cell_size + (self._cell_size - img_size) // 2
+                img.paste(tent_img, (x, y), tent_img)
+                
+        except Exception as e:
+            # Fallback to simple shapes if images can't be loaded
+            logger.warning(f"Could not load tree/tent images: {e}, using simple shapes")
+            
+            # Draw trees (green circles with brown trunk - fallback)
+            for row, col in self._tree_positions:
+                x = margin + col * self._cell_size + self._cell_size // 2
+                y = margin + row * self._cell_size + self._cell_size // 2
+                radius = self._cell_size // 4
+                draw.ellipse(
+                    [x - radius, y - radius, x + radius, y + radius],
+                    fill=(34, 139, 34),  # Forest green
+                    outline=(0, 100, 0),
+                    width=2,
+                )
+
+            # Draw tents (orange triangles - fallback)
+            for row, col in self._tent_positions:
+                x = margin + col * self._cell_size + self._cell_size // 2
+                y = margin + row * self._cell_size + self._cell_size // 2
+                size = self._cell_size // 3
+                # Triangle pointing up
+                points = [
+                    (x, y - size),  # Top
+                    (x - size, y + size // 2),  # Bottom left
+                    (x + size, y + size // 2),  # Bottom right
+                ]
+                draw.polygon(points, fill=(255, 140, 0), outline=(200, 100, 0), width=2)
 
         return img
 
