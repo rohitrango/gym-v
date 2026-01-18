@@ -1416,3 +1416,15 @@ register(
         num_players=1,
     ),
 )
+
+# Stable-Retro environments (optional dependency)
+# These require stable-retro to be installed: uv sync --extra stable-retro
+register(
+    id="Retro/Airstriker-v0",
+    entry_point="gym_v.envs.retro_env:RetroGymVEnv",
+    max_episode_steps=10000,
+    kwargs=dict(
+        game="Airstriker-Genesis",
+        num_players=1,
+    ),
+)
