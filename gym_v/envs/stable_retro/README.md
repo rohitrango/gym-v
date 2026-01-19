@@ -99,7 +99,7 @@ env.close()
 ### 快速下载和导入
 
 ```bash
-# 下载 Mega Drive Mini ROM 包 
+# 下载 Mega Drive Mini ROM 包
 wget https://archive.org/download/megadrivemini/Mega_Drive_Mini_Full_Set.zip -O genesis_mini.zip
 
 # 解压

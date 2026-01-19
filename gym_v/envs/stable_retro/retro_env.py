@@ -7,19 +7,11 @@ from typing import Any
 
 import numpy as np
 from PIL import Image
+import stable_retro
 
 from gym_v import Env, Observation, get_logger
 
 logger = get_logger()
-
-# Try to import stable_retro - it's an optional dependency
-try:
-    import stable_retro
-
-    STABLE_RETRO_AVAILABLE = True
-except ImportError:
-    STABLE_RETRO_AVAILABLE = False
-    stable_retro = None
 
 
 class RetroGymVEnv(Env):
@@ -54,12 +46,6 @@ class RetroGymVEnv(Env):
         num_players: int = 1,
         **kwargs,
     ):
-        if not STABLE_RETRO_AVAILABLE:
-            raise ImportError(
-                "stable-retro is not installed. Install it with: "
-                "pip install stable-retro or uv sync --extra stable-retro"
-            )
-
         super().__init__(**kwargs)
 
         self._game = game
@@ -253,7 +239,11 @@ class RetroGymVEnv(Env):
         action_upper = action_str.upper().strip()
         if action_upper in ("NOOP", "NONE", ""):
             return []
-        return [b.strip() for b in action_upper.split("+") if b.strip() in self._button_to_idx]
+        return [
+            b.strip()
+            for b in action_upper.split("+")
+            if b.strip() in self._button_to_idx
+        ]
 
     def _get_observation_text(self, info: dict[str, Any]) -> str:
         """Generate text description from game state info.
@@ -279,7 +269,7 @@ class RetroGymVEnv(Env):
         # Add any other numeric variables
         for key, value in info.items():
             if key not in ("score", "lives", "health", "level") and isinstance(
-                value, (int, float)
+                value, int | float
             ):
                 parts.append(f"{key}: {value}")
 

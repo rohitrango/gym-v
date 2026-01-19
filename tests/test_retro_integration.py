@@ -5,28 +5,14 @@ from __future__ import annotations
 from pathlib import Path
 import unittest
 
-# Check if stable-retro is available
-try:
-    import stable_retro
+import stable_retro
 
-    STABLE_RETRO_AVAILABLE = True
-except ImportError:
-    STABLE_RETRO_AVAILABLE = False
-
-try:
-    import gym_v
-except ModuleNotFoundError as e:  # pragma: no cover
-    raise ModuleNotFoundError(
-        "Failed to import `gym_v`. Run tests from the `gym-v/` directory "
-        "(e.g. `cd gym-v && python -m unittest ...`) or install it with "
-        "`pip install -e gym-v`."
-    ) from e
+import gym_v
+from gym_v.envs.retro_env import RetroGymVEnv
 
 
 def rom_available(game: str) -> bool:
     """Check if ROM file is available for a game."""
-    if not STABLE_RETRO_AVAILABLE:
-        return False
     try:
         stable_retro.data.get_romfile_path(game)
         return True
@@ -39,23 +25,19 @@ TEST_GAME = "Airstriker-Genesis"
 ROM_AVAILABLE = rom_available(TEST_GAME)
 
 
-@unittest.skipUnless(STABLE_RETRO_AVAILABLE, "stable-retro not installed")
 class TestRetroModuleImport(unittest.TestCase):
     """Test that the retro module imports correctly."""
 
     def test_module_import(self) -> None:
         """Test that RetroGymVEnv can be imported."""
-        from gym_v.envs.retro_env import RetroGymVEnv, STABLE_RETRO_AVAILABLE
-
-        self.assertTrue(STABLE_RETRO_AVAILABLE)
+        self.assertTrue(RetroGymVEnv)
 
     def test_env_registered(self) -> None:
         """Test that Retro environments are registered in gym_v."""
         self.assertIn("Retro/Airstriker-v0", gym_v.registry)
 
 
-@unittest.skipUnless(STABLE_RETRO_AVAILABLE and ROM_AVAILABLE,
-                     f"stable-retro not installed or ROM not available for {TEST_GAME}")
+@unittest.skipUnless(ROM_AVAILABLE, f"ROM not available for {TEST_GAME}")
 class TestRetroIntegration(unittest.TestCase):
     """Test Stable-Retro environment integration."""
 
@@ -72,8 +54,6 @@ class TestRetroIntegration(unittest.TestCase):
 
     def test_retro_env_direct_import(self) -> None:
         """Test direct import and instantiation of RetroGymVEnv."""
-        from gym_v.envs.retro_env import RetroGymVEnv
-
         env = RetroGymVEnv(game=TEST_GAME)
 
         # Check basic properties
@@ -87,8 +67,6 @@ class TestRetroIntegration(unittest.TestCase):
 
     def test_retro_env_reset(self) -> None:
         """Test reset functionality."""
-        from gym_v.envs.retro_env import RetroGymVEnv
-
         env = RetroGymVEnv(game=TEST_GAME)
         obs_dict, info_dict = env.reset(seed=42)
 
@@ -112,8 +90,6 @@ class TestRetroIntegration(unittest.TestCase):
 
     def test_retro_env_step(self) -> None:
         """Test step functionality with various actions."""
-        from gym_v.envs.retro_env import RetroGymVEnv
-
         env = RetroGymVEnv(game=TEST_GAME)
         env.reset(seed=42)
 
@@ -150,8 +126,6 @@ class TestRetroIntegration(unittest.TestCase):
         output_dir = self._get_output_dir()
         self._setup_output_dir(output_dir)
 
-        from gym_v.envs.retro_env import RetroGymVEnv
-
         env = RetroGymVEnv(game=TEST_GAME)
         obs_dict, _ = env.reset(seed=42)
 
@@ -178,8 +152,6 @@ class TestRetroIntegration(unittest.TestCase):
 
     def test_retro_env_description(self) -> None:
         """Test environment description property."""
-        from gym_v.envs.retro_env import RetroGymVEnv
-
         env = RetroGymVEnv(game=TEST_GAME)
 
         description = env.description
@@ -205,28 +177,25 @@ class TestRetroIntegration(unittest.TestCase):
         env.close()
 
 
-@unittest.skipUnless(STABLE_RETRO_AVAILABLE and ROM_AVAILABLE,
-                     f"stable-retro not installed or ROM not available for {TEST_GAME}")
+@unittest.skipUnless(ROM_AVAILABLE, f"ROM not available for {TEST_GAME}")
 class TestRetroActionMapping(unittest.TestCase):
     """Test action string to button mask conversion."""
 
     def test_single_button_actions(self) -> None:
         """Test single button action parsing."""
-        from gym_v.envs.retro_env import RetroGymVEnv
-
         env = RetroGymVEnv(game=TEST_GAME)
 
         # Test that valid buttons create non-zero masks
         for button in env.available_actions:
             mask = env._action_to_mask(button)
-            self.assertEqual(mask.sum(), 1, f"Button {button} should activate exactly 1 button")
+            self.assertEqual(
+                mask.sum(), 1, f"Button {button} should activate exactly 1 button"
+            )
 
         env.close()
 
     def test_combined_button_actions(self) -> None:
         """Test combined button action parsing."""
-        from gym_v.envs.retro_env import RetroGymVEnv
-
         env = RetroGymVEnv(game=TEST_GAME)
 
         # Test combined actions
@@ -240,8 +209,6 @@ class TestRetroActionMapping(unittest.TestCase):
 
     def test_noop_actions(self) -> None:
         """Test NOOP action parsing."""
-        from gym_v.envs.retro_env import RetroGymVEnv
-
         env = RetroGymVEnv(game=TEST_GAME)
 
         for noop in ["NOOP", "NONE", ""]:
@@ -252,8 +219,6 @@ class TestRetroActionMapping(unittest.TestCase):
 
     def test_case_insensitivity(self) -> None:
         """Test that action parsing is case-insensitive."""
-        from gym_v.envs.retro_env import RetroGymVEnv
-
         env = RetroGymVEnv(game=TEST_GAME)
 
         # Test various cases
