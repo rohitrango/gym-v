@@ -497,6 +497,37 @@ register(
     ),
 )
 
+# Minigrid environments
+register(
+    id="Minigrid/Empty-v0",
+    entry_point="gym_v.envs.minigrid.empty:MinigridEmptyEnv",
+    max_episode_steps=256,
+    kwargs=dict(
+        size=8,
+        agent_start_pos=(1, 1),
+        tile_size=32,
+    ),
+)
+
+register(
+    id="Minigrid/DoorKey-v0",
+    entry_point="gym_v.envs.minigrid.doorkey:MinigridDoorKeyEnv",
+    max_episode_steps=640,
+    kwargs=dict(
+        size=8,
+        tile_size=32,
+    ),
+)
+
+register(
+    id="Minigrid/FourRooms-v0",
+    entry_point="gym_v.envs.minigrid.fourrooms:MinigridFourRoomsEnv",
+    max_episode_steps=100,
+    kwargs=dict(
+        tile_size=32,
+    ),
+)
+
 # Game-RL environments
 register(
     id="GameRL/Snake-v0",
