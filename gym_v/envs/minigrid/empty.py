@@ -31,6 +31,7 @@ class MinigridEmptyEnv(Env):
         size: int = 8,
         agent_start_pos: tuple[int, int] | None = (1, 1),
         tile_size: int = 32,
+        num_players: int = 1,
         max_episode_steps: int | None = None,
         **kwargs,
     ):
@@ -38,12 +39,12 @@ class MinigridEmptyEnv(Env):
         self._size = size
         self._agent_start_pos = agent_start_pos
         self._tile_size = tile_size
+        self.num_players = num_players
+        self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         if max_episode_steps is None:
             max_episode_steps = 4 * size * size
         self._max_episode_steps = max_episode_steps
-
-        self._agent_ids = {"agent_0"}
 
         self._minigrid_env = gym.make(
             "MiniGrid-Empty-8x8-v0" if size == 8 else f"MiniGrid-Empty-{size}x{size}-v0",
@@ -88,7 +89,9 @@ class MinigridEmptyEnv(Env):
 
         obs = Observation(image=self.render(), text=self._get_observation_text())
         info = {}
-        return {"agent_0": obs}, {"agent_0": info}
+        return {agent_id: obs for agent_id in self._agent_ids}, {
+            agent_id: info for agent_id in self._agent_ids
+        }
 
     def inner_step(
         self, action: dict[str, str]
@@ -99,7 +102,7 @@ class MinigridEmptyEnv(Env):
         dict[str, bool],
         dict[str, Any],
     ]:
-        agent_id = "agent_0"
+        agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
 
         if action_str not in self._action_map:
@@ -113,11 +116,17 @@ class MinigridEmptyEnv(Env):
         obs = Observation(image=self.render(), text=self._get_observation_text())
 
         return (
-            {"agent_0": obs},
-            {"agent_0": float(reward)},
-            {"agent_0": terminated, "__all__": terminated},
-            {"agent_0": truncated, "__all__": truncated},
-            {"agent_0": info},
+            {agent_id: obs for agent_id in self._agent_ids},
+            {agent_id: float(reward) for agent_id in self._agent_ids},
+            {
+                **{agent_id: terminated for agent_id in self._agent_ids},
+                "__all__": terminated,
+            },
+            {
+                **{agent_id: truncated for agent_id in self._agent_ids},
+                "__all__": truncated,
+            },
+            {agent_id: info for agent_id in self._agent_ids},
         )
 
     def render(self) -> Image.Image | None:

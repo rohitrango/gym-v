@@ -1,4 +1,4 @@
-"""FourRooms environment using Minigrid."""
+"""Unlock environment using Minigrid."""
 
 from __future__ import annotations
 
@@ -14,11 +14,11 @@ from gym_v import Env, Observation, get_logger
 logger = get_logger()
 
 
-class MinigridFourRoomsEnv(Env):
-    """FourRooms environment using Minigrid.
+class MinigridUnlockEnv(Env):
+    """Unlock environment using Minigrid.
 
-    Classic four rooms environment. The agent must navigate through four rooms
-    connected by gaps in the walls to reach the goal.
+    The agent must unlock a door to reach the goal. This is a simple environment
+    to test unlocking mechanics.
 
     Args:
         tile_size: Size of each tile in pixels for rendering
@@ -41,7 +41,7 @@ class MinigridFourRoomsEnv(Env):
         self._max_episode_steps = max_episode_steps
 
         self._minigrid_env = gym.make(
-            "MiniGrid-FourRooms-v0",
+            "MiniGrid-Unlock-v0",
             render_mode="rgb_array",
             max_steps=max_episode_steps,
             tile_size=tile_size,
@@ -60,17 +60,16 @@ class MinigridFourRoomsEnv(Env):
     @property
     def description(self) -> str:
         return dedent("""
-            You are in a classic four rooms environment. The rooms are connected by gaps in the walls.
-            Your goal is to navigate through the rooms to reach the green goal square.
+            You are in a simple room with a locked door. Your task is to unlock the door and reach the goal.
 
             Available actions:
             - left: Turn left
             - right: Turn right
             - forward: Move forward
-            - toggle: Toggle/activate an object
+            - pickup: Pick up an object (you may need to pick up a key)
+            - drop: Drop the object you're carrying
+            - toggle: Toggle/activate an object (use this to unlock the door)
             - done: End the episode
-
-            You need to find the passages between rooms and navigate efficiently to the goal.
         """).strip()
 
     def reset(
@@ -80,7 +79,7 @@ class MinigridFourRoomsEnv(Env):
 
         self._minigrid_env.reset(seed=seed)
 
-        logger.info("Reset Minigrid FourRooms environment.")
+        logger.info("Reset Minigrid Unlock environment.")
 
         obs = Observation(image=self.render(), text=self._get_observation_text())
         info = {}
@@ -136,7 +135,11 @@ class MinigridFourRoomsEnv(Env):
         direction_names = ["right", "down", "left", "up"]
         direction_str = direction_names[direction] if 0 <= direction < 4 else "unknown"
 
-        return f"{mission}\nYou are facing {direction_str}."
+        carrying = "nothing"
+        if unwrapped_env.carrying is not None:
+            carrying = f"{unwrapped_env.carrying.color} {unwrapped_env.carrying.type}"
+
+        return f"{mission}\nYou are facing {direction_str}.\nYou are carrying: {carrying}."
 
     def close(self):
         self._minigrid_env.close()

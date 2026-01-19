@@ -1,4 +1,4 @@
-"""FourRooms environment using Minigrid."""
+"""Dynamic Obstacles environment using Minigrid."""
 
 from __future__ import annotations
 
@@ -14,34 +14,39 @@ from gym_v import Env, Observation, get_logger
 logger = get_logger()
 
 
-class MinigridFourRoomsEnv(Env):
-    """FourRooms environment using Minigrid.
+class MinigridDynamicObstaclesEnv(Env):
+    """Dynamic Obstacles environment using Minigrid.
 
-    Classic four rooms environment. The agent must navigate through four rooms
-    connected by gaps in the walls to reach the goal.
+    The agent must navigate to the goal while avoiding moving obstacles.
 
     Args:
+        size: Size of the grid (size x size)
+        n_obstacles: Number of moving obstacles
         tile_size: Size of each tile in pixels for rendering
     """
 
     def __init__(
         self,
+        size: int = 8,
+        n_obstacles: int = 4,
         tile_size: int = 32,
         num_players: int = 1,
         max_episode_steps: int | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
+        self._size = size
+        self._n_obstacles = n_obstacles
         self._tile_size = tile_size
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         if max_episode_steps is None:
-            max_episode_steps = 100
+            max_episode_steps = 4 * size * size
         self._max_episode_steps = max_episode_steps
 
         self._minigrid_env = gym.make(
-            "MiniGrid-FourRooms-v0",
+            "MiniGrid-Dynamic-Obstacles-8x8-v0",
             render_mode="rgb_array",
             max_steps=max_episode_steps,
             tile_size=tile_size,
@@ -60,8 +65,8 @@ class MinigridFourRoomsEnv(Env):
     @property
     def description(self) -> str:
         return dedent("""
-            You are in a classic four rooms environment. The rooms are connected by gaps in the walls.
-            Your goal is to navigate through the rooms to reach the green goal square.
+            You are in a grid with moving obstacles. Your goal is to reach the green goal square while avoiding the moving obstacles.
+            Be careful! If you collide with an obstacle, you will fail.
 
             Available actions:
             - left: Turn left
@@ -69,8 +74,6 @@ class MinigridFourRoomsEnv(Env):
             - forward: Move forward
             - toggle: Toggle/activate an object
             - done: End the episode
-
-            You need to find the passages between rooms and navigate efficiently to the goal.
         """).strip()
 
     def reset(
@@ -80,7 +83,7 @@ class MinigridFourRoomsEnv(Env):
 
         self._minigrid_env.reset(seed=seed)
 
-        logger.info("Reset Minigrid FourRooms environment.")
+        logger.info("Reset Minigrid Dynamic Obstacles environment.")
 
         obs = Observation(image=self.render(), text=self._get_observation_text())
         info = {}

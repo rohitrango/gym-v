@@ -1,4 +1,4 @@
-"""FourRooms environment using Minigrid."""
+"""LavaGap environment using Minigrid."""
 
 from __future__ import annotations
 
@@ -14,24 +14,26 @@ from gym_v import Env, Observation, get_logger
 logger = get_logger()
 
 
-class MinigridFourRoomsEnv(Env):
-    """FourRooms environment using Minigrid.
+class MinigridLavaGapEnv(Env):
+    """LavaGap environment using Minigrid.
 
-    Classic four rooms environment. The agent must navigate through four rooms
-    connected by gaps in the walls to reach the goal.
+    The agent must cross a gap of lava to reach the goal. Touching lava ends the episode.
 
     Args:
+        size: Size of the grid (size x size)
         tile_size: Size of each tile in pixels for rendering
     """
 
     def __init__(
         self,
+        size: int = 7,
         tile_size: int = 32,
         num_players: int = 1,
         max_episode_steps: int | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
+        self._size = size
         self._tile_size = tile_size
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
@@ -41,7 +43,7 @@ class MinigridFourRoomsEnv(Env):
         self._max_episode_steps = max_episode_steps
 
         self._minigrid_env = gym.make(
-            "MiniGrid-FourRooms-v0",
+            f"MiniGrid-LavaGapS{size}-v0",
             render_mode="rgb_array",
             max_steps=max_episode_steps,
             tile_size=tile_size,
@@ -60,17 +62,15 @@ class MinigridFourRoomsEnv(Env):
     @property
     def description(self) -> str:
         return dedent("""
-            You are in a classic four rooms environment. The rooms are connected by gaps in the walls.
-            Your goal is to navigate through the rooms to reach the green goal square.
+            You are in a room with a gap filled with lava. Your goal is to cross the lava gap and reach the goal square.
+            Be careful! If you step on lava, you will die and the episode will end.
 
             Available actions:
             - left: Turn left
             - right: Turn right
-            - forward: Move forward
+            - forward: Move forward (be careful near the lava!)
             - toggle: Toggle/activate an object
             - done: End the episode
-
-            You need to find the passages between rooms and navigate efficiently to the goal.
         """).strip()
 
     def reset(
@@ -80,7 +80,7 @@ class MinigridFourRoomsEnv(Env):
 
         self._minigrid_env.reset(seed=seed)
 
-        logger.info("Reset Minigrid FourRooms environment.")
+        logger.info("Reset Minigrid LavaGap environment.")
 
         obs = Observation(image=self.render(), text=self._get_observation_text())
         info = {}

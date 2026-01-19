@@ -1,4 +1,4 @@
-"""FourRooms environment using Minigrid."""
+"""MultiRoom environment using Minigrid."""
 
 from __future__ import annotations
 
@@ -14,24 +14,32 @@ from gym_v import Env, Observation, get_logger
 logger = get_logger()
 
 
-class MinigridFourRoomsEnv(Env):
-    """FourRooms environment using Minigrid.
+class MinigridMultiRoomEnv(Env):
+    """MultiRoom environment using Minigrid.
 
-    Classic four rooms environment. The agent must navigate through four rooms
-    connected by gaps in the walls to reach the goal.
+    The agent must navigate through multiple rooms to reach the goal.
 
     Args:
+        min_num_rooms: Minimum number of rooms
+        max_num_rooms: Maximum number of rooms
+        max_room_size: Maximum size of each room
         tile_size: Size of each tile in pixels for rendering
     """
 
     def __init__(
         self,
+        min_num_rooms: int = 6,
+        max_num_rooms: int = 6,
+        max_room_size: int = 10,
         tile_size: int = 32,
         num_players: int = 1,
         max_episode_steps: int | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
+        self._min_num_rooms = min_num_rooms
+        self._max_num_rooms = max_num_rooms
+        self._max_room_size = max_room_size
         self._tile_size = tile_size
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
@@ -41,7 +49,7 @@ class MinigridFourRoomsEnv(Env):
         self._max_episode_steps = max_episode_steps
 
         self._minigrid_env = gym.make(
-            "MiniGrid-FourRooms-v0",
+            "MiniGrid-MultiRoom-N6-v0",
             render_mode="rgb_array",
             max_steps=max_episode_steps,
             tile_size=tile_size,
@@ -60,17 +68,17 @@ class MinigridFourRoomsEnv(Env):
     @property
     def description(self) -> str:
         return dedent("""
-            You are in a classic four rooms environment. The rooms are connected by gaps in the walls.
-            Your goal is to navigate through the rooms to reach the green goal square.
+            You are in a multi-room environment. Your goal is to navigate through multiple rooms to reach the goal.
+            Some rooms may be connected by doors that you need to open or unlock.
 
             Available actions:
             - left: Turn left
             - right: Turn right
             - forward: Move forward
-            - toggle: Toggle/activate an object
+            - pickup: Pick up an object (like a key)
+            - drop: Drop the object you're carrying
+            - toggle: Toggle/activate an object (like opening a door)
             - done: End the episode
-
-            You need to find the passages between rooms and navigate efficiently to the goal.
         """).strip()
 
     def reset(
@@ -80,7 +88,7 @@ class MinigridFourRoomsEnv(Env):
 
         self._minigrid_env.reset(seed=seed)
 
-        logger.info("Reset Minigrid FourRooms environment.")
+        logger.info("Reset Minigrid MultiRoom environment.")
 
         obs = Observation(image=self.render(), text=self._get_observation_text())
         info = {}
@@ -136,7 +144,11 @@ class MinigridFourRoomsEnv(Env):
         direction_names = ["right", "down", "left", "up"]
         direction_str = direction_names[direction] if 0 <= direction < 4 else "unknown"
 
-        return f"{mission}\nYou are facing {direction_str}."
+        carrying = "nothing"
+        if unwrapped_env.carrying is not None:
+            carrying = f"{unwrapped_env.carrying.color} {unwrapped_env.carrying.type}"
+
+        return f"{mission}\nYou are facing {direction_str}.\nYou are carrying: {carrying}."
 
     def close(self):
         self._minigrid_env.close()
