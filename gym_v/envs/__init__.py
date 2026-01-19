@@ -369,6 +369,111 @@ register(
 )
 
 register(
+    id="TextArena/ConnectFour-v0",
+    entry_point="gym_v.envs.multi_players.textarena.connectfour:TextArenaConnectFour",
+    max_episode_steps=100,
+    kwargs=dict(
+        num_rows=6,
+        num_cols=7,
+        tile_size=80,
+        num_players=2,
+    ),
+)
+
+register(
+    id="TextArena/Checkers-v0",
+    entry_point="gym_v.envs.multi_players.textarena.checkers:TextArenaCheckers",
+    max_episode_steps=200,
+    kwargs=dict(
+        tile_size=60,
+        num_players=2,
+    ),
+)
+
+register(
+    id="TextArena/Nim-v0",
+    entry_point="gym_v.envs.multi_players.textarena.nim:TextArenaNim",
+    max_episode_steps=50,
+    kwargs=dict(
+        piles=[3, 4, 5],
+        pile_width=100,
+        num_players=2,
+    ),
+)
+
+register(
+    id="TextArena/WildTicTacToe-v0",
+    entry_point="gym_v.envs.multi_players.textarena.wildtictactoe:TextArenaWildTicTacToe",
+    max_episode_steps=20,
+    kwargs=dict(
+        tile_size=120,
+        num_players=2,
+    ),
+)
+
+register(
+    id="TextArena/Breakthrough-v0",
+    entry_point="gym_v.envs.multi_players.textarena.breakthrough:TextArenaBreakthrough",
+    max_episode_steps=200,
+    kwargs=dict(
+        board_size=8,
+        tile_size=60,
+        num_players=2,
+    ),
+)
+
+register(
+    id="TextArena/Alquerque-v0",
+    entry_point="gym_v.envs.multi_players.textarena.alquerque:TextArenaAlquerque",
+    max_episode_steps=200,
+    kwargs=dict(
+        tile_size=80,
+        num_players=2,
+    ),
+)
+
+register(
+    id="TextArena/LinesOfAction-v0",
+    entry_point="gym_v.envs.multi_players.textarena.linesofaction:TextArenaLinesOfAction",
+    max_episode_steps=200,
+    kwargs=dict(
+        tile_size=60,
+        num_players=2,
+    ),
+)
+
+register(
+    id="TextArena/SimpleTak-v0",
+    entry_point="gym_v.envs.multi_players.textarena.simpletak:TextArenaSimpleTak",
+    max_episode_steps=50,
+    kwargs=dict(
+        board_size=5,
+        cell_size=80,
+        num_players=2,
+    ),
+)
+
+register(
+    id="TextArena/Crusade-v0",
+    entry_point="gym_v.envs.multi_players.textarena.crusade:TextArenaCrusade",
+    max_episode_steps=100,
+    kwargs=dict(
+        tile_size=60,
+        num_players=2,
+    ),
+)
+
+register(
+    id="TextArena/UltimateTicTacToe-v0",
+    entry_point="gym_v.envs.multi_players.textarena.ultimatetictactoe:TextArenaUltimateTicTacToe",
+    max_episode_steps=100,
+    kwargs=dict(
+        mini_board_size=200,
+        num_players=2,
+    ),
+)
+
+register(
     id="TextArena/Wordle-v0",
     entry_point="gym_v.envs.textarena.wordle:TextArenaWordleEnv",
     max_episode_steps=100,
@@ -1046,6 +1151,8 @@ register(
         option_size=200,
         padding=15,
     ),
+)
+
 register(
     id="Sphinx/OddOneOut-v0",
     entry_point="gym_v.envs.sphinx.odd_one_out:SphinxOddOneOutEnv",

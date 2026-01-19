@@ -5,9 +5,8 @@ from __future__ import annotations
 from collections import defaultdict
 import re
 from textwrap import dedent
-from typing import Any, Literal
+from typing import Any
 
-import numpy as np
 from PIL import Image, ImageDraw
 
 from gym_v import Env, Observation, get_logger
@@ -48,12 +47,10 @@ class TextArenaOthello(Env):
         self._agent_ids = {"black", "white"}
         self.possible_players = ["black", "white"]
 
-    @property
-    def acting_players(self) -> list[str]:
-        # Get current player from TextArena state
+    def _get_current_player(self) -> str:
+        """Get the current acting player."""
         current_ta_player_id = self._ta_env.state.current_player_id
-        assert current_ta_player_id in [0, 1]
-        return ["white" if current_ta_player_id else "black"]
+        return self.possible_players[current_ta_player_id]
 
     @property
     def description(self) -> dict[str, str]:
@@ -120,21 +117,16 @@ class TextArenaOthello(Env):
 
     def _get_observation(self, all_players: bool = False) -> dict[str, Observation]:
         """Get current board observation for the acting player(s)"""
-        image = self._render_board(image_format="pil")
-        # Reuse existing render method logic but adapt calling
-
-        # In gym_v, text observation is usually separate.
-        # The user code combined them in Obs.
+        image = self.render()
 
         obs_dict = {}
 
         players_to_observe = (
-            self.possible_players if all_players else self.acting_players
+            self.possible_players if all_players else [self._get_current_player()]
         )
 
         for player_id in players_to_observe:
             text_obs = self._get_ta_observation(player_id)
-            # Note: gym_v Observation has .text and .image
             obs_dict[player_id] = Observation(image=image, text=text_obs)
 
         return obs_dict
@@ -152,7 +144,7 @@ class TextArenaOthello(Env):
         reward = defaultdict(float)
 
         # Get action for the acting player
-        acting_player = self.acting_players[0]
+        acting_player = self._get_current_player()
 
         # Check if acting player provided an action
         if acting_player not in action:
@@ -228,12 +220,7 @@ class TextArenaOthello(Env):
         return obs, info
 
     def render(self) -> Image.Image:
-        return self._render_board(image_format="pil")
-
-    def _render_board(
-        self, image_format: Literal["rgb_array", "pil"] = "rgb_array"
-    ) -> np.ndarray | Image.Image:
-        """Render the Othello board with pieces"""
+        """Render the Othello board with pieces."""
         board_state = self._ta_env.board
         valid_moves = self._ta_env.state.game_state["valid_moves"]
 
@@ -307,9 +294,4 @@ class TextArenaOthello(Env):
                         width=1,
                     )
 
-        if image_format == "rgb_array":
-            return np.array(img)
-        elif image_format == "pil":
-            return img
-        else:
-            raise ValueError(f"Invalid format: {image_format}")
+        return img
