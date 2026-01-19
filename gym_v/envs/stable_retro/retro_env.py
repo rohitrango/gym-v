@@ -98,14 +98,36 @@ class RetroGymVEnv(Env):
 
     @property
     def description(self) -> str:
+        available_buttons = [b for b in self._buttons if b and b != "NULL"]
         return dedent(f"""
             This is a retro game environment: {self._game}.
 
-            Control the game using button commands. Available buttons: {[b for b in self._buttons if b and b != 'NULL']}.
+            Available buttons: {available_buttons}
 
-            You can press single buttons (e.g., "A", "UP", "LEFT") or combine them with "+" (e.g., "A+UP", "B+LEFT+DOWN").
+            ## Output Format
+            You must output ONLY the action string, nothing else. No explanation, no reasoning, just the action.
 
-            The game follows classic arcade mechanics. Navigate, attack, and achieve the game objectives to maximize your score.
+            ## Valid Actions
+            - Single button: A, B, C, UP, DOWN, LEFT, RIGHT, START
+            - Combined buttons: Use "+" to press multiple buttons simultaneously
+
+            ## Examples
+            - Move right: RIGHT
+            - Move up-right: UP+RIGHT
+            - Jump: A
+            - Jump right: A+RIGHT
+            - Attack: B
+            - Attack while moving: B+LEFT
+            - Special move: A+B+DOWN
+            - No action: NOOP
+
+            ## Your Response
+            Output only one action per step. Example valid responses:
+            RIGHT
+            A+UP
+            B
+            DOWN+LEFT
+            NOOP
         """).strip()
 
     def reset(
