@@ -62,14 +62,13 @@ class MinigridUnlockEnv(Env):
         return dedent("""
             You are in a simple room with a locked door. Your task is to unlock the door and reach the goal.
 
-            Available actions:
-            - left: Turn left
-            - right: Turn right
-            - forward: Move forward
-            - pickup: Pick up an object (you may need to pick up a key)
-            - drop: Drop the object you're carrying
-            - toggle: Toggle/activate an object (use this to unlock the door)
-            - done: End the episode
+            Available actions: left, right, forward, pickup, drop, toggle, done
+
+            Output format: Simply output the action name.
+            Examples:
+            toggle
+            forward
+            left
         """).strip()
 
     def reset(

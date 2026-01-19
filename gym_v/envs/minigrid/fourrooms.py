@@ -63,14 +63,13 @@ class MinigridFourRoomsEnv(Env):
             You are in a classic four rooms environment. The rooms are connected by gaps in the walls.
             Your goal is to navigate through the rooms to reach the green goal square.
 
-            Available actions:
-            - left: Turn left
-            - right: Turn right
-            - forward: Move forward
-            - toggle: Toggle/activate an object
-            - done: End the episode
+            Available actions: left, right, forward, toggle, done
 
-            You need to find the passages between rooms and navigate efficiently to the goal.
+            Output format: Simply output the action name.
+            Examples:
+            forward
+            left
+            right
         """).strip()
 
     def reset(

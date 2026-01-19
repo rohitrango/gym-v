@@ -68,12 +68,13 @@ class MinigridDynamicObstaclesEnv(Env):
             You are in a grid with moving obstacles. Your goal is to reach the green goal square while avoiding the moving obstacles.
             Be careful! If you collide with an obstacle, you will fail.
 
-            Available actions:
-            - left: Turn left
-            - right: Turn right
-            - forward: Move forward
-            - toggle: Toggle/activate an object
-            - done: End the episode
+            Available actions: left, right, forward, toggle, done
+
+            Output format: Simply output the action name.
+            Examples:
+            forward
+            right
+            left
         """).strip()
 
     def reset(

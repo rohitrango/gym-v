@@ -65,12 +65,13 @@ class MinigridLavaGapEnv(Env):
             You are in a room with a gap filled with lava. Your goal is to cross the lava gap and reach the goal square.
             Be careful! If you step on lava, you will die and the episode will end.
 
-            Available actions:
-            - left: Turn left
-            - right: Turn right
-            - forward: Move forward (be careful near the lava!)
-            - toggle: Toggle/activate an object
-            - done: End the episode
+            Available actions: left, right, forward, toggle, done
+
+            Output format: Simply output the action name.
+            Examples:
+            forward
+            left
+            right
         """).strip()
 
     def reset(

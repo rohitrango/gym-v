@@ -71,14 +71,14 @@ class MinigridMultiRoomEnv(Env):
             You are in a multi-room environment. Your goal is to navigate through multiple rooms to reach the goal.
             Some rooms may be connected by doors that you need to open or unlock.
 
-            Available actions:
-            - left: Turn left
-            - right: Turn right
-            - forward: Move forward
-            - pickup: Pick up an object (like a key)
-            - drop: Drop the object you're carrying
-            - toggle: Toggle/activate an object (like opening a door)
-            - done: End the episode
+            Available actions: left, right, forward, pickup, drop, toggle, done
+
+            Output format: Simply output the action name.
+            Examples:
+            forward
+            toggle
+            pickup
+            right
         """).strip()
 
     def reset(

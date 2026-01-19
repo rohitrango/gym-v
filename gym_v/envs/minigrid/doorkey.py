@@ -68,14 +68,14 @@ class MinigridDoorKeyEnv(Env):
             3. Walk through the door
             4. Reach the green goal square
 
-            Available actions:
-            - left: Turn left
-            - right: Turn right
-            - forward: Move forward
-            - pickup: Pick up an object (use this to pick up the key)
-            - drop: Drop the object you're carrying
-            - toggle: Toggle/activate an object (use this to unlock the door)
-            - done: End the episode
+            Available actions: left, right, forward, pickup, drop, toggle, done
+
+            Output format: Simply output the action name.
+            Examples:
+            forward
+            pickup
+            toggle
+            left
         """).strip()
 
     def reset(

@@ -68,14 +68,15 @@ class MinigridEmptyEnv(Env):
     def description(self) -> str:
         return dedent("""
             You are in an empty grid world. Your goal is to reach the green goal square.
-            You can move around the grid using the following actions:
-            - left: Turn left
-            - right: Turn right
-            - forward: Move forward
-            - toggle: Toggle/activate an object (not needed in this environment)
-            - done: End the episode
+            The grid is empty, so you just need to navigate to the goal by turning and moving forward.
 
-            The grid is empty, so you just need to navigate to the goal.
+            Available actions: left, right, forward, toggle, done
+
+            Output format: Simply output the action name.
+            Examples:
+            forward
+            right
+            left
         """).strip()
 
     def reset(
