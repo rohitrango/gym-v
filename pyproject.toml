@@ -31,6 +31,9 @@ textarena = [
 reasoning-gym = [
     "reasoning-gym>=0.1.24",
 ]
+minigrid = [
+    "minigrid>=2.5.0",
+]
 
 [dependency-groups]
 dev = [

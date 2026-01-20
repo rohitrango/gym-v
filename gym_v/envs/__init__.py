@@ -497,6 +497,86 @@ register(
     ),
 )
 
+# Minigrid environments
+register(
+    id="Minigrid/Empty-v0",
+    entry_point="gym_v.envs.minigrid.empty:MinigridEmptyEnv",
+    max_episode_steps=256,
+    kwargs=dict(
+        size=8,
+        agent_start_pos=(1, 1),
+        tile_size=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Minigrid/DoorKey-v0",
+    entry_point="gym_v.envs.minigrid.doorkey:MinigridDoorKeyEnv",
+    max_episode_steps=640,
+    kwargs=dict(
+        size=8,
+        tile_size=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Minigrid/FourRooms-v0",
+    entry_point="gym_v.envs.minigrid.fourrooms:MinigridFourRoomsEnv",
+    max_episode_steps=100,
+    kwargs=dict(
+        tile_size=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Minigrid/Unlock-v0",
+    entry_point="gym_v.envs.minigrid.unlock:MinigridUnlockEnv",
+    max_episode_steps=100,
+    kwargs=dict(
+        tile_size=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Minigrid/MultiRoom-v0",
+    entry_point="gym_v.envs.minigrid.multiroom:MinigridMultiRoomEnv",
+    max_episode_steps=100,
+    kwargs=dict(
+        min_num_rooms=6,
+        max_num_rooms=6,
+        max_room_size=10,
+        tile_size=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Minigrid/DynamicObstacles-v0",
+    entry_point="gym_v.envs.minigrid.dynamicobstacles:MinigridDynamicObstaclesEnv",
+    max_episode_steps=256,
+    kwargs=dict(
+        size=8,
+        n_obstacles=4,
+        tile_size=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Minigrid/LavaGap-v0",
+    entry_point="gym_v.envs.minigrid.lavagap:MinigridLavaGapEnv",
+    max_episode_steps=100,
+    kwargs=dict(
+        size=7,
+        tile_size=32,
+        num_players=1,
+    ),
+)
+
 # Game-RL environments
 register(
     id="GameRL/Snake-v0",
