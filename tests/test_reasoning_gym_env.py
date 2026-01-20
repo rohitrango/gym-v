@@ -4,16 +4,9 @@ from pathlib import Path
 import random
 import unittest
 
-try:
-    import gym_v
-except ModuleNotFoundError as e:  # pragma: no cover
-    raise ModuleNotFoundError(
-        "Failed to import `gym_v`. Run tests from the `gym-v/` directory "
-        "(e.g. `cd gym-v && python -m unittest ...`) or install it with "
-        "`pip install -e gym-v`."
-    ) from e
-
 from reasoning_gym.factory import create_dataset
+
+import gym_v
 
 # Mapping from gym-v env_id to reasoning-gym dataset name
 REASONING_GYM_ENVS = {

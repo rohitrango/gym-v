@@ -35,6 +35,10 @@ minigrid = [
     "minigrid>=2.5.0",
 ]
 
+stable-retro = [
+    "stable-retro>=0.9.8",
+]
+
 [dependency-groups]
 dev = [
     "pre-commit>=4.5.1",

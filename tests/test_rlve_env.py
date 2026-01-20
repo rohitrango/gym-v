@@ -6,15 +6,7 @@ from pathlib import Path
 import random
 import unittest
 
-try:
-    import gym_v
-except ModuleNotFoundError as e:  # pragma: no cover
-    raise ModuleNotFoundError(
-        "Failed to import `gym_v`. Run tests from the `gym-v/` directory "
-        "(e.g. `cd gym-v && python -m unittest ...`) or install it with "
-        "`pip install -e gym-v`."
-    ) from e
-
+import gym_v
 
 RLVE_ENVS = {
     "RLVE/HitoriPuzzle-v0": "hitori_puzzle",

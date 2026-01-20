@@ -6,15 +6,7 @@ from pathlib import Path
 import random
 import unittest
 
-try:
-    import gym_v
-except ModuleNotFoundError as e:  # pragma: no cover
-    raise ModuleNotFoundError(
-        "Failed to import `gym_v`. Run tests from the `gym-v_perception/` directory "
-        "(e.g. `cd gym-v_perception && python -m unittest ...`) or install it with "
-        "`pip install -e gym-v_perception`."
-    ) from e
-
+import gym_v
 
 PERCEPTION_ENVS = {
     "Perception/ChartToTable-v0": "chart_to_table",

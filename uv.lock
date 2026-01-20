@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.11'",
@@ -506,6 +506,9 @@ dependencies = [
 reasoning-gym = [
     { name = "reasoning-gym" },
 ]
+stable-retro = [
+    { name = "stable-retro" },
+]
 textarena = [
     { name = "textarena" },
 ]
@@ -529,9 +532,10 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "reasoning-gym", marker = "extra == 'reasoning-gym'", specifier = ">=0.1.24" },
     { name = "scipy", specifier = ">=1.15.3" },
+    { name = "stable-retro", marker = "extra == 'stable-retro'", specifier = ">=0.9.8" },
     { name = "textarena", marker = "extra == 'textarena'", specifier = ">=0.7.4" },
 ]
-provides-extras = ["textarena", "reasoning-gym"]
+provides-extras = ["textarena", "reasoning-gym", "stable-retro"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1545,6 +1549,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pyglet"
+version = "1.5.31"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f7/c0/59130a7edbcc8f84e35870b00a712538ca05415ff02d17181277b8ef8f05/pyglet-1.5.31.zip", hash = "sha256:a5e422b4c27b0fc99e92103bf493109cca5c18143583b868b3b4631a98ae9417", size = 6900712, upload-time = "2024-12-24T07:10:58.022Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e2/43/46aa0ab49f2f5145d201780c7595cf0c305fb4fb5d00d6639792a3d0e770/pyglet-1.5.31-py3-none-any.whl", hash = "sha256:f68413564bbec380e4815898fef0fb7a4a494dc3f8718bfbf28ce2a802634c88", size = 1143660, upload-time = "2024-12-24T07:10:50.769Z" },
+]
+
+[[package]]
 name = "pygments"
 version = "2.19.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1988,6 +2001,25 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/a2/87/a6771e1546d97e7e041b6ae58d80074f81b7d5121207425c964ddf5cfdbd/sniffio-1.3.1.tar.gz", hash = "sha256:f4324edc670a0f49750a81b895f35c3adb843cca46f0530f79fc1babb23789dc", size = 20372, upload-time = "2024-02-25T23:20:04.057Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e9/44/75a9c9421471a6c4805dbf2356f7c181a29c1879239abab1ea2cc8f38b40/sniffio-1.3.1-py3-none-any.whl", hash = "sha256:2f6da418d1f1e0fddd844478f41680e794e6051915791a034ff65e5f100525a2", size = 10235, upload-time = "2024-02-25T23:20:01.196Z" },
+]
+
+[[package]]
+name = "stable-retro"
+version = "0.9.8"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "farama-notifications" },
+    { name = "gymnasium" },
+    { name = "pyglet" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/2d/35/d733e877dcb5b1d3e75225034617377ed466aab71cd397b3d7514017de05/stable_retro-0.9.8.tar.gz", hash = "sha256:6a1c9e949bd17f97133c06c75d3555fd7793619f575a6df688a81f4ef05aa7f4", size = 153915602, upload-time = "2025-12-28T12:37:25.426Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6a/e6/d0df0e354039f8d935725e8885ed22d02decbc4667b8c0c05fc009d64863/stable_retro-0.9.8-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:67b172c314b18c94a30000a87bc2a8e34562e69212518a27428ec9440c05c173", size = 89128747, upload-time = "2025-12-28T12:36:26.888Z" },
+    { url = "https://files.pythonhosted.org/packages/1e/65/104047eb6c492f0891455399fbff3996138723a27e256416a44241343ab4/stable_retro-0.9.8-cp310-cp310-manylinux_2_28_x86_64.whl", hash = "sha256:39f91844fac3b6ea8ed50587d323f424ac1c266fa5d363f730d70d15c4a10e8f", size = 122573142, upload-time = "2025-12-28T12:36:32.96Z" },
+    { url = "https://files.pythonhosted.org/packages/05/1a/cb43d67675b0b36d57bea0ad56f9fdb2cabe9b7e82f9b413bb9fc41c5d43/stable_retro-0.9.8-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:5ba8db3abeb397544a36838e1d361aeac908ed5d4916443f28ed564ab2591b91", size = 89130352, upload-time = "2025-12-28T12:36:38.606Z" },
+    { url = "https://files.pythonhosted.org/packages/05/f2/09110d33f9a084a03f06e597a32c9917f492246bf667202a27b283ca78d5/stable_retro-0.9.8-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:c201a226654a1ca1cb3485f4b03457507d9cf45acf8d8452735173ada5cd1e09", size = 122594273, upload-time = "2025-12-28T12:36:43.89Z" },
+    { url = "https://files.pythonhosted.org/packages/0a/d0/501a255e10582af502b07fe5a98c592f5cd644c6db8f8b6faf5ecc8e5d67/stable_retro-0.9.8-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:24ad2de4cda828d637c7ce9de8f088437b03f0da60d56c1d0d34a6747b937f6a", size = 89134540, upload-time = "2025-12-28T12:36:49.522Z" },
+    { url = "https://files.pythonhosted.org/packages/35/9d/2c0264f0b5877a519a00eadfe7e14e4d33bfbd9ffccc582c9bb44893973c/stable_retro-0.9.8-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:b1e6ef1532368917bfbebd05d7f68a93dc98300273d9144d4b82ddc5790bdd8e", size = 122580930, upload-time = "2025-12-28T12:36:55.362Z" },
 ]
 
 [[package]]

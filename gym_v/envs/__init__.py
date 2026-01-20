@@ -1416,3 +1416,135 @@ register(
         num_players=1,
     ),
 )
+
+# Stable-Retro environments (optional dependency)
+# These require stable-retro to be installed: uv sync --extra stable-retro
+register(
+    id="Retro/Airstriker-v0",
+    entry_point="gym_v.envs.stable_retro:RetroGymVEnv",
+    max_episode_steps=10000,
+    kwargs=dict(
+        game="Airstriker-Genesis",
+        num_players=1,
+    ),
+)
+
+register(
+    id="Retro/GoldenAxe-v0",
+    entry_point="gym_v.envs.stable_retro:RetroGymVEnv",
+    max_episode_steps=10000,
+    kwargs=dict(
+        game="GoldenAxe-Genesis-v0",
+        num_players=1,
+    ),
+)
+
+register(
+    id="Retro/StreetsOfRage2-v0",
+    entry_point="gym_v.envs.stable_retro:RetroGymVEnv",
+    max_episode_steps=10000,
+    kwargs=dict(
+        game="StreetsOfRage2-Genesis-v0",
+        num_players=1,
+    ),
+)
+
+register(
+    id="Retro/MortalKombatII-v0",
+    entry_point="gym_v.envs.stable_retro:RetroGymVEnv",
+    max_episode_steps=10000,
+    kwargs=dict(
+        game="MortalKombatII-Genesis-v0",
+        num_players=1,
+    ),
+)
+
+register(
+    id="Retro/Strider-v0",
+    entry_point="gym_v.envs.stable_retro:RetroGymVEnv",
+    max_episode_steps=10000,
+    kwargs=dict(
+        game="Strider-Genesis-v0",
+        num_players=1,
+    ),
+)
+
+register(
+    id="Retro/CastleOfIllusion-v0",
+    entry_point="gym_v.envs.stable_retro:RetroGymVEnv",
+    max_episode_steps=10000,
+    kwargs=dict(
+        game="CastleOfIllusion-Genesis-v0",
+        num_players=1,
+    ),
+)
+
+register(
+    id="Retro/CastlevaniaBloodlines-v0",
+    entry_point="gym_v.envs.stable_retro:RetroGymVEnv",
+    max_episode_steps=10000,
+    kwargs=dict(
+        game="CastlevaniaBloodlines-Genesis-v0",
+        num_players=1,
+    ),
+)
+
+register(
+    id="Retro/Columns-v0",
+    entry_point="gym_v.envs.stable_retro:RetroGymVEnv",
+    max_episode_steps=10000,
+    kwargs=dict(
+        game="Columns-Genesis-v0",
+        num_players=1,
+    ),
+)
+
+register(
+    id="Retro/ThunderForceIII-v0",
+    entry_point="gym_v.envs.stable_retro:RetroGymVEnv",
+    max_episode_steps=10000,
+    kwargs=dict(
+        game="ThunderForceIII-Genesis-v0",
+        num_players=1,
+    ),
+)
+
+register(
+    id="Retro/SpaceHarrierII-v0",
+    entry_point="gym_v.envs.stable_retro:RetroGymVEnv",
+    max_episode_steps=10000,
+    kwargs=dict(
+        game="SpaceHarrierII-Genesis-v0",
+        num_players=1,
+    ),
+)
+
+register(
+    id="Retro/AlteredBeast-v0",
+    entry_point="gym_v.envs.stable_retro:RetroGymVEnv",
+    max_episode_steps=10000,
+    kwargs=dict(
+        game="AlteredBeast-Genesis-v0",
+        num_players=1,
+    ),
+)
+
+register(
+    id="Retro/DynamiteHeaddy-v0",
+    entry_point="gym_v.envs.stable_retro:RetroGymVEnv",
+    max_episode_steps=10000,
+    kwargs=dict(
+        game="DynamiteHeaddy-Genesis-v0",
+        num_players=1,
+    ),
+)
+
+register(
+    id="Retro/KidChameleon-v0",
+    entry_point="gym_v.envs.stable_retro:RetroGymVEnv",
+    max_episode_steps=10000,
+    kwargs=dict(
+        game="KidChameleon-Genesis-v0",
+        num_players=1,
+    ),
+)
