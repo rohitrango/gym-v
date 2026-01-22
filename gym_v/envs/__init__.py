@@ -630,19 +630,6 @@ register(
 )
 
 register(
-    id="VGRP/TreesAndTents-v0",
-    entry_point="gym_v.envs.vgrp.treesandtents:VGRPTreesAndTentsEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        size=5,
-        num_hints=0,
-        cell_px=60,
-        padding=50,
-        num_players=1,
-    ),
-)
-
-register(
     id="VGRP/Battleships-v0",
     entry_point="gym_v.envs.vgrp.battleships:VGRPBattleshipsEnv",
     max_episode_steps=1,

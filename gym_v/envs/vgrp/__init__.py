@@ -5,4 +5,3 @@ from gym_v.envs.vgrp.hitori import VGRPHitoriEnv
 from gym_v.envs.vgrp.renzoku import VGRPRenzokuEnv
 from gym_v.envs.vgrp.starbattle import VGRPStarBattleEnv
 from gym_v.envs.vgrp.thermometers import VGRPThermometersEnv
-from gym_v.envs.vgrp.treesandtents import VGRPTreesAndTentsEnv
