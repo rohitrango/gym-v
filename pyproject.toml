@@ -38,6 +38,9 @@ minigrid = [
 stable-retro = [
     "stable-retro>=0.9.8",
 ]
+pettingzoo = [
+    "pettingzoo[classic]>=1.25.0",
+]
 
 [dependency-groups]
 dev = [

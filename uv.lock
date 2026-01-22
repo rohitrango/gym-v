@@ -7,6 +7,15 @@ resolution-markers = [
 ]
 
 [[package]]
+name = "absl-py"
+version = "2.3.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/10/2a/c93173ffa1b39c1d0395b7e842bbdc62e556ca9d8d3b5572926f3e4ca752/absl_py-2.3.1.tar.gz", hash = "sha256:a97820526f7fbfd2ec1bce83f3f25e3a14840dac0d8e02a0b71cd75db3f77fc9", size = 116588, upload-time = "2025-07-03T09:31:44.05Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8f/aa/ba0014cc4659328dc818a28827be78e6d97312ab0cb98105a770924dc11e/absl_py-2.3.1-py3-none-any.whl", hash = "sha256:eeecf07f0c2a93ace0772c92e596ace6d3d3996c042b2128459aaae2a76de11d", size = 135811, upload-time = "2025-07-03T09:31:42.253Z" },
+]
+
+[[package]]
 name = "annotated-types"
 version = "0.7.0"
 source = { registry = "https://pypi.org/simple" }
@@ -42,6 +51,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/27/1a/7f33e162a8a8f7974ebe73102cb0b7401a87d0b88cefacdb2e6670bd4b7e/arckit-0.1.0.tar.gz", hash = "sha256:06364596df7817ac63f70a1cfab8ed2ef48bea75f72f83377f4800d885c5d506", size = 708276, upload-time = "2024-06-30T18:52:49.964Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/4f/9d/47866ae3ae517df13919a69f34a6c86e7ddf52ecc219f08e2cf8301ec5d5/arckit-0.1.0-py3-none-any.whl", hash = "sha256:5a22619309d2c29b04796eadf2a58792e563d6b811ee021e5d8ca97880ebbe80", size = 730262, upload-time = "2024-06-30T18:52:48.052Z" },
+]
+
+[[package]]
+name = "attrs"
+version = "25.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/6b/5c/685e6633917e101e5dcb62b9dd76946cbb57c26e133bae9e0cd36033c0a9/attrs-25.4.0.tar.gz", hash = "sha256:16d5969b87f0859ef33a48b35d55ac1be6e42ae49d5e853b597db70c35c57e11", size = 934251, upload-time = "2025-10-06T13:54:44.725Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3a/2a/7cc015f5b9f5db42b7d48157e23356022889fc354a2813c15934b7cb5c0e/attrs-25.4.0-py3-none-any.whl", hash = "sha256:adcf7e2a1fb3b36ac48d97835bb6d8ade15b8dcce26aba8bf1d14847b57a3373", size = 67615, upload-time = "2025-10-06T13:54:43.17Z" },
 ]
 
 [[package]]
@@ -506,6 +524,9 @@ dependencies = [
 minigrid = [
     { name = "minigrid" },
 ]
+pettingzoo = [
+    { name = "pettingzoo", extra = ["classic"] },
+]
 reasoning-gym = [
     { name = "reasoning-gym" },
 ]
@@ -531,6 +552,7 @@ requires-dist = [
     { name = "minigrid", marker = "extra == 'minigrid'", specifier = ">=2.5.0" },
     { name = "networkx", specifier = ">=3.4.2" },
     { name = "orjson", specifier = ">=3.11.5" },
+    { name = "pettingzoo", extras = ["classic"], marker = "extra == 'pettingzoo'", specifier = ">=1.25.0" },
     { name = "pillow", specifier = ">=12.0.0" },
     { name = "prompt-toolkit", specifier = ">=3.0.52" },
     { name = "pydantic", specifier = ">=2.12.5" },
@@ -539,7 +561,7 @@ requires-dist = [
     { name = "stable-retro", marker = "extra == 'stable-retro'", specifier = ">=0.9.8" },
     { name = "textarena", marker = "extra == 'textarena'", specifier = ">=0.7.4" },
 ]
-provides-extras = ["textarena", "reasoning-gym", "minigrid", "stable-retro"]
+provides-extras = ["textarena", "reasoning-gym", "minigrid", "stable-retro", "pettingzoo"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -970,6 +992,19 @@ wheels = [
 ]
 
 [[package]]
+name = "ml-collections"
+version = "1.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "absl-py" },
+    { name = "pyyaml" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b8/f8/1a9ae6696dbb6bc9c44ddf5c5e84710d77fe9a35a57e8a06722e1836a4a6/ml_collections-1.1.0.tar.gz", hash = "sha256:0ac1ac6511b9f1566863e0bb0afad0c64e906ea278ad3f4d2144a55322671f6f", size = 61356, upload-time = "2025-04-17T08:25:02.247Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ab/8a/18d4ff2c7bd83f30d6924bd4ad97abf418488c3f908dea228d6f0961ad68/ml_collections-1.1.0-py3-none-any.whl", hash = "sha256:23b6fa4772aac1ae745a96044b925a5746145a70734f087eaca6626e92c05cbc", size = 76707, upload-time = "2025-04-17T08:24:59.038Z" },
+]
+
+[[package]]
 name = "mpmath"
 version = "1.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1176,6 +1211,43 @@ wheels = [
 ]
 
 [[package]]
+name = "open-spiel"
+version = "1.6.11"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "absl-py" },
+    { name = "attrs" },
+    { name = "ml-collections" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.3.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "pip" },
+    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "scipy", version = "1.17.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/2e/95/4e9367a1d84e557d83d61ccadad1b4dd5608edcd08a33b38f3d5e6432edd/open_spiel-1.6.11.tar.gz", hash = "sha256:ed667d2f0a6691666dd6bc47396429bfdbff9bb71430fc178ff8bca2a9c79004", size = 5451152, upload-time = "2026-01-04T23:45:57.571Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b0/8f/68b843d0b8b64ebe68df8c1d182ca186135bfa9590c15277b8fbbbbf30c8/open_spiel-1.6.11-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:b387ce95f41a5cf31c85bff2c0f7bb8aefc772faf3b64f70cc9924a6451c0eea", size = 5819001, upload-time = "2026-01-04T23:45:29.178Z" },
+    { url = "https://files.pythonhosted.org/packages/13/1b/1dd49625a209933465840f5726294a8e7a116c0267e6261c72c3cfd94157/open_spiel-1.6.11-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:34f27e15298c814cf1a72d2398e768caecc834c4525b0f6264c92c7fc1282f47", size = 5909054, upload-time = "2026-01-04T23:45:30.735Z" },
+    { url = "https://files.pythonhosted.org/packages/12/81/b27d80e2557677fc39ff575fee833483c62ebce77dd7ffd8acaddcb7f2bd/open_spiel-1.6.11-cp310-cp310-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:74cf8fdd1b8f3957da1ae5bb51de8c9c398e8bb32f118219de142a851187de00", size = 6735360, upload-time = "2026-01-04T23:45:31.996Z" },
+    { url = "https://files.pythonhosted.org/packages/70/12/fa9e8b84ddab6eed74f0365bc1a6e035b7cc696b2c906b2cb036eb939ec7/open_spiel-1.6.11-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:fbf7e3998d761f0d945dd0988555bc428bce09a8941e2451fa2a83b66c831424", size = 7067818, upload-time = "2026-01-04T23:45:33.337Z" },
+    { url = "https://files.pythonhosted.org/packages/ab/b5/309360c7ebcf58ffdc2a6c5450df641b41b885edaf712ad7c4e4ff7d13cc/open_spiel-1.6.11-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:01807d21aaa84ecb5d92651e4dec3cee5cff1d3f77381d8aaf2b56131a608b4b", size = 5827268, upload-time = "2026-01-04T23:45:35.019Z" },
+    { url = "https://files.pythonhosted.org/packages/51/da/936af0b809f025556d0d612234f03a7c27c0a110b91e88dbbe375532a036/open_spiel-1.6.11-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:31af9b00b1b3cae38221ab4e4ba7399b9fa028a036aefe7168b3435141edcfa6", size = 5914901, upload-time = "2026-01-04T23:45:36.721Z" },
+    { url = "https://files.pythonhosted.org/packages/37/8a/2c10bce8ee9dcd08665493fe020aa742fd54bb9544419f6317a7bc6f9f11/open_spiel-1.6.11-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:ec43cc292ea2099feaab3d8e2419fa7083aed7d340fc55879c21439a8bd10ede", size = 6737434, upload-time = "2026-01-04T23:45:38.356Z" },
+    { url = "https://files.pythonhosted.org/packages/1e/f0/764d45546a60a853a20d1e42f38e125c200d93af068e0bfa8d3af4b45aab/open_spiel-1.6.11-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:0148132cdc2cc333c6584c4d8cd3a78332e3a979d84f588c8523b880bdef3a04", size = 7067662, upload-time = "2026-01-04T23:45:39.971Z" },
+    { url = "https://files.pythonhosted.org/packages/69/2c/8b754e707d445475177e91e00ea7e80e72ce0e04ecd8258d24bc00cebcd1/open_spiel-1.6.11-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:a71735e1d71494fbe7e3a1838b5e487e7d7256cdd73f8054fa42649576c95f02", size = 5823227, upload-time = "2026-01-04T23:45:41.597Z" },
+    { url = "https://files.pythonhosted.org/packages/4f/04/8f18c43fe938e144f6496c7dd150fe4eb7bb6f12dcb561a3d4984e5cccc3/open_spiel-1.6.11-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:83e5fea8ed3343a392e954c1a12ad3d819af8ba8ac2594f3bb3d3d42deea4026", size = 5921188, upload-time = "2026-01-04T23:45:43.151Z" },
+    { url = "https://files.pythonhosted.org/packages/00/c4/35554a0316bc1c56dce8a14c54257203be9993530d502d3c5aada186d921/open_spiel-1.6.11-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:9a88f99a2f16bd7e23f84deb684692b2fa2b75ab8a1ea128630d6d5a0dd0a2f5", size = 6735228, upload-time = "2026-01-04T23:45:44.785Z" },
+    { url = "https://files.pythonhosted.org/packages/bd/d4/9f0ddfad637924e08f58dcda88b3cc517ec179db576ac954f9e01114c775/open_spiel-1.6.11-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:a0de4fb658518d48ec344d9c167d58d01a160bd09035ec1422d76a95c4b6553e", size = 7067051, upload-time = "2026-01-04T23:45:46.045Z" },
+    { url = "https://files.pythonhosted.org/packages/ae/68/7f3c1faac14eaa7f02e6a21ea73370820bfcf68280cf08290d69c338024a/open_spiel-1.6.11-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:a9c902c11879813cc3dedde7b3a4f917095952c17ea8c1e26d312fe853858a96", size = 5827956, upload-time = "2026-01-04T23:45:47.631Z" },
+    { url = "https://files.pythonhosted.org/packages/ce/6a/cf765db272583fa6199948a11395a1c28db54367044fa66065b809ce71fa/open_spiel-1.6.11-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:ae1634ab642b6d677adaa711732e439ace1d0ac77bbf7ab0cfb08c5631a3dad8", size = 5924218, upload-time = "2026-01-04T23:45:48.906Z" },
+    { url = "https://files.pythonhosted.org/packages/d9/c9/9b1f04ce933ccf6e8c897540c510822a4c1edc47fbcbd7c309519c433dd6/open_spiel-1.6.11-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:1c19aa8c0c79b57915a955f6c09eadf52563dec52573122b515a87a7ee8401e2", size = 6735469, upload-time = "2026-01-04T23:45:50.159Z" },
+    { url = "https://files.pythonhosted.org/packages/a6/8f/08b2043efad19465403ff9eaac5d03cc7b335e190847b8d55ee479e0db7d/open_spiel-1.6.11-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:2c9f91ebd6113b6d76f332d07107a6c98396c6c67707a72d1f85462f8f89581b", size = 7066801, upload-time = "2026-01-04T23:45:51.361Z" },
+    { url = "https://files.pythonhosted.org/packages/44/90/7085d7d6fe7dd5bb516d6b443adf7f29b6694719ab26b47702e470b4b669/open_spiel-1.6.11-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:3cc259a5b400fca213aac56560b319c397ced212601191ab69a1e1bc783f7aca", size = 5389665, upload-time = "2026-01-04T23:45:52.597Z" },
+    { url = "https://files.pythonhosted.org/packages/74/18/319dbb77ff161066f409f60c0426ba1c6c8e6ed02a32126c8b0dfe262e30/open_spiel-1.6.11-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:3c8f2dc1e19bda7196934f80d6de22299c68079a42de8e9c0274a7a8a77c1def", size = 6736267, upload-time = "2026-01-04T23:45:55.093Z" },
+    { url = "https://files.pythonhosted.org/packages/db/43/a1dd61bfa4958ccc04b52cf6f85af2d12d37c87e91be78334fd42a33e654/open_spiel-1.6.11-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:b84a19af4771edb50a105d54b47c562256e2890581985e01614399c4590414b9", size = 7067362, upload-time = "2026-01-04T23:45:56.274Z" },
+]
+
+[[package]]
 name = "openai"
 version = "2.13.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1285,6 +1357,28 @@ wheels = [
 ]
 
 [[package]]
+name = "pettingzoo"
+version = "1.25.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "gymnasium" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.3.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/38/cb/cbb8d0e973b284f709ce93a80354d464588301957220f031c51324b464b2/pettingzoo-1.25.0.tar.gz", hash = "sha256:4b8a8552eab07a9c8f37dca094e59ee194003c57e2a7e7348bdf7c62049eecf6", size = 723959, upload-time = "2025-04-22T14:37:37.36Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d3/9a/33fb244264573687ef27b2f436ae98b524c5e8e5edc7c36183a59c5b4748/pettingzoo-1.25.0-py3-none-any.whl", hash = "sha256:f385bccbebdad73a0c3da884344aea6e2614aa962b653c790b06ef9ab162d651", size = 852489, upload-time = "2025-04-22T14:37:36.036Z" },
+]
+
+[package.optional-dependencies]
+classic = [
+    { name = "chess" },
+    { name = "pygame" },
+    { name = "rlcard" },
+    { name = "shimmy", extra = ["openspiel"] },
+]
+
+[[package]]
 name = "pillow"
 version = "12.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1380,6 +1474,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/20/2e/3434380e8110b76cd9eb00a363c484b050f949b4bbe84ba770bb8508a02c/pillow-12.0.0-pp311-pypy311_pp73-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:09f2d0abef9e4e2f349305a4f8cc784a8a6c2f58a8c4892eea13b10a943bd26e", size = 5313505, upload-time = "2025-10-15T18:24:07.137Z" },
     { url = "https://files.pythonhosted.org/packages/57/ca/5a9d38900d9d74785141d6580950fe705de68af735ff6e727cb911b64740/pillow-12.0.0-pp311-pypy311_pp73-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:bdee52571a343d721fb2eb3b090a82d959ff37fc631e3f70422e0c2e029f3e76", size = 5963654, upload-time = "2025-10-15T18:24:09.579Z" },
     { url = "https://files.pythonhosted.org/packages/95/7e/f896623c3c635a90537ac093c6a618ebe1a90d87206e42309cb5d98a1b9e/pillow-12.0.0-pp311-pypy311_pp73-win_amd64.whl", hash = "sha256:b290fd8aa38422444d4b50d579de197557f182ef1068b75f5aa8558638b8d0a5", size = 6997850, upload-time = "2025-10-15T18:24:11.495Z" },
+]
+
+[[package]]
+name = "pip"
+version = "25.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/fe/6e/74a3f0179a4a73a53d66ce57fdb4de0080a8baa1de0063de206d6167acc2/pip-25.3.tar.gz", hash = "sha256:8d0538dbbd7babbd207f261ed969c65de439f6bc9e5dbd3b3b9a77f25d95f343", size = 1803014, upload-time = "2025-10-25T00:55:41.394Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/44/3c/d717024885424591d5376220b5e836c2d5293ce2011523c9de23ff7bf068/pip-25.3-py3-none-any.whl", hash = "sha256:9655943313a94722b7774661c21049070f6bbb0a1516bf02f7c8d5d9201514cd", size = 1778622, upload-time = "2025-10-25T00:55:39.247Z" },
 ]
 
 [[package]]
@@ -1882,6 +1985,17 @@ wheels = [
 ]
 
 [[package]]
+name = "rlcard"
+version = "1.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.3.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "termcolor" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d4/d2/6bb5b8d6743c7846a03187cf7d5d7cb73cee94aa129a57f449310bdf33be/rlcard-1.2.0.tar.gz", hash = "sha256:d8e74211cecb44e9b1ee37c18a9014fa5c5549af5f4fc25cd643eb591e15520b", size = 269029, upload-time = "2023-04-19T16:44:06.826Z" }
+
+[[package]]
 name = "ruff"
 version = "0.14.9"
 source = { registry = "https://pypi.org/simple" }
@@ -2041,6 +2155,26 @@ wheels = [
 ]
 
 [[package]]
+name = "shimmy"
+version = "2.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "gymnasium" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.3.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/45/c6/36788ef5e483d761e5080d41378e27db4b388ce219ff2b2e1959edfba071/Shimmy-2.0.0.tar.gz", hash = "sha256:a42d07806fc1ca5460439cb4799f32d4855a9e1138b39a39031e72fb8460a508", size = 31065, upload-time = "2024-05-21T10:35:16.471Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4e/e9/64879ed81025b73865a0b6e5668735bf0b71feff5abb6e7a2bee2a1deae9/Shimmy-2.0.0-py3-none-any.whl", hash = "sha256:4244e693b0ff28bd5ce55e73c636cab953df2a1fafe639718158ee6510613dfe", size = 30601, upload-time = "2024-05-21T10:35:14.872Z" },
+]
+
+[package.optional-dependencies]
+openspiel = [
+    { name = "open-spiel" },
+    { name = "pettingzoo" },
+]
+
+[[package]]
 name = "six"
 version = "1.17.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2096,6 +2230,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/ec/fe/802052aecb21e3797b8f7902564ab6ea0d60ff8ca23952079064155d1ae1/tabulate-0.9.0.tar.gz", hash = "sha256:0095b12bf5966de529c0feb1fa08671671b3368eec77d7ef7ab114be2c068b3c", size = 81090, upload-time = "2022-10-06T17:21:48.54Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/40/44/4a5f08c96eb108af5cb50b41f76142f0afa346dfa99d5296fe7202a11854/tabulate-0.9.0-py3-none-any.whl", hash = "sha256:024ca478df22e9340661486f85298cff5f6dcdba14f3813e8830015b9ed1948f", size = 35252, upload-time = "2022-10-06T17:21:44.262Z" },
+]
+
+[[package]]
+name = "termcolor"
+version = "3.3.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/46/79/cf31d7a93a8fdc6aa0fbb665be84426a8c5a557d9240b6239e9e11e35fc5/termcolor-3.3.0.tar.gz", hash = "sha256:348871ca648ec6a9a983a13ab626c0acce02f515b9e1983332b17af7979521c5", size = 14434, upload-time = "2025-12-29T12:55:21.882Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/33/d1/8bb87d21e9aeb323cc03034f5eaf2c8f69841e40e4853c2627edf8111ed3/termcolor-3.3.0-py3-none-any.whl", hash = "sha256:cf642efadaf0a8ebbbf4bc7a31cec2f9b5f21a9f726f4ccbb08192c9c26f43a5", size = 7734, upload-time = "2025-12-29T12:55:20.718Z" },
 ]
 
 [[package]]

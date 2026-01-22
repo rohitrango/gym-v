@@ -1525,3 +1525,81 @@ register(
         num_players=1,
     ),
 )
+
+# PettingZoo environments
+register(
+    id="PettingZoo/Chess-v0",
+    entry_point="gym_v.envs.multi_players.pettingzoo.chess:PettingZooChess",
+    max_episode_steps=500,
+    kwargs=dict(
+        num_players=2,
+    ),
+)
+
+register(
+    id="PettingZoo/ConnectFour-v0",
+    entry_point="gym_v.envs.multi_players.pettingzoo.connectfour:PettingZooConnectFour",
+    max_episode_steps=100,
+    kwargs=dict(
+        num_players=2,
+    ),
+)
+
+register(
+    id="PettingZoo/GinRummy-v0",
+    entry_point="gym_v.envs.multi_players.pettingzoo.gin_rummy:PettingZooGinRummy",
+    max_episode_steps=200,
+    kwargs=dict(
+        num_players=2,
+        knock_reward=0.5,
+        gin_reward=1.0,
+        opponents_hand_visible=False,
+    ),
+)
+
+register(
+    id="PettingZoo/Go-v0",
+    entry_point="gym_v.envs.multi_players.pettingzoo.go:PettingZooGo",
+    max_episode_steps=1000,
+    kwargs=dict(
+        num_players=2,
+        board_size=19,
+        komi=7.5,
+    ),
+)
+
+register(
+    id="PettingZoo/LeducHoldem-v0",
+    entry_point="gym_v.envs.multi_players.pettingzoo.leduc_holdem:PettingZooLeducHoldem",
+    max_episode_steps=100,
+    kwargs=dict(
+        num_players=2,
+    ),
+)
+
+register(
+    id="PettingZoo/TexasHoldem-v0",
+    entry_point="gym_v.envs.multi_players.pettingzoo.texas_holdem:PettingZooTexasHoldem",
+    max_episode_steps=200,
+    kwargs=dict(
+        num_players=2,
+    ),
+)
+
+register(
+    id="PettingZoo/TexasHoldemNoLimit-v0",
+    entry_point="gym_v.envs.multi_players.pettingzoo.texas_holdem_no_limit:PettingZooTexasHoldemNoLimit",
+    max_episode_steps=200,
+    kwargs=dict(
+        num_players=2,
+    ),
+)
+
+register(
+    id="PettingZoo/TicTacToe-v0",
+    entry_point="gym_v.envs.multi_players.pettingzoo.tictactoe:PettingZooTicTacToe",
+    max_episode_steps=20,
+    kwargs=dict(
+        num_players=2,
+    ),
+)
