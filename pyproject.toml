@@ -42,6 +42,7 @@ pettingzoo = [
     "pettingzoo>=1.25.0",
     "rlcard>=1.0.5",
     "shimmy>=2.0.0",
+    "pygame>=2.1.0",
 ]
 
 [dependency-groups]
