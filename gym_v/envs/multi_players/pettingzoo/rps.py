@@ -10,7 +10,6 @@ from PIL import Image
 from typing_extensions import override
 
 from gym_v import Env, Observation, get_logger
-from gym_v.envs.multi_players.pettingzoo.utils import TerminateIllegalOutOfBoundsWrapper
 from pettingzoo.classic import rps_v2
 
 logger = get_logger()
@@ -37,8 +36,8 @@ class PettingZooRPS(Env):
                 f"{self.__class__.__name__} only supports 2 players, got {num_players}"
             )
 
+        # RPS is a simultaneous game - all actions are always legal, no wrapper needed
         env = rps_v2.raw_env(render_mode="rgb_array")
-        env = TerminateIllegalOutOfBoundsWrapper(env)
         self._pz_env = env
 
         self._agent_ids = {"player_0", "player_1"}
