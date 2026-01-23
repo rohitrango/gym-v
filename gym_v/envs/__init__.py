@@ -755,11 +755,75 @@ register(
 )
 
 register(
+    id="RLVE/CampsitePuzzle-v0",
+    entry_point="gym_v.envs.rlve.campsite_puzzle:RLVECampsitePuzzleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=4,
+        sparsity=0.5,
+        cell_px=56,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/CirculatingGrid-v0",
+    entry_point="gym_v.envs.rlve.circulating_grid:RLVECirculatingGridEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_r_c=5,
+        cell_px=56,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/EightDigitPuzzle-v0",
+    entry_point="gym_v.envs.rlve.eight_digit_puzzle:RLVEEightDigitPuzzleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        n=3,
+        m=3,
+        steps=10,
+        cell_px=72,
+        padding=32,
+        num_players=1,
+    ),
+)
+
+register(
     id="RLVE/HitoriPuzzle-v0",
     entry_point="gym_v.envs.rlve.hitori_puzzle:RLVEHitoriPuzzleEnv",
     max_episode_steps=1,
     kwargs=dict(
         max_n_m=4,
+        cell_px=56,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/KloBlocks-v0",
+    entry_point="gym_v.envs.rlve.klo_blocks:RLVEKloBlocksEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        N=10,
+        cell_px=60,
+        padding=30,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/LandformGenerationCounting-v0",
+    entry_point="gym_v.envs.rlve.landform_generation_counting:RLVELandformGenerationCountingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        max_mod=1000000000,
         cell_px=56,
         padding=24,
         num_players=1,
@@ -774,6 +838,40 @@ register(
         n=3,
         cell_px=52,
         padding=28,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/SkyscraperSumPuzzle-v0",
+    entry_point="gym_v.envs.rlve.skyscraper_sum_puzzle:RLVESkyscraperSumPuzzleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        n=3,
+        cell_px=52,
+        padding=28,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/SumTriangleArea-v0",
+    entry_point="gym_v.envs.rlve.sum_triangle_area:RLVESumTriangleAreaEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/SumManhattanCurvedSurface-v0",
+    entry_point="gym_v.envs.rlve.sum_manhattan_curved_surface:RLVESumManhattanCurvedSurfaceEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_a_b=100,
+        cell_px=80,
+        padding=32,
         num_players=1,
     ),
 )
@@ -821,6 +919,43 @@ register(
 )
 
 register(
+    id="RLVE/MaximumIndependentSetGrid-v0",
+    entry_point="gym_v.envs.rlve.maximum_independent_set_grid:RLVEMaximumIndependentSetGridEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=4,
+        cell_px=64,
+        padding=24,
+        num_players=1,
+        rewarding_strategy="(answer/gold)^beta",
+        rewarding_weight=1.0,
+        rewarding_beta=3.0,
+    ),
+)
+
+register(
+    id="RLVE/MinimumDominatingSetGrid-v0",
+    entry_point="gym_v.envs.rlve.minimum_dominating_set_grid:RLVEMinimumDominatingSetGridEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=4,
+        cell_px=60,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/MonochromeBlockCounting-v0",
+    entry_point="gym_v.envs.rlve.monochrome_block_counting:RLVEMonochromeBlockCountingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_a_b=10,
+        num_players=1,
+    ),
+)
+
+register(
     id="RLVE/TreeColoring-v0",
     entry_point="gym_v.envs.rlve.tree_coloring:RLVETreeColoringEnv",
     max_episode_steps=1,
@@ -829,6 +964,205 @@ register(
         node_radius=18,
         image_size=700,
         padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/Numbrix-v0",
+    entry_point="gym_v.envs.rlve.numbrix:RLVENumbrixEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=4,
+        sparsity=0.5,
+        cell_px=56,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/MagicSquarePuzzle-v0",
+    entry_point="gym_v.envs.rlve.magic_square_puzzle:RLVEMagicSquarePuzzleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        min_n=3,
+        max_n=5,
+        sparsity=0.5,
+        cell_px=64,
+        padding=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/BinarioNoAdjacencyRequirement-v0",
+    entry_point="gym_v.envs.rlve.binario_no_adjacency_requirement:RLVEBinarioNoAdjacencyRequirementEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=4,
+        sparsity=0.5,
+        cell_px=56,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/BlockImage-v0",
+    entry_point="gym_v.envs.rlve.block_image:RLVEBlockImageEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_m_n=4,
+        max_height=5,
+        cell_px=48,
+        padding=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/TwiddlePuzzle-v0",
+    entry_point="gym_v.envs.rlve.twiddle_puzzle:RLVETwiddlePuzzleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=4,
+        steps=3,
+        cell_px=56,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/NinePuzzle-v0",
+    entry_point="gym_v.envs.rlve.nine_puzzle:RLVENinePuzzleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=3,
+        steps=5,
+        cell_px=64,
+        padding=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/GridComponent-v0",
+    entry_point="gym_v.envs.rlve.grid_component:RLVEGridComponentEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=8,
+        cell_px=56,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/GridBFS-v0",
+    entry_point="gym_v.envs.rlve.grid_bfs:RLVEGridBFSEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=8,
+        cell_px=56,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/GridColoringCounting-v0",
+    entry_point="gym_v.envs.rlve.grid_coloring_counting:RLVEGridColoringCountingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=6,
+        max_mod=10000,
+        cell_px=56,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/GridParityConstruction-v0",
+    entry_point="gym_v.envs.rlve.grid_parity_construction:RLVEGridParityConstructionEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=8,
+        cell_px=56,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/GridLocalMinimumCounting-v0",
+    entry_point="gym_v.envs.rlve.grid_local_minimum_counting:RLVEGridLocalMinimumCountingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=4,
+        cell_px=64,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/GridTriangleCounting-v0",
+    entry_point="gym_v.envs.rlve.grid_triangle_counting:RLVEGridTriangleCountingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=12,
+        cell_px=48,
+        padding=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/ConvexHull-v0",
+    entry_point="gym_v.envs.rlve.convex_hull:RLVEConvexHullEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        N=10,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/SmallestCircle-v0",
+    entry_point="gym_v.envs.rlve.smallest_circle:RLVESmallestCircleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        n_points=10,
+        rewarding_strategy="(gold/answer)^beta",
+        rewarding_weight=1.0,
+        rewarding_beta=10.0,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/LargestConvexPolygon-v0",
+    entry_point="gym_v.envs.rlve.largest_convex_polygon:RLVELargestConvexPolygonEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        n_points=10,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/LargestRectangleAmongPoints-v0",
+    entry_point="gym_v.envs.rlve.largest_rectangle_among_points:RLVELargestRectangleAmongPointsEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=15,
+        rewarding_strategy="(answer/gold)^beta",
+        rewarding_weight=1.0,
+        rewarding_beta=5.0,
+        fig_size=(8, 8),
         num_players=1,
     ),
 )
