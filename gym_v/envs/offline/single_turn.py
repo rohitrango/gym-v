@@ -17,8 +17,8 @@ logger = get_logger()
 class OfflineSingleTurnEnv(Env):
     """Single-turn QA environment backed by offline data.
 
-    Samples (image, text, answer) from an offline dataset.
-    Each episode presents one sample; the agent responds and receives a graded reward.
+    Multi-agent environment compatible with Ray RLlib API.
+    Each agent receives a different sample from the dataset in parallel.
 
     Args:
         datasource_type: Data source type (e.g., "jsonl")
@@ -26,6 +26,7 @@ class OfflineSingleTurnEnv(Env):
         grader: Grading function name (default: "exact_match")
         description: Custom environment description
         shuffle: Whether to shuffle samples each epoch
+        num_players: Number of parallel agents (default: 16)
     """
 
     def __init__(
@@ -35,9 +36,13 @@ class OfflineSingleTurnEnv(Env):
         grader: str = "exact_match",
         description: str | None = None,
         shuffle: bool = True,
+        num_players: int = 16,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
+
+        self.num_players = num_players
+        self._agent_ids = [f"agent_{i}" for i in range(num_players)]
 
         self._source: DataSource = self._build_source(
             datasource_type, datasource_kwargs
@@ -52,8 +57,9 @@ class OfflineSingleTurnEnv(Env):
         self._description = description
 
         self._sampler = IndexSampler(len(self._source), shuffle=shuffle)
-        self._current_sample: OfflineSample | None = None
-        self._current_index: int | None = None
+        # Each agent has its own sample
+        self._current_samples: dict[str, OfflineSample] = {}
+        self._current_indices: dict[str, int] = {}
 
     def _build_source(
         self, datasource_type: str, datasource_kwargs: dict[str, Any]
@@ -78,48 +84,92 @@ class OfflineSingleTurnEnv(Env):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Observation, dict[str, Any]]:
+    ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed, options=options)
         self._sampler.reset(seed)
 
-        idx = self._sampler()
-        sample = self._source[idx]
-        self._current_index = idx
-        self._current_sample = sample
+        obs_dict = {}
+        info_dict = {}
 
-        obs = Observation(
-            image=sample.image,
-            text=sample.text,
-            metadata=sample.metadata or {},
-        )
-        info = {
-            "index": idx,
-            "oracle_answer": sample.answer,
-            "grader": self._grader_name,
-        }
-        return obs, info
+        for agent_id in self._agent_ids:
+            idx = self._sampler()
+            sample = self._source[idx]
+            self._current_indices[agent_id] = idx
+            self._current_samples[agent_id] = sample
+
+            obs_dict[agent_id] = Observation(
+                image=sample.image,
+                text=sample.text,
+                metadata=sample.metadata or {},
+            )
+            info_dict[agent_id] = {
+                "index": idx,
+                "oracle_answer": sample.answer,
+                "grader": self._grader_name,
+            }
+
+        return obs_dict, info_dict
 
     def inner_step(
-        self, action: str
-    ) -> tuple[Observation, float, bool, bool, dict[str, Any]]:
-        sample = self._current_sample
-        reward, reward_extra_info = self._grader(action, sample.answer)
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
+        obs_dict = {}
+        reward_dict = {}
+        info_dict = {}
 
-        obs = Observation(
-            image=sample.image,
-            text=sample.text,
-            metadata=sample.metadata or {},
+        # Grade each agent's action
+        for agent_id in self._agent_ids:
+            sample = self._current_samples[agent_id]
+            reward, reward_extra_info = self._grader(action[agent_id], sample.answer)
+
+            obs_dict[agent_id] = Observation(
+                image=sample.image,
+                text=sample.text,
+                metadata=sample.metadata or {},
+            )
+            reward_dict[agent_id] = reward
+            info_dict[agent_id] = {
+                "index": self._current_indices[agent_id],
+                "oracle_answer": sample.answer,
+                "grader": self._grader_name,
+                **reward_extra_info,
+            }
+
+        # Single-turn environment: both terminated and truncated are True
+        # - terminated: task is complete (answered the question)
+        # - truncated: episode ends after one step (no more interactions)
+        terminated = True
+        truncated = True
+
+        return (
+            obs_dict,
+            reward_dict,
+            {
+                **{agent_id: terminated for agent_id in self._agent_ids},
+                "__all__": terminated,
+            },
+            {
+                **{agent_id: truncated for agent_id in self._agent_ids},
+                "__all__": truncated,
+            },
+            info_dict,
         )
-        info = {
-            "index": self._current_index,
-            "oracle_answer": sample.answer,
-            "grader": self._grader_name,
-            **reward_extra_info,
-        }
 
-        return obs, reward, True, False, info
+    def render(self) -> list[Image.Image]:
+        """Return list of images for all agents (in agent_id order)."""
+        if not self._current_samples:
+            raise RuntimeError("no current samples, call reset() first")
 
-    def render(self) -> Image.Image | list[Image.Image] | None:
-        if self._current_sample.image is None:
-            raise RuntimeError("current sample has no image")
-        return self._current_sample.image
+        images = []
+        for agent_id in self._agent_ids:
+            sample = self._current_samples[agent_id]
+            if sample.image is None:
+                raise RuntimeError(f"agent {agent_id} has no image in current sample")
+            images.append(sample.image)
+        return images

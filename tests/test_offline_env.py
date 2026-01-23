@@ -59,27 +59,34 @@ class TestOfflineSingleTurnEnv(unittest.TestCase):
                 datasource_kwargs={"data_path": str(dataset_path)},
                 shuffle=True,
                 grader="exact_match",
+                num_players=1,
             )
 
-            obs1, info1 = env.reset(seed=123)
-            obs2, info2 = env.reset(seed=123)
-            self.assertEqual(info1["index"], info2["index"])
-            self.assertIsNotNone(obs1.image)
-            self.assertIsInstance(obs1.text, str)
+            agent_id = "agent_0"
+
+            obs_dict1, info_dict1 = env.reset(seed=123)
+            obs_dict2, info_dict2 = env.reset(seed=123)
+            self.assertEqual(
+                info_dict1[agent_id]["index"], info_dict2[agent_id]["index"]
+            )
+            self.assertIsNotNone(obs_dict1[agent_id].image)
+            self.assertIsInstance(obs_dict1[agent_id].text, str)
 
             # Verify reward with the sampled oracle answer (exact_match should ignore whitespace)
-            oracle = info2["oracle_answer"]
+            oracle = info_dict2[agent_id]["oracle_answer"]
             self.assertIsInstance(oracle, str)
-            _, r_ok, term_ok, trunc_ok, info_ok = env.step(f"  {oracle}  ")
-            self.assertTrue(term_ok)
-            self.assertTrue(trunc_ok)
-            self.assertEqual(r_ok, 1.0)
-            self.assertTrue(info_ok["correct"])
+            _, reward_dict, term_dict, trunc_dict, info_dict = env.step(
+                {agent_id: f"  {oracle}  "}
+            )
+            self.assertTrue(term_dict["__all__"])
+            self.assertTrue(trunc_dict["__all__"])
+            self.assertEqual(reward_dict[agent_id], 1.0)
+            self.assertTrue(info_dict[agent_id]["correct"])
 
             env.reset(seed=123)
-            _, r_bad, _, _, info_bad = env.step("__wrong__")
-            self.assertEqual(r_bad, 0.0)
-            self.assertFalse(info_bad["correct"])
+            _, reward_dict, _, _, info_dict = env.step({agent_id: "__wrong__"})
+            self.assertEqual(reward_dict[agent_id], 0.0)
+            self.assertFalse(info_dict[agent_id]["correct"])
 
     def test_shuffle_sampling_no_repeats_in_epoch(self):
         with tempfile.TemporaryDirectory() as d:
@@ -92,16 +99,67 @@ class TestOfflineSingleTurnEnv(unittest.TestCase):
                 datasource_kwargs={"data_path": str(dataset_path)},
                 shuffle=True,
                 grader="exact_match",
+                num_players=1,
             )
 
+            agent_id = "agent_0"
+
             # With 2 samples, first two resets should cover both indices (no repeats).
-            _, info_a = env.reset(seed=123)
-            _, info_b = env.reset()
-            self.assertNotEqual(info_a["index"], info_b["index"])
+            _, info_dict_a = env.reset(seed=123)
+            _, info_dict_b = env.reset()
+            self.assertNotEqual(
+                info_dict_a[agent_id]["index"], info_dict_b[agent_id]["index"]
+            )
 
             # Next reset starts a new epoch; index can repeat across epochs.
-            _, info_c = env.reset()
-            self.assertIn(info_c["index"], {0, 1})
+            _, info_dict_c = env.reset()
+            self.assertIn(info_dict_c[agent_id]["index"], {0, 1})
+
+    def test_batch_size_multiple_agents(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            dataset_path = self._write_dataset(root)
+
+            num_players = 16
+            env = gym_v.make(
+                "Offline/SingleTurn-v0",
+                datasource_type="jsonl",
+                datasource_kwargs={"data_path": str(dataset_path)},
+                shuffle=True,
+                grader="exact_match",
+                num_players=num_players,
+            )
+
+            obs_dict, info_dict = env.reset(seed=42)
+
+            # Check all agents have observations and info
+            self.assertEqual(len(obs_dict), num_players)
+            self.assertEqual(len(info_dict), num_players)
+
+            for i in range(num_players):
+                agent_id = f"agent_{i}"
+                self.assertIn(agent_id, obs_dict)
+                self.assertIn(agent_id, info_dict)
+                self.assertIsNotNone(obs_dict[agent_id].image)
+                self.assertIsInstance(info_dict[agent_id]["oracle_answer"], str)
+
+            # Each agent answers with their own oracle answer
+            actions = {
+                f"agent_{i}": info_dict[f"agent_{i}"]["oracle_answer"]
+                for i in range(num_players)
+            }
+            _, reward_dict, term_dict, trunc_dict, result_info = env.step(actions)
+
+            # All agents should get reward 1.0 for correct answers
+            for i in range(num_players):
+                agent_id = f"agent_{i}"
+                self.assertEqual(reward_dict[agent_id], 1.0)
+                self.assertTrue(result_info[agent_id]["correct"])
+
+            self.assertTrue(term_dict["__all__"])
+            self.assertTrue(trunc_dict["__all__"])
+
+            env.close()
 
 
 if __name__ == "__main__":
