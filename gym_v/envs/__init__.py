@@ -768,6 +768,17 @@ register(
 )
 
 register(
+    id="RLVE/CardColoringCounting-v0",
+    entry_point="gym_v.envs.rlve.card_coloring_counting:RLVECardColoringCountingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        N=8,
+        K=2,
+        num_players=1,
+    ),
+)
+
+register(
     id="RLVE/CirculatingGrid-v0",
     entry_point="gym_v.envs.rlve.circulating_grid:RLVECirculatingGridEnv",
     max_episode_steps=1,
@@ -813,6 +824,20 @@ register(
         N=10,
         cell_px=60,
         padding=30,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/KnightsAndKnaves-v0",
+    entry_point="gym_v.envs.rlve.knights_and_knaves:RLVEKnightsAndKnavesEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        N=3,
+        depth_constraint=2,
+        width_constraint=2,
+        image_width=1000,
+        image_height=800,
         num_players=1,
     ),
 )
@@ -891,6 +916,20 @@ register(
 )
 
 register(
+    id="RLVE/GraphContainTreeCounting-v0",
+    entry_point="gym_v.envs.rlve.graph_contain_tree_counting:RLVEGraphContainTreeCountingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=8,
+        edge_density=0.5,
+        node_radius=20,
+        image_size=800,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
     id="RLVE/GraphIsomorphism-v0",
     entry_point="gym_v.envs.rlve.graph_isomorphism:RLVEGraphIsomorphismEnv",
     max_episode_steps=1,
@@ -901,6 +940,65 @@ register(
         image_size=800,
         padding=60,
         num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/HamiltonianPath-v0",
+    entry_point="gym_v.envs.rlve.hamiltonian_path:RLVEHamiltonianPathEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        edge_density=0.5,
+        node_radius=18,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/HamiltonianPathExistence-v0",
+    entry_point="gym_v.envs.rlve.hamiltonian_path_existence:RLVEHamiltonianPathExistenceEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        edge_density=0.3,
+        node_radius=18,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/LongestPath-v0",
+    entry_point="gym_v.envs.rlve.longest_path:RLVELongestPathEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        edge_density=0.5,
+        node_radius=18,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/MaximumAchromaticNumber-v0",
+    entry_point="gym_v.envs.rlve.maximum_achromatic_number:RLVEMaximumAchromaticNumberEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=8,
+        edge_density=0.5,
+        node_radius=20,
+        image_size=700,
+        padding=60,
+        num_players=1,
+        rewarding_strategy="(answer/gold)^beta",
+        rewarding_weight=1.0,
+        rewarding_beta=5.0,
     ),
 )
 
@@ -932,6 +1030,49 @@ register(
         rewarding_beta=3.0,
     ),
 )
+register(
+    id="RLVE/MaximumIndependentSetTree-v0",
+    entry_point="gym_v.envs.rlve.maximum_independent_set_tree:RLVEMaximumIndependentSetTreeEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        node_radius=22,
+        image_size=700,
+        padding=60,
+        num_players=1,
+        rewarding_strategy="(answer/gold)^beta",
+        rewarding_weight=1.0,
+        rewarding_beta=3.0,
+    ),
+)
+
+register(
+    id="RLVE/MaximumWeightMatching-v0",
+    entry_point="gym_v.envs.rlve.maximum_weight_matching:RLVEMaximumWeightMatchingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        edge_density=0.5,
+        node_radius=18,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/MinimumChromaticNumber-v0",
+    entry_point="gym_v.envs.rlve.minimum_chromatic_number:RLVEMinimumChromaticNumberEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        edge_density=0.5,
+        node_radius=18,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
 
 register(
     id="RLVE/MinimumDominatingSetGrid-v0",
@@ -956,6 +1097,45 @@ register(
 )
 
 register(
+    id="RLVE/TreeCenter-v0",
+    entry_point="gym_v.envs.rlve.tree_center:RLVETreeCenterEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        node_radius=22,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/TreeAddOneEdgeDiameter-v0",
+    entry_point="gym_v.envs.rlve.tree_add_one_edge_diameter:RLVETreeAddOneEdgeDiameterEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        node_radius=20,
+        image_width=800,
+        image_height=700,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/TreeChangeOneEdgeDiameter-v0",
+    entry_point="gym_v.envs.rlve.tree_change_one_edge_diameter:RLVETreeChangeOneEdgeDiameterEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        N=8,
+        node_radius=22,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
     id="RLVE/TreeColoring-v0",
     entry_point="gym_v.envs.rlve.tree_coloring:RLVETreeColoringEnv",
     max_episode_steps=1,
@@ -964,6 +1144,130 @@ register(
         node_radius=18,
         image_size=700,
         padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/TreeDistanceEqualTriadCounting-v0",
+    entry_point="gym_v.envs.rlve.tree_distance_equal_triad_counting:RLVETreeDistanceEqualTriadCountingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        node_radius=22,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/TreeEvenPartitioning-v0",
+    entry_point="gym_v.envs.rlve.tree_even_partitioning:RLVETreeEvenPartitioningEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=4,
+        max_k=3,
+        node_radius=20,
+        image_size=800,
+        padding=80,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/TreeTopologicalSequenceCounting-v0",
+    entry_point="gym_v.envs.rlve.tree_topological_sequence_counting:RLVETreeTopologicalSequenceCountingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        max_mod=1000000,
+        node_radius=22,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/BinaryTreeLeafNumExpectation-v0",
+    entry_point="gym_v.envs.rlve.binary_tree_leaf_num_expectation:RLVEBinaryTreeLeafNumExpectationEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=15,
+        image_width=800,
+        image_height=600,
+        node_radius=20,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/FbiBinaryTree-v0",
+    entry_point="gym_v.envs.rlve.fbi_binary_tree:RLVEFbiBinaryTreeEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=5,
+        probability_same_as_before=0.7,
+        image_width=1000,
+        image_height=800,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/MinimumDirectedSpanningTree-v0",
+    entry_point="gym_v.envs.rlve.minimum_directed_spanning_tree:RLVEMinimumDirectedSpanningTreeEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        edge_density=0.5,
+        node_radius=18,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/MinimumSpanningTreeCounting-v0",
+    entry_point="gym_v.envs.rlve.minimum_spanning_tree_counting:RLVEMinimumSpanningTreeCountingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        edge_ratio=2.0,
+        max_mod=10000,
+        weight_range_divisor=10,
+        node_radius=18,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/MinimumWeightedSpanningTree-v0",
+    entry_point="gym_v.envs.rlve.minimum_weighted_spanning_tree:RLVEMinimumWeightedSpanningTreeEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        edge_density=0.5,
+        node_radius=18,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/MixedGraphEulerianCircuit-v0",
+    entry_point="gym_v.envs.rlve.mixed_graph_eulerian_circuit:RLVEMixedGraphEulerianCircuitEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        image_size=800,
+        padding=80,
+        node_radius=20,
         num_players=1,
     ),
 )
@@ -1017,6 +1321,20 @@ register(
         max_height=5,
         cell_px=48,
         padding=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/ColoringCounting-v0",
+    entry_point="gym_v.envs.rlve.coloring_counting:RLVEColoringCountingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=8,
+        edge_density=0.5,
+        node_radius=20,
+        image_size=800,
+        padding=60,
         num_players=1,
     ),
 )
@@ -1163,6 +1481,33 @@ register(
         rewarding_weight=1.0,
         rewarding_beta=5.0,
         fig_size=(8, 8),
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/WeightedBinarytree-v0",
+    entry_point="gym_v.envs.rlve.weighted_binarytree:RLVEWeightedBinarytreeEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=8,
+        max_score=10,
+        image_width=800,
+        image_height=600,
+        node_radius=25,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/WhackAMole-v0",
+    entry_point="gym_v.envs.rlve.whack_a_mole:RLVEWhackAMoleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=4,
+        max_beat=3,
+        cell_px=80,
+        padding=24,
         num_players=1,
     ),
 )
