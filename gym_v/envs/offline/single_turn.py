@@ -160,16 +160,3 @@ class OfflineSingleTurnEnv(Env):
             },
             info_dict,
         )
-
-    def render(self) -> list[Image.Image]:
-        """Return list of images for all agents (in agent_id order)."""
-        if not self._current_samples:
-            raise RuntimeError("no current samples, call reset() first")
-
-        images = []
-        for agent_id in self._agent_ids:
-            sample = self._current_samples[agent_id]
-            if sample.image is None:
-                raise RuntimeError(f"agent {agent_id} has no image in current sample")
-            images.append(sample.image)
-        return images
