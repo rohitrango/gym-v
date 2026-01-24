@@ -1332,17 +1332,7 @@ register(
     ),
 )
 
-register(
-    id="RLVE/PreorderTraversal-v0",
-    entry_point="gym_v.envs.rlve.preorder_traversal:RLVEPreorderTraversalEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n=7,
-        cell_px=80,
-        padding=40,
-        num_players=1,
-    ),
-)
+
 
 register(
     id="RLVE/MagicSquarePuzzle-v0",
@@ -1619,22 +1609,7 @@ register(
     ),
 )
 
-register(
-    id="RLVE/RoundtableAssignment-v0",
-    entry_point="gym_v.envs.rlve.roundtable_assignment:RLVERoundtableAssignmentEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n_m=5,
-        wrong_format=-1.0,
-        invalid_solution=-0.5,
-        rewarding_strategy="(satisfied/all)^beta",
-        rewarding_weight=1.0,
-        rewarding_beta=5.0,
-        cell_px=100,
-        padding=40,
-        num_players=1,
-    ),
-)
+
 
 register(
     id="RLVE/WarehouseConstruction-v0",
@@ -1697,15 +1672,7 @@ register(
     ),
 )
 
-register(
-    id="RLVE/QuantumLockPuzzle-v0",
-    entry_point="gym_v.envs.rlve.quantum_lock_puzzle:RLVEQuantumLockPuzzleEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        operation_weights=[0.4, 0.4, 0.2],
-        num_players=1,
-    ),
-)
+
 
 register(
     id="RLVE/NewNimGame-v0",

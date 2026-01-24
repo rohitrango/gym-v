@@ -229,7 +229,7 @@ Each player plays optimally to maximize **their score minus their opponent's sco
 
         # Layout configuration
         title_height = 60
-        legend_height = 180
+        legend_height = 80
         numbers_per_row = min(10, n_numbers)
         n_rows = (n_numbers + numbers_per_row - 1) // numbers_per_row
 
@@ -332,25 +332,8 @@ Each player plays optimally to maximize **their score minus their opponent's sco
         # Draw legend
         legend_y = numbers_y + grid_height + padding
 
-        # Game rules section
-        rules_title = "Game Rules:"
-        draw.text((padding, legend_y), rules_title, fill=(30, 30, 30), font=font_medium)
-        legend_y += 25
-
-        rules = [
-            "• Alice goes first, then alternating turns",
-            "• Each turn: Choose subset → Add MIN to score → Remove subset",
-            "• Both play optimally to maximize (own score - opponent score)",
-        ]
-
-        for rule in rules:
-            draw.text((padding + 10, legend_y), rule, fill=(60, 60, 60), font=font_small)
-            legend_y += 20
-
-        legend_y += 10
-
-        # Visual legend
-        legend_title = "Visual Guide:"
+        # Visual legend - color gradient
+        legend_title = "Color Legend:"
         draw.text((padding, legend_y), legend_title, fill=(30, 30, 30), font=font_medium)
         legend_y += 25
 

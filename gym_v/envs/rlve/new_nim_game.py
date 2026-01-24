@@ -423,7 +423,7 @@ Your task: Choose which heaps to remove **in your first move** so that you **gua
 
         # Calculate dimensions
         title_height = 80
-        legend_height = 220
+        legend_height = 60
         piles_area_height = pile_height + 60
 
         total_pile_width = num_piles * pile_width + (num_piles - 1) * 20
@@ -553,25 +553,8 @@ Your task: Choose which heaps to remove **in your first move** so that you **gua
         legend_y = piles_y + piles_area_height + padding
         legend_x = padding + 20
 
-        # Title for legend
-        legend_title = "Game Rules:"
-        draw.text((legend_x, legend_y), legend_title, fill=(30, 30, 30), font=font_medium)
-        legend_y += 30
-
-        # Rules
-        rules = [
-            "• First Round - Phase 1: You remove any heaps (but not all)",
-            "• First Round - Phase 2: Opponent removes any heaps (but not all)",
-            "• From Round 2: Standard Nim (remove matches from one heap)",
-            "• Goal: Player who takes the last match wins",
-            "• Both players play optimally",
-            "",
-            "Your Task: Choose heaps to remove to guarantee victory",
-            "             while minimizing total matches removed",
-        ]
-
-        for rule in rules:
-            draw.text((legend_x, legend_y), rule, fill=(60, 60, 60), font=font_small)
-            legend_y += 20
+        # Simple footer
+        legend_text = "Modified Nim: Two-phase first round, then standard Nim. Details in description."
+        draw.text((legend_x, legend_y), legend_text, fill=(80, 80, 80), font=font_small)
 
         return img

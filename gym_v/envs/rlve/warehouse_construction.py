@@ -385,7 +385,7 @@ You can choose to build warehouses at any subset of factories.
         cell_w = self._cell_width
         padding = self._padding
         mountain_width = 150
-        title_height = 60
+        title_height = 100
         legend_height = 120
 
         width = padding * 2 + mountain_width + cell_w + 100

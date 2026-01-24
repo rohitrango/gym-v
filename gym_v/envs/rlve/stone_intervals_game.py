@@ -299,7 +299,7 @@ Assuming both players play optimally to maximize their own total number of colle
         max_bar_height = 200
         number_line_y = 300
         legend_start_y = 380
-        legend_height = 200
+        legend_height = 60
 
         width = padding * 2 + (self._n - 1) * pile_spacing + 100
         height = number_line_y + legend_height + padding
@@ -436,74 +436,11 @@ Assuming both players play optimally to maximize their own total number of colle
                     font=font_small,
                 )
 
-        # Draw legend
+        # Draw simple footer
         legend_y = legend_start_y
+        footer_text = f"Green bars = valid moves | Red circles = empty piles | Blue bars = blocked"
         draw.text(
-            (padding, legend_y), "Game Rules:", fill=(30, 30, 30), font=font_medium
-        )
-        legend_y += 30
-
-        rules = [
-            "• Alice goes first, then alternates with Bob",
-            "• Can only take from piles adjacent to empty (0) piles",
-            "• Take ALL stones from the selected pile",
-            "• Both players play optimally to maximize their own score",
-        ]
-
-        for rule in rules:
-            draw.text((padding + 10, legend_y), rule, fill=(60, 60, 60), font=font_small)
-            legend_y += 22
-
-        legend_y += 15
-
-        # Draw color legend
-        draw.text(
-            (padding, legend_y), "Visual Guide:", fill=(30, 30, 30), font=font_medium
-        )
-        legend_y += 30
-
-        # Blue bar indicator
-        draw.rectangle(
-            [padding + 10, legend_y, padding + 30, legend_y + 20],
-            fill=(100, 150, 255),
-            outline=(60, 100, 200),
-            width=2,
-        )
-        draw.text(
-            (padding + 40, legend_y + 2),
-            "Pile with stones (not adjacent to empty)",
-            fill=(60, 60, 60),
-            font=font_small,
-        )
-        legend_y += 30
-
-        # Green bar indicator
-        draw.rectangle(
-            [padding + 10, legend_y, padding + 30, legend_y + 20],
-            fill=(46, 204, 64),
-            outline=(30, 150, 40),
-            width=3,
-        )
-        draw.text(
-            (padding + 40, legend_y + 2),
-            "Valid move (adjacent to empty pile)",
-            fill=(60, 60, 60),
-            font=font_small,
-        )
-        legend_y += 30
-
-        # Red circle indicator
-        draw.ellipse(
-            [padding + 15, legend_y + 5, padding + 25, legend_y + 15],
-            fill=(255, 65, 54),
-            outline=(200, 40, 30),
-            width=2,
-        )
-        draw.text(
-            (padding + 40, legend_y + 2),
-            "Empty pile (0 stones)",
-            fill=(60, 60, 60),
-            font=font_small,
+            (padding, legend_y), footer_text, fill=(80, 80, 80), font=font_small
         )
 
         return img

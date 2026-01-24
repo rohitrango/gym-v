@@ -416,36 +416,33 @@ If both players always play optimally, who will win — Stan or Ollie?
         )
 
         # Draw legend at bottom
-        legend_y = height - footer_height + 10
+        legend_y = height - footer_height + 15
 
-        # Legend for splittable piles
+        # Legend for pile colors
         legend_x = padding + 20
         draw.rectangle(
-            [legend_x, legend_y, legend_x + 30, legend_y + 20],
+            [legend_x, legend_y, legend_x + 25, legend_y + 20],
             fill=(139, 90, 43),
             outline=(100, 60, 30),
             width=2,
         )
-        legend_text = f"Can split (≥{self._f} stones)"
         draw.text(
-            (legend_x + 40, legend_y + 3),
-            legend_text,
+            (legend_x + 35, legend_y + 3),
+            f"≥{self._f} stones (splittable)",
             fill=(60, 60, 60),
             font=font_small,
         )
 
-        # Legend for non-splittable piles
-        legend_x2 = legend_x + 250
+        legend_x2 = legend_x + 220
         draw.rectangle(
-            [legend_x2, legend_y, legend_x2 + 30, legend_y + 20],
+            [legend_x2, legend_y, legend_x2 + 25, legend_y + 20],
             fill=(180, 170, 160),
             outline=(140, 130, 120),
             width=2,
         )
-        legend_text2 = f"Cannot split (<{self._f} stones)"
         draw.text(
-            (legend_x2 + 40, legend_y + 3),
-            legend_text2,
+            (legend_x2 + 35, legend_y + 3),
+            f"<{self._f} stones",
             fill=(60, 60, 60),
             font=font_small,
         )

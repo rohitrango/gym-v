@@ -392,7 +392,7 @@ Please fill a jug (you pick the one) with exactly {target_volumn} liters of wate
         max_capacity = max(self._jug_capacities)
 
         # Calculate dimensions
-        title_height = 80
+        title_height = 120
         total_width = padding * 2 + n_jugs * jug_width + (n_jugs - 1) * padding
         total_height = padding * 3 + title_height + jug_height
 

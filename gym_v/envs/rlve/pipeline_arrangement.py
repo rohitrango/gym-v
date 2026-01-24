@@ -279,7 +279,7 @@ Try your best to **minimize the time** when the **last product finishes** on mac
 
         # Calculate dimensions
         n = self._n
-        title_height = 80
+        title_height = 120
         machine_label_width = 120
         products_width = n * cell_width
         table_height = 40 + (n + 1) * 30  # Header + rows

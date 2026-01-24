@@ -109,11 +109,8 @@ from gym_v.envs.rlve.tree_topological_sequence_counting import (
 from gym_v.envs.rlve.twiddle_puzzle import RLVETwiddlePuzzleEnv
 from gym_v.envs.rlve.warehouse_construction import RLVEWarehouseConstructionEnv
 from gym_v.envs.rlve.weighted_binarytree import RLVEWeightedBinarytreeEnv
-from gym_v.envs.rlve.roundtable_assignment import RLVERoundtableAssignmentEnv
 from gym_v.envs.rlve.tetris_attack import RLVETetrisAttackEnv
 from gym_v.envs.rlve.whack_a_mole import RLVEWhackAMoleEnv
-from gym_v.envs.rlve.quantum_lock_puzzle import RLVEQuantumLockPuzzleEnv
-from gym_v.envs.rlve.preorder_traversal import RLVEPreorderTraversalEnv
 from gym_v.envs.rlve.stone_game import RLVEStoneGameEnv
 from gym_v.envs.rlve.stone_intervals_game import RLVEStoneIntervalsGameEnv
 from gym_v.envs.rlve.new_nim_game import RLVENewNimGameEnv

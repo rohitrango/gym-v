@@ -277,7 +277,7 @@ Assuming both players play optimally, what is the **maximum total value** Alice 
 
         # Space for title and legend
         title_height = 60
-        legend_height = 200
+        legend_height = 80
 
         width = padding * 2 + coin_row_width
         height = padding * 3 + title_height + coin_height + legend_height
@@ -366,32 +366,26 @@ Assuming both players play optimally, what is the **maximum total value** Alice 
         # Draw legend
         legend_y = coin_y + coin_height + padding * 2
 
-        # Title for legend
-        legend_title = "Game Rules:"
-        draw.text((padding, legend_y), legend_title, fill=(30, 30, 30), font=font_small)
-        legend_y += 30
-
         # Player indicators
         alice_color = (100, 149, 237)  # Cornflower blue
         bob_color = (220, 20, 60)  # Crimson
 
         # Alice indicator
-        alice_y = legend_y
         draw.rectangle(
-            [padding + 10, alice_y, padding + 30, alice_y + 20],
+            [padding + 10, legend_y, padding + 30, legend_y + 20],
             fill=alice_color,
             outline=(30, 30, 30),
             width=1,
         )
         draw.text(
-            (padding + 40, alice_y + 2),
+            (padding + 40, legend_y + 2),
             "Alice (goes first)",
             fill=(30, 30, 30),
             font=font_tiny,
         )
 
         # Bob indicator
-        bob_y = alice_y + 30
+        bob_y = legend_y + 30
         draw.rectangle(
             [padding + 10, bob_y, padding + 30, bob_y + 20],
             fill=bob_color,
@@ -401,23 +395,5 @@ Assuming both players play optimally, what is the **maximum total value** Alice 
         draw.text(
             (padding + 40, bob_y + 2), "Bob", fill=(30, 30, 30), font=font_tiny
         )
-
-        # Rules text
-        rules_y = bob_y + 35
-        rules = [
-            "• Players take turns removing leftmost coins",
-            "• Alice's 1st turn: take 1 or 2 coins",
-            "• After taking k coins: next player can take 1 to 2k coins",
-            "• Both players play optimally",
-            "• Goal: Find Alice's maximum score",
-        ]
-
-        for i, rule in enumerate(rules):
-            draw.text(
-                (padding + 10, rules_y + i * 20),
-                rule,
-                fill=(60, 60, 60),
-                font=font_tiny,
-            )
 
         return img
