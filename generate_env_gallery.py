@@ -81,16 +81,13 @@ BATCH_3_ENVS = [
     "RLVE/MatrixRmqCounting-v0",
     "RLVE/MatrixPermutationMainDiagonalOne-v0",
     "RLVE/MatrixPermutationBothDiagonalOne-v0",
-    # Phase 2: Spatial Layout (3)
+    # Phase 2: Spatial Layout (2)
     "RLVE/PipelineArrangement-v0",
-    "RLVE/RoundtableAssignment-v0",
     "RLVE/WarehouseConstruction-v0",
-    # Phase 3: Sequence & Permutation (5)
+    # Phase 3: Sequence & Permutation (3)
     "RLVE/TetrisAttack-v0",
     "RLVE/JugPuzzle-v0",
-    "RLVE/QuantumLockPuzzle-v0",
     "RLVE/FaceRightWay-v0",
-    "RLVE/PreorderTraversal-v0",
     # Phase 4: Games & Interactive (6)
     "RLVE/StoneGame-v0",
     "RLVE/StoneIntervalsGame-v0",
@@ -279,7 +276,7 @@ def generate_html_gallery():
 
         <div class="stats">
             <div class="stat-item">
-                <div class="stat-number">76</div>
+                <div class="stat-number">73</div>
                 <div class="stat-label">Total Environments</div>
             </div>
             <div class="stat-item">
@@ -291,11 +288,11 @@ def generate_html_gallery():
                 <div class="stat-label">Batch 2</div>
             </div>
             <div class="stat-item">
-                <div class="stat-number">24</div>
+                <div class="stat-number">21</div>
                 <div class="stat-label">Batch 3</div>
             </div>
             <div class="stat-item">
-                <div class="stat-number">380</div>
+                <div class="stat-number">365</div>
                 <div class="stat-label">Images (5 seeds each)</div>
             </div>
         </div>
@@ -303,9 +300,9 @@ def generate_html_gallery():
     ]
 
     batches = [
-        ("Batch 1: Grid Puzzles, Graphs, Geometry & Blocks", BATCH_1_ENVS),
-        ("Batch 2: Graph Structures, Trees & Card Games", BATCH_2_ENVS),
-        ("Batch 3: Matrix, Spatial, Sequences, Games & Visualization", BATCH_3_ENVS),
+        ("Batch 1: Grid Puzzles, Graphs, Geometry & Blocks (27 envs)", BATCH_1_ENVS),
+        ("Batch 2: Graph Structures, Trees & Card Games (25 envs)", BATCH_2_ENVS),
+        ("Batch 3: Matrix, Spatial, Sequences, Games & Visualization (21 envs)", BATCH_3_ENVS),
     ]
 
     seeds = [42, 123, 456, 789, 1337]
