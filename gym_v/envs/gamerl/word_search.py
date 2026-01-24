@@ -99,7 +99,7 @@ class GameRLWordSearchQAEnv(Env):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self._question_type = question_type
+        self._question_type_param = question_type
         self._grid_size_param = grid_size
         self._cell_size = cell_size
         self._margin = 0
@@ -133,15 +133,24 @@ class GameRLWordSearchQAEnv(Env):
         self._grid_size: int = 5
 
         # Question state
-        self._current_question: str = ""
+        self._question_type_idx: int = 0
+        self._question: str = ""
+        self._options: list[str] | None = None
         self._oracle_answer: str = ""
         self._current_q_type: dict[str, Any] = self.QUESTION_TYPES[0]
 
     @property
     def description(self) -> str:
-        return (
-            GAME_RULES + "\n\n" + self._current_question + "\n" + ANSWER_FORMAT_PROMPT
-        )
+        """Return game rules + current question + answer format."""
+        desc = GAME_RULES + "\n\n**Question:** " + self._question
+
+        if self._options:
+            desc += "\n\n**Options:**\n"
+            for opt in self._options:
+                desc += f"{opt}\n"
+
+        desc += ANSWER_FORMAT_PROMPT
+        return desc.strip()
 
     def _get_state_text(self) -> str:
         """Generate text description of current Word Search grid.
@@ -159,10 +168,12 @@ Grid (uppercase letters):
         super().reset(seed=seed)
 
         # Select question type
-        if self._question_type is not None:
-            q_type = self.QUESTION_TYPES[self._question_type]
+        if self._question_type_param is not None:
+            self._question_type_idx = self._question_type_param
+            q_type = self.QUESTION_TYPES[self._question_type_idx]
         else:
-            q_type = random.choice(self.QUESTION_TYPES)
+            self._question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
+            q_type = self.QUESTION_TYPES[self._question_type_idx]
 
         self._current_q_type = q_type
 
@@ -189,16 +200,19 @@ Grid (uppercase letters):
             f"Reset Word Search QA ({self._grid_size}x{self._grid_size}, question: {q_type['name']})."
         )
 
+        text_state = self._get_state_text()
         obs = Observation(
             image=self.render(),
-            text=self._get_state_text(),
+            text=text_state,
             metadata={
-                "question": self._current_question,
+                "text_state": text_state,
+                "question": self._question,
+                "options": self._options,
                 "question_type": q_type["name"],
                 "level": q_type["level"],
             },
         )
-        info = {"oracle_answer": self._oracle_answer, "question_type": q_type}
+        info = {"seed": seed, "oracle_answer": self._oracle_answer, "question_type": q_type["name"]}
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
         }
@@ -365,16 +379,9 @@ Grid (uppercase letters):
         random.shuffle(options)
         correct_idx = options.index(correct_letter) + 1
 
-        # Format question
-        options_text = "\n".join([f"{i+1}: {opt}" for i, opt in enumerate(options)])
-        self._current_question = dedent(f"""
-            **Question (Easy - Target Perception):**
-            What letter is at row {row + 1}, column {col + 1}?
-
-            Options:
-            {options_text}
-        """).strip()
-
+        # Format question - separate question and options
+        self._question = f"What letter is at row {row + 1}, column {col + 1}?"
+        self._options = [f"{i+1}: {opt}" for i, opt in enumerate(options)]
         self._oracle_answer = str(correct_idx)
 
     def _generate_letter_count_question(self) -> None:
@@ -394,16 +401,9 @@ Grid (uppercase letters):
         random.shuffle(options)
         correct_idx = options.index(count) + 1
 
-        # Format question
-        options_text = "\n".join([f"{i+1}: {opt}" for i, opt in enumerate(options)])
-        self._current_question = dedent(f"""
-            **Question (Medium - Target Perception):**
-            How many times does the letter '{letter}' appear in the grid?
-
-            Options:
-            {options_text}
-        """).strip()
-
+        # Format question - separate question and options
+        self._question = f"How many times does the letter '{letter}' appear in the grid?"
+        self._options = [f"{i+1}: {opt}" for i, opt in enumerate(options)]
         self._oracle_answer = str(correct_idx)
 
     def _generate_word_direction_question(self) -> None:
@@ -433,16 +433,9 @@ Grid (uppercase letters):
         random.shuffle(options)
         correct_idx = options.index(dir_name) + 1
 
-        # Format question
-        options_text = "\n".join([f"{i+1}: {opt}" for i, opt in enumerate(options)])
-        self._current_question = dedent(f"""
-            **Question (Medium - Target Perception):**
-            Starting from position (row {start_row + 1}, column {start_col + 1}), in which direction can you find the word '{word}'?
-
-            Options:
-            {options_text}
-        """).strip()
-
+        # Format question - separate question and options
+        self._question = f"Starting from position (row {start_row + 1}, column {start_col + 1}), in which direction can you find the word '{word}'?"
+        self._options = [f"{i+1}: {opt}" for i, opt in enumerate(options)]
         self._oracle_answer = str(correct_idx)
 
     def _generate_find_word_location_question(self) -> None:
@@ -502,16 +495,9 @@ Grid (uppercase letters):
         random.shuffle(options)
         correct_idx = options.index(correct_option) + 1
 
-        # Format question
-        options_text = "\n".join([f"{i+1}: {opt}" for i, opt in enumerate(options)])
-        self._current_question = dedent(f"""
-            **Question (Hard - Target Perception):**
-            Find the word '{word}' in the grid. Where does it start and in which direction does it go?
-
-            Options:
-            {options_text}
-        """).strip()
-
+        # Format question - separate question and options
+        self._question = f"Find the word '{word}' in the grid. Where does it start and in which direction does it go?"
+        self._options = [f"{i+1}: {opt}" for i, opt in enumerate(options)]
         self._oracle_answer = str(correct_idx)
 
     def _check_answer(self, answer: str) -> bool:

@@ -354,17 +354,33 @@ class GameRL3DReconstructionQAEnv(Env):
         """Initialize 3D Reconstruction QA environment."""
         super().__init__(**kwargs)
         self._plot_level = plot_level
-        self._question_type = question_type
+        self._question_type_param = question_type
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
         self._game = None
         self._game_state = None
-        self._current_question = None
+
+        # Standard QA variables
+        self._question_type_idx: int = 0
+        self._question: str = ""
+        self._options: list[str] | None = None
+        self._oracle_answer: str = ""
+
+    ANSWER_FORMAT_PROMPT = dedent("""
+        **Answer Format:**
+        Provide your answer directly. For multiple choice, respond with the letter only.
+    """).strip()
 
     @property
     def description(self) -> str:
-        """Return environment description with game rules."""
-        return "3D Reconstruction QA\n\n" + GAME_RULES
+        """Return game rules + current question + answer format."""
+        desc = GAME_RULES + "\n\n**Question:** " + self._question
+        if self._options:
+            desc += "\n\n**Options:**\n"
+            for opt in self._options:
+                desc += f"{opt}\n"
+        desc += "\n\n" + self.ANSWER_FORMAT_PROMPT
+        return desc.strip()
 
     def _get_state_text(self) -> str:
         """Generate text description of current 3D reconstruction state."""
@@ -410,12 +426,17 @@ class GameRL3DReconstructionQAEnv(Env):
         self._game_state = self._game.get_game_state()
 
         # Generate question
-        q_type = (
-            self._question_type
-            if self._question_type is not None
-            else random.randint(0, 5)
-        )
-        self._current_question = self._generate_question(q_type)
+        if self._question_type_param is not None:
+            self._question_type_idx = self._question_type_param
+        else:
+            self._question_type_idx = random.randint(0, 5)
+        q_type = self.QUESTION_TYPES[self._question_type_idx]
+
+        # Generate question - sets _question, _options, _oracle_answer
+        result = self._generate_question(self._question_type_idx)
+        self._question = result["question"]
+        self._options = result.get("options")
+        self._oracle_answer = result["answer"]
 
         # Generate text state
         text_state = self._get_state_text()
@@ -424,13 +445,18 @@ class GameRL3DReconstructionQAEnv(Env):
             image=self.render(),
             text=text_state,
             metadata={
-                "question": self._current_question["question"],
+                "text_state": text_state,
+                "question": self._question,
+                "options": self._options,
+                "question_type": q_type["name"],
+                "level": q_type["level"],
             },
         )
 
         info = {
-            "oracle_answer": self._current_question["answer"],
-            "question_type": self.QUESTION_TYPES[q_type]["id"],
+            "seed": seed,
+            "oracle_answer": self._oracle_answer,
+            "question_type": q_type["id"],
         }
 
         return {agent_id: obs for agent_id in self._agent_ids}, {
@@ -673,16 +699,11 @@ class GameRL3DReconstructionQAEnv(Env):
         proj_name = "Y-Z" if check_yz else "X-Z"
 
         question = (
-            f"{GAME_RULES}\n"
-            f"Action:\n"
-            f"Add {len(new_voxels)} voxels at positions: {sorted(new_voxels)}\n\n"
-            f"Question:\n"
-            f"After adding these voxels, what will be the {proj_name} projection of the new structure?\n\n"
-            "Answer Format:\n"
-            "1. Write the answer as a list of three lists: [[row1], [row2], [row3]]\n"
-            "2. Each row should contain three numbers (0 or 1)\n"
-            "3. Rows are ordered from top to bottom of the projection\n"
-            "4. Example format: [[0, 1, 0], [1, 1, 0], [0, 1, 1]]\n"
+            f"Action: Add {len(new_voxels)} voxels at positions: {sorted(new_voxels)}. "
+            f"After adding these voxels, what will be the {proj_name} projection of the new structure? "
+            "Write the answer as a list of three lists: [[row1], [row2], [row3]], "
+            "where each row contains three numbers (0 or 1), ordered from top to bottom. "
+            "Example format: [[0, 1, 0], [1, 1, 0], [0, 1, 1]]"
         )
 
         if check_yz:
@@ -744,13 +765,7 @@ class GameRL3DReconstructionQAEnv(Env):
             else random.choice(["Y-Z", "X-Z"]) + " target projection"
         )
 
-        question = (
-            f"{GAME_RULES}\n"
-            f"Question:\n"
-            f"Which sequence of voxel additions will make the structure match the {proj_type}?\n"
-            "Choose the correct sequence from the options below.\n\n"
-            "Options:\n"
-        )
+        question = f"Which sequence of voxel additions will make the structure match the {proj_type}?"
 
         correct_option = f"Add voxels at positions: {sorted(minimal_addition)}"
 
@@ -764,9 +779,6 @@ class GameRL3DReconstructionQAEnv(Env):
         all_options = [correct_option] + wrong_options
         random.shuffle(all_options)
 
-        for i, option in enumerate(all_options, 1):
-            question += f"{i}: {option}\n"
-
         correct_index = all_options.index(correct_option) + 1
 
         analysis = f"The minimal solution to match the {proj_type} is to add voxels at {sorted(minimal_addition)}.\nTherefore, the correct answer is option {correct_index}."
@@ -774,6 +786,7 @@ class GameRL3DReconstructionQAEnv(Env):
         return {
             "question": question,
             "answer": str(correct_index),
+            "options": all_options,
             "analysis": analysis,
         }
 
@@ -782,11 +795,8 @@ class GameRL3DReconstructionQAEnv(Env):
         minimal_addition = self._game_state["minimal_addition"]["positions"]
 
         question = (
-            f"{GAME_RULES}\n"
-            "Question:\n"
-            "What is the minimum number of voxels needed to add to the current structure\n"
-            "to make it match both target projections?\n\n"
-            "Please answer with a number."
+            "What is the minimum number of voxels needed to add to the current structure "
+            "to make it match both target projections? Please answer with a number."
         )
 
         answer = str(len(minimal_addition))
@@ -804,23 +814,20 @@ class GameRL3DReconstructionQAEnv(Env):
         dict[str, Any],
     ]:
         """Process answer to current question."""
-        if self._current_question is None:
+        if not self._question:
             raise RuntimeError("No question generated. Call reset() first.")
 
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
 
         # Check answer
-        correct = action_str.strip() == self._current_question["answer"].strip()
+        correct = action_str.strip() == self._oracle_answer.strip()
         reward = 1.0 if correct else 0.0
 
         if correct:
             response = "Correct!"
         else:
-            response = (
-                f"Incorrect. The correct answer is: {self._current_question['answer']}\n\n"
-                f"{self._current_question['analysis']}"
-            )
+            response = f"Incorrect. The correct answer is: {self._oracle_answer}"
 
         obs = Observation(image=self.render(), text=response)
 

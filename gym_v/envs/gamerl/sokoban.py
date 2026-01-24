@@ -84,7 +84,7 @@ class GameRLSokobanQAEnv(Env):
             num_boxes: Number of boxes (default: 1)
         """
         super().__init__(**kwargs)
-        self._question_type = question_type
+        self._question_type_param = question_type
         self._size = size
         self._num_boxes = num_boxes
         self.num_players = num_players
@@ -95,56 +95,58 @@ class GameRLSokobanQAEnv(Env):
         self._player_x: int = 0
         self._player_y: int = 0
 
-        # Question data
+        # Question data (standard QA variables)
         self._question: str = ""
-        self._answer: str = ""
+        self._options: list[str] | None = None
+        self._oracle_answer: str = ""
         self._analysis: str = ""
-        self._options: list[str] = []
         self._selected_question_type: str = ""
+
+    GAME_RULES = dedent("""
+        Sokoban Game Rules:
+
+        Grid elements:
+        - Empty floor (.)
+        - Wall (#)
+        - Box (B)
+        - Target/Goal (X)
+        - Player (P)
+        - Box on target (*)
+        - Player on target (+)
+
+        Movement rules:
+        - Player can move: Up, Down, Left, Right
+        - Player can push one box at a time
+        - Boxes can only be pushed, not pulled
+        - Boxes cannot be pushed into walls or other boxes
+        - Goal: Push all boxes onto target positions
+
+        Coordinates:
+        - (row, column) format
+        - (0, 0) is top-left corner
+    """).strip()
+
+    ANSWER_FORMAT_PROMPT = dedent("""
+        **Answer Format:**
+        Reply with only the answer (number or option number).
+
+        Examples:
+        - For multiple choice: 1, 2, 3, etc.
+        - For numbers: 42, 100, etc.
+
+        Do not include any explanation or extra text.
+    """).strip()
 
     @property
     def description(self) -> str:
-        base_rules = dedent("""
-            Sokoban Game Rules:
+        """Return game rules + current question + answer format."""
+        desc = self.GAME_RULES + "\n\n**Question:** " + self._question
 
-            Grid elements:
-            - Empty floor (.)
-            - Wall (#)
-            - Box (B)
-            - Target/Goal (X)
-            - Player (P)
-            - Box on target (*)
-            - Player on target (+)
+        if self._options:
+            desc += "\n\n**Options:**\n" + "\n".join(self._options)
 
-            Movement rules:
-            - Player can move: Up, Down, Left, Right
-            - Player can push one box at a time
-            - Boxes can only be pushed, not pulled
-            - Boxes cannot be pushed into walls or other boxes
-            - Goal: Push all boxes onto target positions
-
-            Coordinates:
-            - (row, column) format
-            - (0, 0) is top-left corner
-        """).strip()
-
-        # Add question and answer format if question has been generated
-        if hasattr(self, "_question") and self._question:
-            desc = base_rules + "\n" + self._question
-            desc += """
-
-**Answer Format:**
-Reply with only the answer (number or option number).
-
-Examples:
-- For multiple choice: 1, 2, 3, etc.
-- For numbers: 42, 100, etc.
-
-Do not include any explanation or extra text.
-"""
-            return desc.strip()
-
-        return base_rules.strip()
+        desc += "\n\n" + self.ANSWER_FORMAT_PROMPT
+        return desc.strip()
 
     def _get_state_text(self) -> str:
         """Generate text description of current Sokoban game state.
@@ -184,12 +186,12 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
         super().reset(seed=seed)
 
         # Select question type
-        if self._question_type is None:
+        if self._question_type_param is None:
             self._selected_question_type = random.choice(
                 [qt["id"] for qt in self.QUESTION_TYPES]
             )
         else:
-            self._selected_question_type = self._question_type
+            self._selected_question_type = self._question_type_param
 
         # Generate board
         self._generate_board()
@@ -212,7 +214,7 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
         )
 
         info = {
-            "oracle_answer": self._answer,
+            "oracle_answer": self._oracle_answer,
             "question_type": self._selected_question_type,
         }
 
@@ -320,13 +322,9 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
         random.shuffle(self._options)
         correct_idx = self._options.index(f"({final_pos[0]}, {final_pos[1]})") + 1
 
-        self._question = (
-            self.description.strip() + "\n\n"
-            f"After the moves {', '.join(moves)}, what will be the player's final position?\n\n"
-            f"Options:\n"
-            + "\n".join(f"{i+1}: {opt}" for i, opt in enumerate(self._options))
-        )
-        self._answer = str(correct_idx)
+        self._question = f"After the moves {', '.join(moves)}, what will be the player's final position?"
+        self._options = [f"{i+1}. {opt}" for i, opt in enumerate(self._options)]
+        self._oracle_answer = str(correct_idx)
         self._analysis = (
             f"Starting from position ({self._player_y}, {self._player_x}), "
             f"after moves {', '.join(moves)}, the player ends at position {final_pos}. "
@@ -385,13 +383,11 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
         correct_idx = self._options.index(f"({final_box[1]}, {final_box[0]})") + 1
 
         self._question = (
-            self.description.strip() + "\n\n"
             f"Treat boxes as objects that can move by themselves. "
-            f"After the moves {', '.join(moves)}, where will the box end up?\n\n"
-            f"Options:\n"
-            + "\n".join(f"{i+1}: {opt}" for i, opt in enumerate(self._options))
+            f"After the moves {', '.join(moves)}, where will the box end up?"
         )
-        self._answer = str(correct_idx)
+        self._options = [f"{i+1}. {opt}" for i, opt in enumerate(self._options)]
+        self._oracle_answer = str(correct_idx)
         self._analysis = (
             f"The box starts at ({box_pos[1]}, {box_pos[0]}). "
             f"After moves {', '.join(moves)}, it ends at ({final_box[1]}, {final_box[0]}). "
@@ -403,11 +399,9 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
         # Simplified: just return a random number
         min_steps = random.randint(5, 15)
 
-        self._question = (
-            self.description.strip() + "\n\n"
-            "What is the minimum number of moves needed to solve this puzzle?\n"
-        )
-        self._answer = str(min_steps)
+        self._question = "What is the minimum number of moves needed to solve this puzzle?"
+        self._options = None
+        self._oracle_answer = str(min_steps)
         self._analysis = (
             f"Through pathfinding analysis, the minimum number of moves is {min_steps}."
         )
@@ -431,13 +425,9 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
         random.shuffle(self._options)
         correct_idx = self._options.index(f"({player_pos[0]}, {player_pos[1]})") + 1
 
-        self._question = (
-            self.description.strip() + "\n\n"
-            "What is the current position of the player (row, column)?\n\n"
-            "Options:\n"
-            + "\n".join(f"{i+1}: {opt}" for i, opt in enumerate(self._options))
-        )
-        self._answer = str(correct_idx)
+        self._question = "What is the current position of the player (row, column)?"
+        self._options = [f"{i+1}. {opt}" for i, opt in enumerate(self._options)]
+        self._oracle_answer = str(correct_idx)
         self._analysis = f"The player is at position ({player_pos[0]}, {player_pos[1]}). This is option {correct_idx}."
 
     def _question_state_info_distance(self):
@@ -469,13 +459,9 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
         random.shuffle(self._options)
         correct_idx = self._options.index(str(distance)) + 1
 
-        self._question = (
-            self.description.strip() + "\n\n"
-            "What is the Manhattan distance between the box and the target?\n\n"
-            "Options:\n"
-            + "\n".join(f"{i+1}: {opt}" for i, opt in enumerate(self._options))
-        )
-        self._answer = str(correct_idx)
+        self._question = "What is the Manhattan distance between the box and the target?"
+        self._options = [f"{i+1}. {opt}" for i, opt in enumerate(self._options)]
+        self._oracle_answer = str(correct_idx)
         self._analysis = (
             f"Box position: {box_pos}, Target position: {target_pos}. "
             f"Manhattan distance = |{box_pos[0]} - {target_pos[0]}| + |{box_pos[1]} - {target_pos[1]}| = {distance}. "
@@ -521,13 +507,11 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
         correct_idx = self._options.index(moves) + 1
 
         self._question = (
-            self.description.strip() + "\n\n"
             f"Treat boxes as walls. What is the shortest sequence of moves to go from "
-            f"({start[1]}, {start[0]}) to ({end[1]}, {end[0]})?\n\n"
-            f"Options:\n"
-            + "\n".join(f"{i+1}: {opt}" for i, opt in enumerate(self._options))
+            f"({start[1]}, {start[0]}) to ({end[1]}, {end[0]})?"
         )
-        self._answer = str(correct_idx)
+        self._options = [f"{i+1}. {opt}" for i, opt in enumerate(self._options)]
+        self._oracle_answer = str(correct_idx)
         self._analysis = f"The shortest path is: {moves}. This is option {correct_idx}."
 
     def _find_path(
@@ -592,14 +576,14 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
         action_str = action[agent_id]
 
         action_str = action_str.strip()
-        correct = action_str == self._answer
+        correct = action_str == self._oracle_answer
 
         if correct:
             response = f"Correct! {self._analysis}"
             reward = 1.0
         else:
             response = (
-                f"Incorrect. The correct answer is: {self._answer}\n\n{self._analysis}"
+                f"Incorrect. The correct answer is: {self._oracle_answer}\n\n{self._analysis}"
             )
             reward = 0.0
 
@@ -611,7 +595,7 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
         info = {
             "correct": correct,
             "user_answer": action_str,
-            "oracle_answer": self._answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True

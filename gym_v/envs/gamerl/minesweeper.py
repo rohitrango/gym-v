@@ -127,7 +127,7 @@ class GameRLMinesweeperQAEnv(Env):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self._question_type = question_type
+        self._question_type_param = question_type
         self._difficulty_override = difficulty
         self._cell_size = cell_size
         self._margin = 40
@@ -144,8 +144,8 @@ class GameRLMinesweeperQAEnv(Env):
         self._flagged: list[list[bool]] = []
 
         # Q&A state (initialized in reset)
-        self._current_question_type: int = 0
-        self._current_question: str = ""
+        self._question_type_idx: int = 0
+        self._question: str = ""
         self._oracle_answer: str = ""
         self._answer_format: str = ""
         self._options: list[str] = []
@@ -156,7 +156,7 @@ class GameRLMinesweeperQAEnv(Env):
         game_rules = GAME_RULES_TEMPLATE.format(
             rows=self._rows, cols=self._cols, mines=self._mines
         )
-        desc = game_rules + "\n\n**Question:** " + self._current_question
+        desc = game_rules + "\n\n**Question:** " + self._question
 
         if self._options:
             desc += "\n\n**Options:**\n" + "\n".join(self._options)
@@ -216,10 +216,10 @@ Grid (#=unrevealed, F=flagged, .=revealed empty, 1-8=numbers, M=mine):
         self._generate_game_state()
 
         # Select question type
-        if self._question_type is not None:
-            self._current_question_type = self._question_type
+        if self._question_type_param is not None:
+            self._question_type_idx = self._question_type_param
         else:
-            self._current_question_type = self.np_random.integers(
+            self._question_type_idx = self.np_random.integers(
                 0, len(self.QUESTION_TYPES)
             )
 
@@ -227,7 +227,7 @@ Grid (#=unrevealed, F=flagged, .=revealed empty, 1-8=numbers, M=mine):
         self._generate_qa()
 
         logger.info(
-            f"Reset Minesweeper QA (type={self._current_question_type}, "
+            f"Reset Minesweeper QA (type={self._question_type_idx}, "
             f"difficulty={self._difficulty}, grid={self._rows}x{self._cols})."
         )
 
@@ -235,12 +235,12 @@ Grid (#=unrevealed, F=flagged, .=revealed empty, 1-8=numbers, M=mine):
             image=self.render(),
             text=self._get_state_text(),
             metadata={
-                "question": self._current_question,
+                "question": self._question,
                 "options": self._options,
-                "question_type": self.QUESTION_TYPES[self._current_question_type][
+                "question_type": self.QUESTION_TYPES[self._question_type_idx][
                     "name"
                 ],
-                "level": self.QUESTION_TYPES[self._current_question_type]["level"],
+                "level": self.QUESTION_TYPES[self._question_type_idx]["level"],
                 "difficulty": self._difficulty,
             },
         )
@@ -561,7 +561,7 @@ Grid (#=unrevealed, F=flagged, .=revealed empty, 1-8=numbers, M=mine):
 
     def _generate_qa(self) -> None:
         """Generate question and answer based on question type."""
-        qtype = self._current_question_type
+        qtype = self._question_type_idx
 
         if qtype == 0:
             self._generate_flagged_count_qa()
@@ -579,7 +579,7 @@ Grid (#=unrevealed, F=flagged, .=revealed empty, 1-8=numbers, M=mine):
     def _generate_flagged_count_qa(self) -> None:
         """Q: How many mines are currently flagged?"""
         answer = sum(sum(row) for row in self._flagged)
-        self._current_question = "How many mines are currently flagged?"
+        self._question = "How many mines are currently flagged?"
         self._oracle_answer = str(answer)
         self._options = []
 
@@ -587,14 +587,14 @@ Grid (#=unrevealed, F=flagged, .=revealed empty, 1-8=numbers, M=mine):
         """Q: How many mines are left to be found?"""
         flagged_count = sum(sum(row) for row in self._flagged)
         answer = self._mines - flagged_count
-        self._current_question = "How many mines are left to be found?"
+        self._question = "How many mines are left to be found?"
         self._oracle_answer = str(answer)
         self._options = []
 
     def _generate_revealed_count_qa(self) -> None:
         """Q: How many cells have been revealed?"""
         answer = sum(sum(row) for row in self._revealed)
-        self._current_question = "How many cells have been revealed?"
+        self._question = "How many cells have been revealed?"
         self._oracle_answer = str(answer)
         self._options = []
 
@@ -620,7 +620,7 @@ Grid (#=unrevealed, F=flagged, .=revealed empty, 1-8=numbers, M=mine):
         else:
             answer = "C"
 
-        self._current_question = f"What is the state of the cell at ({row},{col})?"
+        self._question = f"What is the state of the cell at ({row},{col})?"
         self._options = options
         self._oracle_answer = answer
 
@@ -690,7 +690,7 @@ Grid (#=unrevealed, F=flagged, .=revealed empty, 1-8=numbers, M=mine):
             f"D: The cell will reveal the number {value2}.",
         ]
 
-        self._current_question = (
+        self._question = (
             f"What will happen if the player reveals the cell at ({row},{col})?"
         )
         self._options = options
@@ -742,7 +742,7 @@ Grid (#=unrevealed, F=flagged, .=revealed empty, 1-8=numbers, M=mine):
         else:
             answer = "D"
 
-        self._current_question = f"What is the best next move at ({row},{col})?"
+        self._question = f"What is the best next move at ({row},{col})?"
         self._options = options
         self._oracle_answer = answer
 

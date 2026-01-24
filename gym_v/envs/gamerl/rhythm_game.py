@@ -111,47 +111,36 @@ class GameRLRhythmGameQAEnv(Env):
             grid_size if grid_size is not None else self.GRID_SIZES[difficulty]
         )
         self._cell_size = cell_size
-        self._question_type = question_type
+        self._question_type_param = question_type
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         # Game state
         self._grid: list[list[str]] = []
         self._blocks: list[dict[str, Any]] = []
-        self._current_question: dict[str, Any] = {}
+
+        # Standard QA variables
+        self._question_type_idx: int = 0
+        self._question: str = ""
+        self._options: list[str] | None = None
+        self._oracle_answer: str = ""
+
+    ANSWER_FORMAT_PROMPT = dedent("""
+        **Answer Format:**
+        Reply with only the answer (number or option number).
+        For multiple choice: 1, 2, 3, etc. For numbers: 42, 100, etc.
+    """).strip()
 
     @property
     def description(self) -> str:
-        base_desc = dedent(f"""
-            This is a Rhythm Game QA environment.
-
-            {self.GAME_RULES}
-
-            Question Types:
-            - Block Type at Position: Identify block type at given coordinates
-            - Snake Length After Time: Find snake length after falling N seconds
-            - Score for Column: Calculate total score for selecting a column
-
-            The system will present you with a game state and ask a specific question.
-        """).strip()
-
-        # Add question and answer format if question has been generated
-        if hasattr(self, "_current_question") and self._current_question:
-            desc = base_desc + "\n\n" + self._current_question["question"]
-            desc += """
-
-**Answer Format:**
-Reply with only the answer (number or option number).
-
-Examples:
-- For multiple choice: 1, 2, 3, etc.
-- For numbers: 42, 100, etc.
-
-Do not include any explanation or extra text.
-"""
-            return desc.strip()
-
-        return base_desc
+        """Return game rules + current question + answer format."""
+        desc = self.GAME_RULES + "\n\n**Question:** " + self._question
+        if self._options:
+            desc += "\n\n**Options:**\n"
+            for i, opt in enumerate(self._options):
+                desc += f"{i+1}. {opt}\n"
+        desc += "\n\n" + self.ANSWER_FORMAT_PROMPT
+        return desc.strip()
 
     def _get_state_text(self) -> str:
         """Generate text description of current rhythm game state."""
@@ -183,31 +172,35 @@ Do not include any explanation or extra text.
         self._generate_puzzle()
 
         # Select question type
-        if self._question_type is None:
-            question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
+        if self._question_type_param is None:
+            self._question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
         else:
-            question_type_idx = self._question_type
+            self._question_type_idx = self._question_type_param
 
         # Validate question type index
-        if not (0 <= question_type_idx < len(self.QUESTION_TYPES)):
-            raise ValueError(f"Invalid question type index: {question_type_idx}")
+        if not (0 <= self._question_type_idx < len(self.QUESTION_TYPES)):
+            raise ValueError(f"Invalid question type index: {self._question_type_idx}")
 
-        # Get question type ID from index
-        question_type = self.QUESTION_TYPES[question_type_idx]["id"]
+        q_type = self.QUESTION_TYPES[self._question_type_idx]
 
         # Generate question
-        if question_type == "block_type":
-            self._current_question = self._generate_block_type_question()
-        elif question_type == "snake_length":
-            self._current_question = self._generate_snake_length_question()
-        elif question_type == "column_score":
-            self._current_question = self._generate_column_score_question()
+        if q_type["id"] == "block_type":
+            result = self._generate_block_type_question()
+        elif q_type["id"] == "snake_length":
+            result = self._generate_snake_length_question()
+        elif q_type["id"] == "column_score":
+            result = self._generate_column_score_question()
         else:
-            raise ValueError(f"Unknown question type: {question_type}")
+            raise ValueError(f"Unknown question type: {q_type['id']}")
+
+        # Extract to instance variables
+        self._question = result["question"]
+        self._options = result.get("options")
+        self._oracle_answer = result["answer"]
 
         logger.info(
             f"Reset Rhythm Game QA ({self._grid_size[0]}x{self._grid_size[1]}, "
-            f"question: {question_type})."
+            f"question: {q_type['id']})."
         )
 
         # Generate text state
@@ -217,14 +210,18 @@ Do not include any explanation or extra text.
             image=self.render(),
             text=text_state,
             metadata={
-                "question": self._current_question["question"],
-                "options": self._current_question.get("options"),
+                "text_state": text_state,
+                "question": self._question,
+                "options": self._options,
+                "question_type": q_type["name"],
+                "level": q_type["level"],
             },
         )
 
         info = {
-            "oracle_answer": self._current_question["answer"],
-            "question_type": question_type,
+            "seed": seed,
+            "oracle_answer": self._oracle_answer,
+            "question_type": q_type["id"],
         }
 
         return {agent_id: obs for agent_id in self._agent_ids}, {
@@ -249,21 +246,19 @@ Do not include any explanation or extra text.
         truncated = False
 
         # Check answer
-        correct = self._check_answer(action_str.strip())
+        correct = action_str.strip().lower() == self._oracle_answer.strip().lower()
 
         if correct:
             reward = 1.0
             response = "Correct!"
         else:
             reward = 0.0
-            response = (
-                f"Incorrect. The correct answer is: {self._current_question['answer']}"
-            )
+            response = f"Incorrect. The correct answer is: {self._oracle_answer}"
 
         info = {
             "correct": correct,
             "user_answer": action_str.strip(),
-            "oracle_answer": self._current_question["answer"],
+            "oracle_answer": self._oracle_answer,
         }
 
         obs = Observation(image=self.render(), text=response)
@@ -487,14 +482,7 @@ Do not include any explanation or extra text.
         ]
         correct_idx = options.index(block_type) + 1
 
-        options_text = "\n".join([f"{i+1}. {opt}" for i, opt in enumerate(options)])
-
-        question = f"""{self.GAME_RULES}
-
-Question: Which type of block is at row {row}, column {col}?
-
-Options:
-{options_text}"""
+        question = f"Which type of block is at row {row}, column {col}?"
 
         return {"question": question, "answer": str(correct_idx), "options": options}
 
@@ -520,14 +508,7 @@ Options:
         options = ["2", "3", "4", "5"]
         correct_idx = options.index(str(length)) + 1 if str(length) in options else 1
 
-        options_text = "\n".join([f"{i+1}. {opt}" for i, opt in enumerate(options)])
-
-        question = f"""{self.GAME_RULES}
-
-Question: Without selecting any column, what is the length of the snake block headed by ({row_after}, {col}) after {time_k} second(s)?
-
-Options:
-{options_text}"""
+        question = f"Without selecting any column, what is the length of the snake block headed by ({row_after}, {col}) after {time_k} second(s)?"
 
         return {"question": question, "answer": str(correct_idx), "options": options}
 
@@ -539,11 +520,7 @@ Options:
         # Calculate score for this column
         score = self._calculate_column_score(col)
 
-        question = f"""{self.GAME_RULES}
-
-Question: If you select column {col} to click, what is your total score?
-
-(Enter the total score as a number)"""
+        question = f"If you select column {col} to click, what is your total score? (Enter the total score as a number)"
 
         return {"question": question, "answer": str(score)}
 
@@ -604,5 +581,4 @@ Question: If you select column {col} to click, what is your total score?
 
     def _check_answer(self, action: str) -> bool:
         """Check if answer is correct."""
-        correct_answer = self._current_question["answer"]
-        return action.strip().lower() == correct_answer.strip().lower()
+        return action.strip().lower() == self._oracle_answer.strip().lower()

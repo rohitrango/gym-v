@@ -136,7 +136,7 @@ class GameRLMazeQAEnv(Env):
             size in self.SIZE_CONFIG
         ), f"size must be one of {list(self.SIZE_CONFIG.keys())}"
 
-        self._question_type = question_type
+        self._question_type_param = question_type
         self._size_name = size
         self._grid_size = self.SIZE_CONFIG[size]
         self._cell_size = cell_size
@@ -150,8 +150,8 @@ class GameRLMazeQAEnv(Env):
         self._goal_pos: tuple[int, int] = (0, 0)
 
         # Q&A state (initialized in reset)
-        self._current_question_type: int = 1
-        self._current_question: str = ""
+        self._question_type_idx: int = 1
+        self._question: str = ""
         self._oracle_answer: str = ""
         self._answer_format: str = ""
         self._options: list[str] | None = None
@@ -160,7 +160,7 @@ class GameRLMazeQAEnv(Env):
     @property
     def description(self) -> str:
         """Return game rules + current question + answer format."""
-        desc = GAME_RULES + "\n\n**Question:** " + self._current_question
+        desc = GAME_RULES + "\n\n**Question:** " + self._question
 
         if self._options:
             desc += "\n\n**Options:**\n"
@@ -212,37 +212,37 @@ Grid (#=wall, .=path, P=player, G=goal):
         self._generate_maze()
 
         # Select question type (convert 0-based to 1-based)
-        if self._question_type is not None:
+        if self._question_type_param is not None:
             # Validate question type index
-            if not (0 <= self._question_type < len(self.QUESTION_TYPES)):
-                raise ValueError(f"Invalid question type index: {self._question_type}")
+            if not (0 <= self._question_type_param < len(self.QUESTION_TYPES)):
+                raise ValueError(f"Invalid question type index: {self._question_type_param}")
             # Convert 0-based index to 1-based for internal use
-            self._current_question_type = self._question_type + 1
+            self._question_type_idx = self._question_type_param + 1
         else:
-            self._current_question_type = self.np_random.integers(
+            self._question_type_idx = self.np_random.integers(
                 1, len(self.QUESTION_TYPES) + 1
             )
 
         # Generate question and answer
         self._generate_qa()
 
-        logger.info(f"Reset Maze QA (type={self._current_question_type}).")
+        logger.info(f"Reset Maze QA (type={self._question_type_idx}).")
 
         obs = Observation(
             image=self.render(),
             text=self._get_state_text(),
             metadata={
-                "question": self._current_question,
+                "question": self._question,
                 "options": self._options,
-                "question_type": self.QUESTION_TYPES[self._current_question_type - 1][
+                "question_type": self.QUESTION_TYPES[self._question_type_idx - 1][
                     "name"
                 ],
-                "level": self.QUESTION_TYPES[self._current_question_type - 1]["level"],
+                "level": self.QUESTION_TYPES[self._question_type_idx - 1]["level"],
             },
         )
         info = {
             "oracle_answer": self._oracle_answer,
-            "question_type": self._current_question_type,
+            "question_type": self._question_type_idx,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -268,7 +268,7 @@ Grid (#=wall, .=path, P=player, G=goal):
             image=self.render(),
             text=None,
             metadata={
-                "question_type": self.QUESTION_TYPES[self._current_question_type - 1][
+                "question_type": self.QUESTION_TYPES[self._question_type_idx - 1][
                     "name"
                 ],
             },
@@ -298,7 +298,7 @@ Grid (#=wall, .=path, P=player, G=goal):
 
     def _score_answer(self, answer: str) -> float:
         """Score the answer based on answer format."""
-        answer_format = self.QUESTION_TYPES[self._current_question_type - 1][
+        answer_format = self.QUESTION_TYPES[self._question_type_idx - 1][
             "answer_format"
         ]
 
@@ -322,7 +322,7 @@ Grid (#=wall, .=path, P=player, G=goal):
 
     def _generate_qa(self) -> None:
         """Generate question and oracle answer based on current state."""
-        q_type = self._current_question_type
+        q_type = self._question_type_idx
         self._options = None
         self._move_direction = None
 
@@ -341,7 +341,7 @@ Grid (#=wall, .=path, P=player, G=goal):
 
     def _generate_player_pos_qa(self) -> None:
         """Generate player position question."""
-        self._current_question = (
+        self._question = (
             "Which of the following are the coordinates of the player?"
         )
         correct = self._player_pos
@@ -359,7 +359,7 @@ Grid (#=wall, .=path, P=player, G=goal):
 
     def _generate_goal_pos_qa(self) -> None:
         """Generate goal position question."""
-        self._current_question = (
+        self._question = (
             "Which of the following are the coordinates of the goal?"
         )
         correct = self._goal_pos
@@ -377,7 +377,7 @@ Grid (#=wall, .=path, P=player, G=goal):
 
     def _generate_path_qa(self) -> None:
         """Generate path to goal question."""
-        self._current_question = "Which sequence of movements will allow the player to reach the destination?"
+        self._question = "Which sequence of movements will allow the player to reach the destination?"
         path = self._find_path()
 
         if not path:
@@ -403,7 +403,7 @@ Grid (#=wall, .=path, P=player, G=goal):
 
     def _generate_turn_count_qa(self) -> None:
         """Generate turn count question."""
-        self._current_question = "Find the path to the finish and count the number of turns it takes to get there. You only need to provide one number."
+        self._question = "Find the path to the finish and count the number of turns it takes to get there. You only need to provide one number."
         path = self._find_path()
 
         if not path:
@@ -420,7 +420,7 @@ Grid (#=wall, .=path, P=player, G=goal):
 
     def _generate_available_directions_qa(self) -> None:
         """Generate available directions question."""
-        self._current_question = "Which directions are available to move now?"
+        self._question = "Which directions are available to move now?"
         directions = self._get_available_directions()
 
         if not directions:
@@ -491,7 +491,7 @@ Grid (#=wall, .=path, P=player, G=goal):
 
         direction = available_dirs[self.np_random.integers(0, len(available_dirs))]
         self._move_direction = direction
-        self._current_question = (
+        self._question = (
             f"What are the coordinates of player after moving {direction}?"
         )
 

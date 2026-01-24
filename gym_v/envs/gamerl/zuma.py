@@ -109,7 +109,7 @@ class GameRLZumaQAEnv(Env):
             ball_radius: Radius of each ball
         """
         super().__init__(**kwargs)
-        self._question_type = question_type
+        self._question_type_param = question_type
         self._curve_type = curve_type
         self._num_balls = num_balls
         self._ball_radius = ball_radius
@@ -126,48 +126,50 @@ class GameRLZumaQAEnv(Env):
         self._track_data: tuple[np.ndarray, np.ndarray] = (np.array([]), np.array([]))
         self._plot_level: str = "Medium"
 
-        # Question data
+        # Question data (standard QA variables)
         self._question: str = ""
-        self._answer: str = ""
+        self._options: list[str] | None = None
+        self._oracle_answer: str = ""
         self._analysis: str = ""
-        self._options: list[str] = []
         self._selected_question_type: str = ""
+
+    GAME_RULES = dedent("""
+        This is a Zuma game.
+        You need to control a frog to shoot colored marbles from its mouth toward a winding track of approaching marbles.
+        Your goal is to clear all marbles before they reach the black hole at the end of the track.
+        The marbles roll steadily along the track, and the player must fire marbles to create groups of three or more of the same color.
+        These groups will disappear, reducing the number of marbles on the track.
+        The frog will shoot marbles in a straight line.
+        If there is no marble on the track, the shot marble will pass through the track.
+        However, the marble it shoots cannot bypass marbles already in its direct line of fire.
+        In the offered pictures, the frog is represented as a white triangle,
+        with the circle on it representing the next marble it will shoot.
+        The colored marbles are positioned on a gray track.
+        Any directions or angles mentioned in questions are relative to the center of the circle on the frog,
+        with its positive x-axis as the 0-degree reference line.
+    """).strip()
+
+    ANSWER_FORMAT_PROMPT = dedent("""
+        **Answer Format:**
+        Reply with only the answer (number or option number).
+
+        Examples:
+        - For multiple choice: 1, 2, 3, etc.
+        - For numbers: 42, 100, etc.
+
+        Do not include any explanation or extra text.
+    """).strip()
 
     @property
     def description(self) -> str:
-        base_rules = dedent("""
-            This is a Zuma game.
-            You need to control a frog to shoot colored marbles from its mouth toward a winding track of approaching marbles.
-            Your goal is to clear all marbles before they reach the black hole at the end of the track.
-            The marbles roll steadily along the track, and the player must fire marbles to create groups of three or more of the same color.
-            These groups will disappear, reducing the number of marbles on the track.
-            The frog will shoot marbles in a straight line.
-            If there is no marble on the track, the shot marble will pass through the track.
-            However, the marble it shoots cannot bypass marbles already in its direct line of fire.
-            In the offered pictures, the frog is represented as a white triangle,
-            with the circle on it representing the next marble it will shoot.
-            The colored marbles are positioned on a gray track.
-            Any directions or angles mentioned in questions are relative to the center of the circle on the frog,
-            with its positive x-axis as the 0-degree reference line.
-        """).strip()
+        """Return game rules + current question + answer format."""
+        desc = self.GAME_RULES + "\n\n**Question:** " + self._question
 
-        # Add question and answer format if question has been generated
-        if hasattr(self, "_question") and self._question:
-            desc = base_rules + "\n" + self._question
-            desc += """
+        if self._options:
+            desc += "\n\n**Options:**\n" + "\n".join(self._options)
 
-**Answer Format:**
-Reply with only the answer (number or option number).
-
-Examples:
-- For multiple choice: 1, 2, 3, etc.
-- For numbers: 42, 100, etc.
-
-Do not include any explanation or extra text.
-"""
-            return desc.strip()
-
-        return base_rules.strip()
+        desc += "\n\n" + self.ANSWER_FORMAT_PROMPT
+        return desc.strip()
 
     def _get_state_text(self) -> str:
         """Generate text description of current Zuma game state.
@@ -207,10 +209,10 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
         super().reset(seed=seed)
 
         # Select question type
-        if self._question_type is None:
+        if self._question_type_param is None:
             question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
         else:
-            question_type_idx = self._question_type
+            question_type_idx = self._question_type_param
 
         # Validate question type index
         if not (0 <= question_type_idx < len(self.QUESTION_TYPES)):
@@ -252,7 +254,7 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
         )
 
         info = {
-            "oracle_answer": self._answer,
+            "oracle_answer": self._oracle_answer,
             "question_type": self._selected_question_type,
         }
 
@@ -414,16 +416,15 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
     def _question_frog_ball_color(self):
         """Question 1: Color of marble frog will shoot."""
         self._question = (
-            self.description.strip() + "\n\n"
             "What color is the marble that the frog is going to shoot? "
             "Answer in one of the following formats: 'red', 'yellow', 'blue', or 'green'."
         )
-        self._answer = self._frog_color
+        self._options = None
+        self._oracle_answer = self._frog_color
         self._analysis = (
             f"According to the color of the circle on the triangle (frog), "
             f"the answer is {self._frog_color}."
         )
-        self._options = []
 
     def _question_color_count(self):
         """Question 2: Count of specific color marbles."""
@@ -431,16 +432,15 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
         count = sum(1 for ball in self._balls if ball["color"] == target_color)
 
         self._question = (
-            self.description.strip() + "\n\n"
             f"How many {target_color} marbles are there on the track? "
             "Answer as a non-negative integer, such as '0', '1', '2', etc."
         )
-        self._answer = str(count)
+        self._options = None
+        self._oracle_answer = str(count)
         self._analysis = (
             f"By counting the marbles on the track, it can be determined that "
             f"there are {count} {target_color} marbles."
         )
-        self._options = []
 
     def _question_direction_groups(self):
         """Question 3: Number of same-color marble groups in a direction."""
@@ -448,13 +448,13 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
         ball_groups = self._get_ball_groups_in_direction(direction)
 
         self._question = (
-            self.description.strip() + "\n\n"
             f"How many marble groups of two or more same-colored marbles are there at the {direction} side of the frog? "
             f"The direction '{direction}' refers to the region {self.DIRECTION_RANGES[direction]}, which is already divided by dashed lines. "
             f"Any marble group with at least one marble in this region is considered to be in the '{direction}' direction. "
             "Answer as a non-negative integer, such as '0', '1', '2', etc."
         )
-        self._answer = str(len(ball_groups))
+        self._options = None
+        self._oracle_answer = str(len(ball_groups))
 
         # Generate analysis
         color_stats = {}
@@ -487,7 +487,6 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
             analysis_parts.append(".")
         analysis_parts.append(f" So the answer is '{len(ball_groups)}'.")
         self._analysis = "".join(analysis_parts)
-        self._options = []
 
     def _question_angle_shot_color(self):
         """Question 4: Color of marble hit at specific angle."""
@@ -495,12 +494,12 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
         color = self._angle_shot_color(angle)
 
         self._question = (
-            self.description.strip() + "\n\n"
             f"If the frog shoots the marble at {angle} degrees, as shown in the picture, what color is the marble it hits? "
             "If it doesn't hit any marble, answer 'none'. "
             "Answer in one of the following formats: 'red', 'yellow', 'blue', 'green', or 'none'."
         )
-        self._answer = color
+        self._options = None
+        self._oracle_answer = color
 
         if color == "none":
             self._analysis = (
@@ -517,7 +516,6 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
                 f"If there are marbles within this distance, we identify the closest marble to the frog, "
                 f"which is of color {color}. Thus, the frog hits this marble. So the answer is {color}."
             )
-        self._options = []
 
     def _question_angle_shot_result(self):
         """Question 5: Result of shooting at specific angle."""
@@ -528,21 +526,21 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
         is_same_color = (color == ball_color) if is_hit else False
 
         self._question = (
-            self.description.strip() + "\n\n"
             f"If the frog shoots the marble at {angle} degrees, as shown in the picture, "
             "what will happen? Answer with one of the following options: "
             "'The marble left the field.', 'The marble stayed on the track.', or "
             "'[X] marbles on the track were removed.', where [X] is a positive integer."
         )
+        self._options = None
 
         if not is_hit:
-            self._answer = "The marble left the field."
+            self._oracle_answer = "The marble left the field."
             self._analysis = (
                 "The marble shot by the frog did not hit any marbles on the track, "
                 "so the answer is 'The marble left the field.'."
             )
         elif is_hit and not can_remove:
-            self._answer = "The marble stayed on the track."
+            self._oracle_answer = "The marble stayed on the track."
             if is_same_color:
                 self._analysis = (
                     f"The marble shot by the frog hit a {ball_color} marble on the track. "
@@ -559,7 +557,7 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
                     f"So the answer is 'The marble stayed on the track.'."
                 )
         else:
-            self._answer = f"{removal_count} marbles on the track were removed."
+            self._oracle_answer = f"{removal_count} marbles on the track were removed."
             if is_same_color:
                 self._analysis = (
                     f"The marble shot by the frog hit a {ball_color} marble on the track. "
@@ -576,7 +574,6 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
                     f"leading to the removal of {removal_count} marbles. "
                     f"So the answer is '{removal_count} marbles on the track were removed.'."
                 )
-        self._options = []
 
     def _question_optimal_strategy(self):
         """Question 6: Optimal strategy for eliminating marbles."""
@@ -584,16 +581,16 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
         optimal_solution_count = len(directions)
 
         self._question = (
-            self.description.strip() + "\n\n"
             "Can the frog eliminate some marbles on the track by shooting the marble? "
             "If yes, how many marbles (excluding the one being shot) can be eliminated in the best case? "
             "How many distinct optimal solutions (counting different groups in the same direction separately) exist? "
             "Answer in the format: '<Yes/No>, <number of eliminated marbles>, <number of optimal solutions>'. "
             "For example, 'Yes, 3, 2' or 'No, 0, 0'."
         )
+        self._options = None
 
         if can_remove:
-            self._answer = f"Yes, {removal_count}, {optimal_solution_count}"
+            self._oracle_answer = f"Yes, {removal_count}, {optimal_solution_count}"
             direction_details = [
                 f"{d} ({self.DIRECTION_RANGES[d]})" for d in set(directions)
             ]
@@ -606,17 +603,16 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
                 f"The specific angle range for each direction is as follows: {direction_text}. "
                 f"Any marble group with at least one marble in the region of the direction is considered to be in the region. "
                 f"These regions have been divided by gray dashed lines in the image. "
-                f"So, the answer is '{self._answer}'."
+                f"So, the answer is '{self._oracle_answer}'."
             )
         else:
-            self._answer = "No, 0, 0"
+            self._oracle_answer = "No, 0, 0"
             self._analysis = (
                 f"By searching for groups of marbles on the track that the frog can hit and eliminate, "
                 f"we find that there are no groups of marbles on the track that the frog can hit and eliminate, "
                 f"so the frog cannot eliminate any marbles. "
-                f"So, the answer is '{self._answer}'."
+                f"So, the answer is '{self._oracle_answer}'."
             )
-        self._options = []
 
     def _get_direction(self, angle: float) -> str:
         """Get direction from angle."""
@@ -899,14 +895,14 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
         action_str = action[agent_id]
 
         action_str = action_str.strip().lower()
-        correct = action_str == self._answer.lower()
+        correct = action_str == self._oracle_answer.lower()
 
         if correct:
             response = f"Correct! {self._analysis}"
             reward = 1.0
         else:
             response = (
-                f"Incorrect. The correct answer is: {self._answer}\n\n{self._analysis}"
+                f"Incorrect. The correct answer is: {self._oracle_answer}\n\n{self._analysis}"
             )
             reward = 0.0
 
@@ -918,7 +914,7 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
         info = {
             "correct": correct,
             "user_answer": action_str,
-            "oracle_answer": self._answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True

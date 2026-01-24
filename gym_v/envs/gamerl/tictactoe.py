@@ -282,16 +282,32 @@ class GameRLTicTacToeQAEnv(Env):
             **kwargs: Additional arguments passed to base Env class
         """
         super().__init__(**kwargs)
-        self._question_type = question_type
+        self._question_type_param = question_type
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
         self._game = TicTacToe()
-        self._current_question = None
+
+        # Standard QA variables
+        self._question_type_idx: int = 0
+        self._question: str = ""
+        self._options: list[str] | None = None
+        self._oracle_answer: str = ""
+
+    ANSWER_FORMAT_PROMPT = dedent("""
+        **Answer Format:**
+        Provide your answer directly. For multiple choice, respond with the letter only.
+    """).strip()
 
     @property
     def description(self) -> str:
-        """Return environment description with game rules."""
-        return "TicTacToe QA\n\n" + TICTACTOE_RULES
+        """Return game rules + current question + answer format."""
+        desc = TICTACTOE_RULES + "\n\n**Question:** " + self._question
+        if self._options:
+            desc += "\n\n**Options:**\n"
+            for opt in self._options:
+                desc += f"{opt}\n"
+        desc += "\n\n" + self.ANSWER_FORMAT_PROMPT
+        return desc.strip()
 
     def _get_state_text(self) -> str:
         """Generate text description of current TicTacToe game state.
@@ -337,25 +353,35 @@ Grid (O=first player, X=second player, .=empty):
         self._generate_random_state()
 
         # Generate question
-        q_type = (
-            self._question_type
-            if self._question_type is not None
-            else random.randint(0, 2)
-        )
-        self._current_question = self._generate_question(q_type)
+        if self._question_type_param is not None:
+            self._question_type_idx = self._question_type_param
+        else:
+            self._question_type_idx = random.randint(0, 2)
+        q_type = self.QUESTION_TYPES[self._question_type_idx]
 
+        # Generate question - sets _question, _options, _oracle_answer
+        result = self._generate_question(self._question_type_idx)
+        self._question = result["question"]
+        self._options = result.get("options")
+        self._oracle_answer = result["answer"]
+
+        text_state = self._get_state_text()
         obs = Observation(
             image=self.render(),
-            text=self._get_state_text(),
+            text=text_state,
             metadata={
-                "question": self._current_question["question"],
-                "options": self._current_question.get("options"),
+                "text_state": text_state,
+                "question": self._question,
+                "options": self._options,
+                "question_type": q_type["name"],
+                "level": q_type["level"],
             },
         )
 
         info = {
-            "oracle_answer": self._current_question["answer"],
-            "question_type": q_type,
+            "seed": seed,
+            "oracle_answer": self._oracle_answer,
+            "question_type": q_type["id"],
         }
 
         return {agent_id: obs for agent_id in self._agent_ids}, {
@@ -591,24 +617,21 @@ C. white"""
         Returns:
             Tuple of (observation, reward, terminated, truncated, info)
         """
-        if self._current_question is None:
+        if not self._question:
             raise RuntimeError("No question has been generated. Call reset() first.")
 
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
 
         # Check answer
-        correct = action_str.strip().upper() == self._current_question["answer"].upper()
+        correct = action_str.strip().upper() == self._oracle_answer.upper()
         reward = 1.0 if correct else 0.0
 
         # Generate response
         if correct:
             response = "Correct!"
         else:
-            response = (
-                f"Incorrect. The correct answer is: {self._current_question['answer']}\n\n"
-                f"{self._current_question['analysis']}"
-            )
+            response = f"Incorrect. The correct answer is: {self._oracle_answer}"
 
         obs = Observation(image=self.render(), text=response)
 

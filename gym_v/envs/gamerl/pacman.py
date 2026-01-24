@@ -207,7 +207,7 @@ class GameRLPacmanQAEnv(Env):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self._question_type = question_type
+        self._question_type_param = question_type
         self._grid_size = grid_size
         self._wall_ratio = wall_ratio
         self._cell_size = cell_size
@@ -225,8 +225,8 @@ class GameRLPacmanQAEnv(Env):
         self._score: int = 0
 
         # Q&A state
-        self._current_question_type: int = 0
-        self._current_question: str = ""
+        self._question_type_idx: int = 0
+        self._question: str = ""
         self._oracle_answer: str = ""
         self._options: list[str] | None = None
 
@@ -253,7 +253,7 @@ class GameRLPacmanQAEnv(Env):
     @property
     def description(self) -> str:
         """Return game rules + current question + answer format."""
-        desc = GAME_RULES + "\n\n**Question:** " + self._current_question
+        desc = GAME_RULES + "\n\n**Question:** " + self._question
 
         if self._options:
             desc += "\n\n**Options:**\n" + "\n".join(self._options)
@@ -290,33 +290,33 @@ class GameRLPacmanQAEnv(Env):
         self._add_ghosts()
 
         # Select question type
-        if self._question_type is not None:
-            self._current_question_type = self._question_type
+        if self._question_type_param is not None:
+            self._question_type_idx = self._question_type_param
         else:
-            self._current_question_type = self.np_random.integers(
+            self._question_type_idx = self.np_random.integers(
                 0, len(self.QUESTION_TYPES)
             )
 
         # Generate Q&A
         self._generate_qa()
 
-        logger.info(f"Reset Pacman QA (type={self._current_question_type}).")
+        logger.info(f"Reset Pacman QA (type={self._question_type_idx}).")
 
         obs = Observation(
             image=self.render(),
             text=self._get_state_text(),
             metadata={
-                "question": self._current_question,
+                "question": self._question,
                 "options": self._options,
-                "question_type": self.QUESTION_TYPES[self._current_question_type][
+                "question_type": self.QUESTION_TYPES[self._question_type_idx][
                     "name"
                 ],
-                "level": self.QUESTION_TYPES[self._current_question_type]["level"],
+                "level": self.QUESTION_TYPES[self._question_type_idx]["level"],
             },
         )
         info = {
             "oracle_answer": self._oracle_answer,
-            "question_type": self._current_question_type,
+            "question_type": self._question_type_idx,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -342,7 +342,7 @@ class GameRLPacmanQAEnv(Env):
             image=self.render(),
             text=None,
             metadata={
-                "question_type": self.QUESTION_TYPES[self._current_question_type][
+                "question_type": self.QUESTION_TYPES[self._question_type_idx][
                     "name"
                 ],
             },
@@ -372,7 +372,7 @@ class GameRLPacmanQAEnv(Env):
 
     def _score_answer(self, answer: str) -> float:
         """Score the answer based on answer format."""
-        answer_format = self.QUESTION_TYPES[self._current_question_type][
+        answer_format = self.QUESTION_TYPES[self._question_type_idx][
             "answer_format"
         ]
 
@@ -431,7 +431,7 @@ Grid (C=Pacman, P=Pinky, B=Blinky, *=bean, #=wall, .=empty):
 
     def _generate_qa(self) -> None:
         """Generate question and oracle answer based on current state."""
-        q_type = self._current_question_type
+        q_type = self._question_type_idx
         self._options = None
 
         if q_type == 0:
@@ -457,7 +457,7 @@ Grid (C=Pacman, P=Pinky, B=Blinky, *=bean, #=wall, .=empty):
 
     def _generate_q0_pacman_position(self) -> None:
         """Q0: What is Pac-Man's position and direction?"""
-        self._current_question = "What is Pac-Man's position and direction?"
+        self._question = "What is Pac-Man's position and direction?"
         correct = (self._pacman_position[0], self._pacman_position[1], self._direction)
 
         # Generate distractors
@@ -480,7 +480,7 @@ Grid (C=Pacman, P=Pinky, B=Blinky, *=bean, #=wall, .=empty):
 
     def _generate_q1_bean_count(self) -> None:
         """Q1: Count beans in 5x5 grid around Pac-Man."""
-        self._current_question = "Now how many beans are visible there in the 5 by 5 grid around the Pac-man center?"
+        self._question = "Now how many beans are visible there in the 5 by 5 grid around the Pac-man center?"
 
         pacman_row, pacman_col = self._pacman_position
         bean_count = 0
@@ -501,7 +501,7 @@ Grid (C=Pacman, P=Pinky, B=Blinky, *=bean, #=wall, .=empty):
 
     def _generate_q2_closer_ghost(self) -> None:
         """Q2: Which ghost is closer to Pac-Man?"""
-        self._current_question = "Which ghost is closer to Pac-Man, Pinky or Blinky?"
+        self._question = "Which ghost is closer to Pac-Man, Pinky or Blinky?"
 
         pinky = next(g for g in self._ghosts if g.name == "Pinky")
         blinky = next(g for g in self._ghosts if g.name == "Blinky")
@@ -528,7 +528,7 @@ Grid (C=Pacman, P=Pinky, B=Blinky, *=bean, #=wall, .=empty):
 
     def _generate_q3_beans_in_direction(self) -> None:
         """Q3: How many beans in current direction until wall?"""
-        self._current_question = "Assuming the ghosts don't move, how many beans can Pac-Man eat if it moves in its current direction until hitting a wall?"
+        self._question = "Assuming the ghosts don't move, how many beans can Pac-Man eat if it moves in its current direction until hitting a wall?"
 
         row, col = self._pacman_position
         dr, dc = self.DIR_MAP[self._direction]
@@ -554,7 +554,7 @@ Grid (C=Pacman, P=Pinky, B=Blinky, *=bean, #=wall, .=empty):
         num1 = self.np_random.integers(1, 4)
         num2 = self.np_random.integers(1, 4)
 
-        self._current_question = f"Assuming Pac-Man and both ghosts move one step at a time, what would happen if Pac-Man moves {dir1} {num1} times, then {dir2} {num2} times?"
+        self._question = f"Assuming Pac-Man and both ghosts move one step at a time, what would happen if Pac-Man moves {dir1} {num1} times, then {dir2} {num2} times?"
 
         # Simulate movement
         result, beans_eaten, caught_by = self._simulate_movement(
@@ -606,7 +606,7 @@ Grid (C=Pacman, P=Pinky, B=Blinky, *=bean, #=wall, .=empty):
         dir0 = self.DIRECTIONS[self.np_random.integers(0, 4)]
         num1 = self.np_random.integers(1, 4)
 
-        self._current_question = f"Assuming Pinky doesn't move, if Pac-Man moves {dir0} {num1} times, will Pinky's next movement direction change?"
+        self._question = f"Assuming Pinky doesn't move, if Pac-Man moves {dir0} {num1} times, will Pinky's next movement direction change?"
 
         pinky = next(g for g in self._ghosts if g.name == "Pinky")
         original_dir = self._get_ghost_direction(pinky, "Pinky")
@@ -653,7 +653,7 @@ Grid (C=Pacman, P=Pinky, B=Blinky, *=bean, #=wall, .=empty):
         dir0 = self.DIRECTIONS[self.np_random.integers(0, 4)]
         num1 = self.np_random.integers(1, 4)
 
-        self._current_question = f"Assuming Blinky doesn't move, if Pac-Man moves {dir0} {num1} times, will Blinky's next movement direction change?"
+        self._question = f"Assuming Blinky doesn't move, if Pac-Man moves {dir0} {num1} times, will Blinky's next movement direction change?"
 
         blinky = next(g for g in self._ghosts if g.name == "Blinky")
         original_dir = self._get_ghost_direction(blinky, "Blinky")
@@ -695,7 +695,7 @@ Grid (C=Pacman, P=Pinky, B=Blinky, *=bean, #=wall, .=empty):
 
     def _generate_q7_pinky_next_move(self) -> None:
         """Q7: Where will Pinky move next if Pac-Man stays still?"""
-        self._current_question = (
+        self._question = (
             "If Pac-Man stays still, where will Pinky move in the next turn?"
         )
 
@@ -714,7 +714,7 @@ Grid (C=Pacman, P=Pinky, B=Blinky, *=bean, #=wall, .=empty):
 
     def _generate_q8_blinky_next_move(self) -> None:
         """Q8: Where will Blinky move next if Pac-Man stays still?"""
-        self._current_question = (
+        self._question = (
             "If Pac-Man stays still, where will Blinky move in the next turn?"
         )
 
@@ -733,7 +733,7 @@ Grid (C=Pacman, P=Pinky, B=Blinky, *=bean, #=wall, .=empty):
 
     def _generate_q9_optimal_direction(self) -> None:
         """Q9: Which direction should Pac-Man move to eat most beans safely?"""
-        self._current_question = "If Pac-Man and both ghosts move one step at a time, in which direction should Pac-Man move continuously until hitting a wall to eat the most beans without being caught by a ghost? (When moving in more than one direction is optimal, the priority order is UP > DOWN > LEFT > RIGHT)"
+        self._question = "If Pac-Man and both ghosts move one step at a time, in which direction should Pac-Man move continuously until hitting a wall to eat the most beans without being caught by a ghost? (When moving in more than one direction is optimal, the priority order is UP > DOWN > LEFT > RIGHT)"
 
         best_dir = None
         max_beans = -1

@@ -113,7 +113,7 @@ class GameRL2dTuringMachineQAEnv(Env):
         self._num_symbols = num_symbols
         self._max_steps = max_steps
         self._cell_size = cell_size
-        self._question_type = question_type
+        self._question_type_param = question_type
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
@@ -123,48 +123,35 @@ class GameRL2dTuringMachineQAEnv(Env):
         self._head_y: int = 0
         self._current_state: int = 0
         self._rules: dict[tuple[int, int], tuple[int, int, int]] = {}
-        self._current_question: dict[str, Any] = {}
+
+        # Standard QA variables
+        self._question_type_idx: int = 0
+        self._question: str = ""
+        self._options: list[str] | None = None
+        self._oracle_answer: str = ""
+
+    ANSWER_FORMAT_PROMPT = dedent("""
+        **Answer Format:**
+        Reply with only the answer (number or option number).
+        For multiple choice: 1, 2, 3, etc.
+    """).strip()
 
     @property
     def description(self) -> str:
-        base_desc = dedent(f"""
-            This is a 2D Turing Machine QA environment.
+        """Return game rules + current question + answer format."""
+        rules = f"""A Turing machine head moves around a 2D grid, following transition rules.
+The head reads a symbol, writes a new symbol, moves in a direction, and transitions to a new state.
+States: {', '.join([f'{i}:{b}' for i, b in enumerate(self.STATE_BRACKETS[:self._num_states])])}
+Symbols: {', '.join([f'{i}:{n}' for i, n in enumerate(self.COLOR_NAMES[:self._num_symbols])])}
+Coordinates are (row, column) with (0,0) at top-left."""
 
-            A Turing machine head moves around a 2D grid, following transition rules.
-            The head reads a symbol at its current position, writes a new symbol,
-            moves in a direction (up/right/down/left), and transitions to a new state.
-
-            States are shown with brackets: {', '.join([f'{i}:{b}' for i, b in enumerate(self.STATE_BRACKETS[:self._num_states])])}
-            Symbols are shown with colors: {', '.join([f'{i}:{n}' for i, n in enumerate(self.COLOR_NAMES[:self._num_symbols])])}
-
-            Coordinates are (row, column) with (0,0) at top-left.
-
-            Question Types:
-            - Future Head Position: Where will the head be after N steps?
-            - Future Head State: What state will the head be in after N steps?
-            - Symbol at Position: What symbol will be at a position after N steps?
-            - First State Entry: After how many steps will the head first enter a specific state?
-
-            The system will present you with a machine configuration and ask a specific question.
-        """).strip()
-
-        # Add question and answer format if question has been generated
-        if hasattr(self, "_current_question") and self._current_question:
-            desc = base_desc + "\n\n" + self._current_question["question"]
-            desc += """
-
-**Answer Format:**
-Reply with only the answer (number or option number).
-
-Examples:
-- For multiple choice: 1, 2, 3, etc.
-- For numbers: 42, 100, etc.
-
-Do not include any explanation or extra text.
-"""
-            return desc.strip()
-
-        return base_desc
+        desc = rules + "\n\n**Question:** " + self._question
+        if self._options:
+            desc += "\n\n**Options:**\n"
+            for i, opt in enumerate(self._options):
+                desc += f"{i+1}. {opt}\n"
+        desc += "\n\n" + self.ANSWER_FORMAT_PROMPT
+        return desc.strip()
 
     def _get_state_text(self) -> str:
         """Generate text description of current Turing machine state."""
@@ -206,34 +193,38 @@ Do not include any explanation or extra text.
         self._generate_puzzle()
 
         # Select question type
-        if self._question_type is None:
-            question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
+        if self._question_type_param is None:
+            self._question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
         else:
-            question_type_idx = self._question_type
+            self._question_type_idx = self._question_type_param
 
         # Validate question type index
-        if not (0 <= question_type_idx < len(self.QUESTION_TYPES)):
-            raise ValueError(f"Invalid question type index: {question_type_idx}")
+        if not (0 <= self._question_type_idx < len(self.QUESTION_TYPES)):
+            raise ValueError(f"Invalid question type index: {self._question_type_idx}")
 
-        # Get question type ID from index
-        question_type = self.QUESTION_TYPES[question_type_idx]["id"]
+        q_type = self.QUESTION_TYPES[self._question_type_idx]
 
         # Generate question based on type
         steps = random.randint(3, self._max_steps)
-        if question_type == "position":
-            self._current_question = self._generate_position_question(steps)
-        elif question_type == "head_state":
-            self._current_question = self._generate_head_state_question(steps)
-        elif question_type == "symbol_at_position":
-            self._current_question = self._generate_symbol_at_position_question(steps)
-        elif question_type == "first_state_entry":
-            self._current_question = self._generate_first_state_entry_question(steps)
+        if q_type["id"] == "position":
+            result = self._generate_position_question(steps)
+        elif q_type["id"] == "head_state":
+            result = self._generate_head_state_question(steps)
+        elif q_type["id"] == "symbol_at_position":
+            result = self._generate_symbol_at_position_question(steps)
+        elif q_type["id"] == "first_state_entry":
+            result = self._generate_first_state_entry_question(steps)
         else:
-            raise ValueError(f"Unknown question type: {question_type}")
+            raise ValueError(f"Unknown question type: {q_type['id']}")
+
+        # Extract to instance variables
+        self._question = result["question"]
+        self._options = result.get("options")
+        self._oracle_answer = result["answer"]
 
         logger.info(
             f"Reset 2D Turing Machine QA ({self._grid_size[0]}x{self._grid_size[1]}, "
-            f"question: {question_type})."
+            f"question: {q_type['id']})."
         )
 
         # Generate text state
@@ -243,14 +234,18 @@ Do not include any explanation or extra text.
             image=self.render(),
             text=text_state,
             metadata={
-                "question": self._current_question["question"],
-                "options": self._current_question.get("options"),
+                "text_state": text_state,
+                "question": self._question,
+                "options": self._options,
+                "question_type": q_type["name"],
+                "level": q_type["level"],
             },
         )
 
         info = {
-            "oracle_answer": self._current_question["answer"],
-            "question_type": question_type,
+            "seed": seed,
+            "oracle_answer": self._oracle_answer,
+            "question_type": q_type["id"],
         }
 
         return {agent_id: obs for agent_id in self._agent_ids}, {
@@ -278,21 +273,19 @@ Do not include any explanation or extra text.
         action_str = action_str.strip()
 
         # Check if answer is correct
-        correct = self._check_answer(action_str)
+        correct = action_str.strip().lower() == self._oracle_answer.strip().lower()
 
         if correct:
             reward = 1.0
             response = "Correct!"
         else:
             reward = 0.0
-            response = (
-                f"Incorrect. The correct answer is: {self._current_question['answer']}"
-            )
+            response = f"Incorrect. The correct answer is: {self._oracle_answer}"
 
         info = {
             "correct": correct,
             "user_answer": action_str,
-            "oracle_answer": self._current_question["answer"],
+            "oracle_answer": self._oracle_answer,
         }
 
         obs = Observation(image=self.render(), text=response)
@@ -626,5 +619,4 @@ Options:
 
     def _check_answer(self, action: str) -> bool:
         """Check if the provided answer is correct."""
-        correct_answer = self._current_question["answer"]
-        return action.strip().lower() == correct_answer.strip().lower()
+        return action.strip().lower() == self._oracle_answer.strip().lower()

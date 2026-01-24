@@ -109,50 +109,37 @@ class GameRLMinecraftQAEnv(Env):
         super().__init__(**kwargs)
 
         self._space_ub = space_ub
-        self._question_type = question_type
+        self._question_type_param = question_type
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         # Game state
         self._blocks: list[dict[str, Any]] = []
         self._sceneries: dict[str, list[tuple[int, int, int]]] = {}
-        self._current_question: dict[str, Any] = {}
         self._camera_angle = (20, 20)  # For isometric view
+
+        # Standard QA variables
+        self._question_type_idx: int = 0
+        self._question: str = ""
+        self._options: list[str] | None = None
+        self._oracle_answer: str = ""
+
+    ANSWER_FORMAT_PROMPT = dedent("""
+        **Answer Format:**
+        Reply with only the answer (number or option number).
+        For multiple choice: 1, 2, 3, etc. For numbers: 42, 100, etc.
+    """).strip()
 
     @property
     def description(self) -> str:
-        base_desc = dedent(f"""
-            This is a Minecraft QA environment.
-
-            {self.MINECRAFT_RULE}
-
-            Question Types:
-            - Scenery Recognition: Identify the sceneries in the scene
-            - Cube Count: Count total cubes in a structure
-            - Cross Fluid: Calculate minimum blocks to cross a river
-            - Climb to Block: Calculate minimum blocks to reach a high block
-            - Cross River and Climb: Combined challenge
-
-            The system will present you with a scene and ask a specific question.
-        """).strip()
-
-        # Add question and answer format if question has been generated
-        if hasattr(self, "_current_question") and self._current_question:
-            desc = base_desc + "\n\n" + self._current_question["question"]
-            desc += """
-
-**Answer Format:**
-Reply with only the answer (number or option number).
-
-Examples:
-- For multiple choice: 1, 2, 3, etc.
-- For numbers: 42, 100, etc.
-
-Do not include any explanation or extra text.
-"""
-            return desc.strip()
-
-        return base_desc
+        """Return game rules + current question + answer format."""
+        desc = self.MINECRAFT_RULE + "\n\n**Question:** " + self._question
+        if self._options:
+            desc += "\n\n**Options:**\n"
+            for i, opt in enumerate(self._options):
+                desc += f"{i+1}. {opt}\n"
+        desc += "\n\n" + self.ANSWER_FORMAT_PROMPT
+        return desc.strip()
 
     def _get_state_text(self) -> str:
         """Generate text description of current Minecraft state."""
@@ -175,33 +162,37 @@ Do not include any explanation or extra text.
         super().reset(seed=seed)
 
         # Select question type
-        if self._question_type is None:
-            question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
+        if self._question_type_param is None:
+            self._question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
         else:
-            question_type_idx = self._question_type
+            self._question_type_idx = self._question_type_param
 
         # Validate question type index
-        if not (0 <= question_type_idx < len(self.QUESTION_TYPES)):
-            raise ValueError(f"Invalid question type index: {question_type_idx}")
+        if not (0 <= self._question_type_idx < len(self.QUESTION_TYPES)):
+            raise ValueError(f"Invalid question type index: {self._question_type_idx}")
 
-        # Get question type ID from index
-        question_type = self.QUESTION_TYPES[question_type_idx]["id"]
+        q_type = self.QUESTION_TYPES[self._question_type_idx]
 
         # Generate question
-        if question_type == "scenery":
-            self._current_question = self._generate_scenery_question()
-        elif question_type == "cube_count":
-            self._current_question = self._generate_cube_count_question()
-        elif question_type == "cross_fluid":
-            self._current_question = self._generate_cross_fluid_question()
-        elif question_type == "climb":
-            self._current_question = self._generate_climb_question()
-        elif question_type == "cross_river_climb":
-            self._current_question = self._generate_cross_river_climb_question()
+        if q_type["id"] == "scenery":
+            result = self._generate_scenery_question()
+        elif q_type["id"] == "cube_count":
+            result = self._generate_cube_count_question()
+        elif q_type["id"] == "cross_fluid":
+            result = self._generate_cross_fluid_question()
+        elif q_type["id"] == "climb":
+            result = self._generate_climb_question()
+        elif q_type["id"] == "cross_river_climb":
+            result = self._generate_cross_river_climb_question()
         else:
-            raise ValueError(f"Unknown question type: {question_type}")
+            raise ValueError(f"Unknown question type: {q_type['id']}")
 
-        logger.info(f"Reset Minecraft QA (question: {question_type}).")
+        # Extract to instance variables
+        self._question = result["question"]
+        self._options = result.get("options")
+        self._oracle_answer = result["answer"]
+
+        logger.info(f"Reset Minecraft QA (question: {q_type['id']}).")
 
         # Generate text state
         text_state = self._get_state_text()
@@ -210,14 +201,18 @@ Do not include any explanation or extra text.
             image=self.render(),
             text=text_state,
             metadata={
-                "question": self._current_question["question"],
-                "options": self._current_question.get("options"),
+                "text_state": text_state,
+                "question": self._question,
+                "options": self._options,
+                "question_type": q_type["name"],
+                "level": q_type["level"],
             },
         )
 
         info = {
-            "oracle_answer": self._current_question["answer"],
-            "question_type": question_type,
+            "seed": seed,
+            "oracle_answer": self._oracle_answer,
+            "question_type": q_type["id"],
         }
 
         return {agent_id: obs for agent_id in self._agent_ids}, {
@@ -242,21 +237,19 @@ Do not include any explanation or extra text.
         truncated = False
 
         # Check answer
-        correct = self._check_answer(action_str.strip())
+        correct = action_str.strip().lower() == self._oracle_answer.strip().lower()
 
         if correct:
             reward = 1.0
             response = "Correct!"
         else:
             reward = 0.0
-            response = (
-                f"Incorrect. The correct answer is: {self._current_question['answer']}"
-            )
+            response = f"Incorrect. The correct answer is: {self._oracle_answer}"
 
         info = {
             "correct": correct,
             "user_answer": action_str.strip(),
-            "oracle_answer": self._current_question["answer"],
+            "oracle_answer": self._oracle_answer,
         }
 
         obs = Observation(image=self.render(), text=response)
@@ -785,5 +778,4 @@ Question: To obtain the {block_name}, what is the minimum number of blocks the p
 
     def _check_answer(self, action: str) -> bool:
         """Check if answer is correct."""
-        correct_answer = self._current_question["answer"]
-        return action.strip().lower() == correct_answer.strip().lower()
+        return action.strip().lower() == self._oracle_answer.strip().lower()

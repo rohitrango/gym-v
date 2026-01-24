@@ -117,7 +117,7 @@ class GameRLSudokuQAEnv(Env):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self._question_type = question_type
+        self._question_type_param = question_type
         self._size_override = size
         self._cell_size = cell_size
         self._margin = 30
@@ -132,8 +132,8 @@ class GameRLSudokuQAEnv(Env):
         self._colors: dict[str, tuple[int, int, int]] = {}
 
         # Q&A state (initialized in reset)
-        self._current_question_type: int = 0
-        self._current_question: str = ""
+        self._question_type_idx: int = 0
+        self._question: str = ""
         self._oracle_answer: str = ""
         self._answer_format: str = ""
         self._options: list[str] = []
@@ -143,7 +143,7 @@ class GameRLSudokuQAEnv(Env):
         """Return game rules + current question + answer format."""
         colors_str = ", ".join(self._color_names)
         game_rules = GAME_RULES_TEMPLATE.format(size=self._size, colors=colors_str)
-        desc = game_rules + "\n\n**Question:** " + self._current_question
+        desc = game_rules + "\n\n**Question:** " + self._question
 
         if self._options:
             desc += "\n\n**Options:**\n" + "\n".join(self._options)
@@ -216,10 +216,10 @@ Grid ({color_legend}, .=empty):
         self._generate_game_state()
 
         # Select question type
-        if self._question_type is not None:
-            self._current_question_type = self._question_type
+        if self._question_type_param is not None:
+            self._question_type_idx = self._question_type_param
         else:
-            self._current_question_type = self.np_random.integers(
+            self._question_type_idx = self.np_random.integers(
                 0, len(self.QUESTION_TYPES)
             )
 
@@ -227,19 +227,19 @@ Grid ({color_legend}, .=empty):
         self._generate_qa()
 
         logger.info(
-            f"Reset Sudoku QA (type={self._current_question_type}, size={self._size}x{self._size})."
+            f"Reset Sudoku QA (type={self._question_type_idx}, size={self._size}x{self._size})."
         )
 
         obs = Observation(
             image=self.render(),
             text=self._get_state_text(),
             metadata={
-                "question": self._current_question,
+                "question": self._question,
                 "options": self._options,
-                "question_type": self.QUESTION_TYPES[self._current_question_type][
+                "question_type": self.QUESTION_TYPES[self._question_type_idx][
                     "name"
                 ],
-                "level": self.QUESTION_TYPES[self._current_question_type]["level"],
+                "level": self.QUESTION_TYPES[self._question_type_idx]["level"],
                 "size": self._size,
             },
         )
@@ -466,7 +466,7 @@ Grid ({color_legend}, .=empty):
 
     def _generate_qa(self) -> None:
         """Generate question and answer based on question type."""
-        qtype = self._current_question_type
+        qtype = self._question_type_idx
 
         if qtype == 0:
             self._generate_color_position_qa()
@@ -502,7 +502,7 @@ Grid ({color_legend}, .=empty):
             for i in range(len(self._color_names))
         ]
 
-        self._current_question = f"What color is at position ({row + 1},{col + 1}) (note that on the board the position ({row + 1},{col + 1}) has already been filled with a certain color)? Choose from following options: {', '.join(options)}"
+        self._question = f"What color is at position ({row + 1},{col + 1}) (note that on the board the position ({row + 1},{col + 1}) has already been filled with a certain color)? Choose from following options: {', '.join(options)}"
         self._options = options
         self._oracle_answer = answer_letter
 
@@ -516,7 +516,7 @@ Grid ({color_legend}, .=empty):
             if self._board[i][j] == color_idx + 1
         )
 
-        self._current_question = (
+        self._question = (
             f"How many times does {self._color_names[color_idx]} appear on the board?"
         )
         self._oracle_answer = str(count)
@@ -538,7 +538,7 @@ Grid ({color_legend}, .=empty):
         row, col = random.choice(empty_cells)
         valid_nums = self._get_valid_numbers(self._board, row, col)
 
-        self._current_question = f"How many colors can be filled in position ({row + 1},{col + 1})? Inference based on the current situation focusing only on the colour of the position."
+        self._question = f"How many colors can be filled in position ({row + 1},{col + 1})? Inference based on the current situation focusing only on the colour of the position."
         self._oracle_answer = str(len(valid_nums))
         self._options = []
 
@@ -559,7 +559,7 @@ Grid ({color_legend}, .=empty):
                 if empty > n:
                     count += 1
 
-        self._current_question = (
+        self._question = (
             f"How many {target_type}s have more than {n} empty cells?"
         )
         self._oracle_answer = str(count)
@@ -628,7 +628,7 @@ Grid ({color_legend}, .=empty):
             for i in range(len(self._color_names))
         ]
 
-        self._current_question = f"Based on the current board state, if position ({step1_row + 1},{step1_col + 1}) must be filled with {step1_color}, what color should position ({final_row + 1},{final_col + 1}) be filled with? Choose from following options: {', '.join(options)}"
+        self._question = f"Based on the current board state, if position ({step1_row + 1},{step1_col + 1}) must be filled with {step1_color}, what color should position ({final_row + 1},{final_col + 1}) be filled with? Choose from following options: {', '.join(options)}"
         self._options = options
         self._oracle_answer = answer_letter
 

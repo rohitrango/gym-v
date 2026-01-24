@@ -109,7 +109,7 @@ class GameRL3dMazeQAEnv(Env):
             grid_size: Size of the 3D grid (width, depth, height)
         """
         super().__init__(**kwargs)
-        self._question_type = question_type
+        self._question_type_param = question_type
         self._grid_size = grid_size
         self._start_pos = Position(grid_size[0] - 1, grid_size[1] - 1, 0)
         self.num_players = num_players
@@ -122,46 +122,48 @@ class GameRL3dMazeQAEnv(Env):
         self._branches: list[Branch] = []
         self._sequence_points: list[SequencePoint] = []
 
-        # Question data
+        # Question data (standard QA variables)
         self._question: str = ""
-        self._answer: str = ""
+        self._options: list[str] | None = None
+        self._oracle_answer: str = ""
         self._analysis: str = ""
-        self._options: list[str] = []
         self._selected_question_type: str = ""
+
+    GAME_RULES = dedent("""
+        3D Maze Game Rules:
+
+        1. Player can only walk on top of cubes
+        2. Player can climb ladders if they can reach the cube under the ladder
+        3. From a ladder, player can reach the top of the last cube with the ladder
+        4. Blue cube is start position, red cube is goal position
+        5. Green cubes are special points (branches or checkpoints)
+        6. Numbered cubes indicate branch points or checkpoints
+
+        The player must navigate from the start (blue) to the goal (red) by walking on cubes
+        and climbing ladders when available.
+    """).strip()
+
+    ANSWER_FORMAT_PROMPT = dedent("""
+        **Answer Format:**
+        Reply with only the answer (number or option number).
+
+        Examples:
+        - For multiple choice: 1, 2, 3, etc.
+        - For numbers: 42, 100, etc.
+
+        Do not include any explanation or extra text.
+    """).strip()
 
     @property
     def description(self) -> str:
-        base_rules = dedent("""
-            3D Maze Game Rules:
+        """Return game rules + current question + answer format."""
+        desc = self.GAME_RULES + "\n\n**Question:** " + self._question
 
-            1. Player can only walk on top of cubes
-            2. Player can climb ladders if they can reach the cube under the ladder
-            3. From a ladder, player can reach the top of the last cube with the ladder
-            4. Blue cube is start position, red cube is goal position
-            5. Green cubes are special points (branches or checkpoints)
-            6. Numbered cubes indicate branch points or checkpoints
+        if self._options:
+            desc += "\n\n**Options:**\n" + "\n".join(self._options)
 
-            The player must navigate from the start (blue) to the goal (red) by walking on cubes
-            and climbing ladders when available.
-        """).strip()
-
-        # Add question and answer format if question has been generated
-        if hasattr(self, "_question") and self._question:
-            desc = base_rules + "\n" + self._question
-            desc += """
-
-**Answer Format:**
-Reply with only the answer (number or option number).
-
-Examples:
-- For multiple choice: 1, 2, 3, etc.
-- For numbers: 42, 100, etc.
-
-Do not include any explanation or extra text.
-"""
-            return desc.strip()
-
-        return base_rules.strip()
+        desc += "\n\n" + self.ANSWER_FORMAT_PROMPT
+        return desc.strip()
 
     def _get_state_text(self) -> str:
         """Generate text description of current 3D Maze game state.
@@ -212,16 +214,20 @@ Goal: ({self._goal_pos.x if self._goal_pos else 'N/A'}, {self._goal_pos.y if sel
         super().reset(seed=seed)
 
         # Select question type (convert 0-based index to question type ID)
-        if self._question_type is None:
+        if self._question_type_param is None:
             self._selected_question_type = random.choice(
                 [qt["id"] for qt in self.QUESTION_TYPES]
             )
         else:
             # Validate question type index
-            if not (0 <= self._question_type < len(self.QUESTION_TYPES)):
-                raise ValueError(f"Invalid question type index: {self._question_type}")
+            if not (0 <= self._question_type_param < len(self.QUESTION_TYPES)):
+                raise ValueError(
+                    f"Invalid question type index: {self._question_type_param}"
+                )
             # Convert 0-based index to question type ID
-            self._selected_question_type = self.QUESTION_TYPES[self._question_type][
+            self._selected_question_type = self.QUESTION_TYPES[
+                self._question_type_param
+            ][
                 "id"
             ]
 
@@ -243,7 +249,7 @@ Goal: ({self._goal_pos.x if self._goal_pos else 'N/A'}, {self._goal_pos.y if sel
         )
 
         info = {
-            "oracle_answer": self._answer,
+            "oracle_answer": self._oracle_answer,
             "question_type": self._selected_question_type,
         }
 
@@ -438,13 +444,9 @@ Goal: ({self._goal_pos.x if self._goal_pos else 'N/A'}, {self._goal_pos.y if sel
         random.shuffle(self._options)
         correct_answer = self._options.index(correct_path) + 1
 
-        self._question = (
-            self.description.strip() + "\n\n"
-            "Which combination of path choices leads to the goal?\n\n"
-            "Options:\n"
-            + "\n".join(f"{i+1}: {opt}" for i, opt in enumerate(self._options))
-        )
-        self._answer = str(correct_answer)
+        self._question = "Which combination of path choices leads to the goal?"
+        self._options = [f"{i+1}. {opt}" for i, opt in enumerate(self._options)]
+        self._oracle_answer = str(correct_answer)
         self._analysis = (
             f"Analyzing each branch point, the correct path choices are: {correct_path}. "
             f"This makes the answer Option {correct_answer}."
@@ -524,13 +526,9 @@ Goal: ({self._goal_pos.x if self._goal_pos else 'N/A'}, {self._goal_pos.y if sel
         random.shuffle(self._options)
         correct_answer = self._options.index(correct_sequence) + 1
 
-        self._question = (
-            self.description.strip() + "\n\n"
-            "What is the correct sequence of numbered checkpoints when following the path from start to goal?\n\n"
-            "Options:\n"
-            + "\n".join(f"{i+1}: {opt}" for i, opt in enumerate(self._options))
-        )
-        self._answer = str(correct_answer)
+        self._question = "What is the correct sequence of numbered checkpoints when following the path from start to goal?"
+        self._options = [f"{i+1}. {opt}" for i, opt in enumerate(self._options)]
+        self._oracle_answer = str(correct_answer)
         self._analysis = (
             f"Following the path from start to goal, the correct sequence is: {correct_sequence}. "
             f"This makes the answer Option {correct_answer}."
@@ -592,13 +590,11 @@ Goal: ({self._goal_pos.x if self._goal_pos else 'N/A'}, {self._goal_pos.y if sel
         correct_answer = self._options.index(correct_relation) + 1
 
         self._question = (
-            self.description.strip() + "\n\n"
             "What is the correct height relationship between the three numbered points? "
-            "Use '<' for 'lower than' and '=' for 'same height as'.\n\n"
-            "Options:\n"
-            + "\n".join(f"{i+1}: {opt}" for i, opt in enumerate(self._options))
+            "Use '<' for 'lower than' and '=' for 'same height as'."
         )
-        self._answer = str(correct_answer)
+        self._options = [f"{i+1}. {opt}" for i, opt in enumerate(self._options)]
+        self._oracle_answer = str(correct_answer)
         self._analysis = (
             f"Analyzing the heights of the numbered points, the correct relationship is: {correct_relation}. "
             f"This makes the answer Option {correct_answer}."
@@ -680,13 +676,9 @@ Goal: ({self._goal_pos.x if self._goal_pos else 'N/A'}, {self._goal_pos.y if sel
         random.shuffle(self._options)
         correct_option = self._options.index(correct_answer) + 1
 
-        self._question = (
-            self.description.strip() + "\n\n"
-            "Which numbered blocks are passed through when following the most direct path from start to goal?\n\n"
-            "Options:\n"
-            + "\n".join(f"{i+1}: {opt}" for i, opt in enumerate(self._options))
-        )
-        self._answer = str(correct_option)
+        self._question = "Which numbered blocks are passed through when following the most direct path from start to goal?"
+        self._options = [f"{i+1}. {opt}" for i, opt in enumerate(self._options)]
+        self._oracle_answer = str(correct_option)
         self._analysis = (
             f"Following the main path, the numbered blocks passed through are: {correct_answer}. "
             f"This makes the answer Option {correct_option}."
@@ -706,14 +698,14 @@ Goal: ({self._goal_pos.x if self._goal_pos else 'N/A'}, {self._goal_pos.y if sel
         action_str = action[agent_id]
 
         action_str = action_str.strip()
-        correct = action_str == self._answer
+        correct = action_str == self._oracle_answer
 
         if correct:
             response = f"Correct! {self._analysis}"
             reward = 1.0
         else:
             response = (
-                f"Incorrect. The correct answer is: {self._answer}\n\n{self._analysis}"
+                f"Incorrect. The correct answer is: {self._oracle_answer}\n\n{self._analysis}"
             )
             reward = 0.0
 
@@ -725,7 +717,7 @@ Goal: ({self._goal_pos.x if self._goal_pos else 'N/A'}, {self._goal_pos.y if sel
         info = {
             "correct": correct,
             "user_answer": action_str,
-            "oracle_answer": self._answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True

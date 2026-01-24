@@ -37,7 +37,7 @@ ANSWER_FORMAT_PROMPT = dedent("""
     **Answer Format:**
     - For coordinates: Reply in format (row, col), e.g., (3, 5)
     - For numbers: Reply with only the number, e.g., 7
-    - For multiple choice: Reply with only the number (0, 1, 2, or 3)
+    - For multiple choice: Reply with only the letter (A, B, C, or D)
 
     Do not include any explanation or extra text.
 """).strip()
@@ -121,7 +121,7 @@ class GameRLSnakeQAEnv(Env):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self._question_type = question_type
+        self._question_type_param = question_type
         self._width = width
         self._height = height
         self._initial_snake_length = initial_snake_length
@@ -135,8 +135,8 @@ class GameRLSnakeQAEnv(Env):
         self._food: tuple[int, int] | None = None
 
         # Q&A state (initialized in reset)
-        self._current_question_type: int = 0
-        self._current_question: str = ""
+        self._question_type_idx: int = 0
+        self._question: str = ""
         self._oracle_answer: str = ""
         self._answer_format: str = ""
         self._options: list[str] | None = None
@@ -145,12 +145,12 @@ class GameRLSnakeQAEnv(Env):
     @property
     def description(self) -> str:
         """Return game rules + current question + answer format."""
-        desc = GAME_RULES + "\n\n**Question:** " + self._current_question
+        desc = GAME_RULES + "\n\n**Question:** " + self._question
 
         if self._options:
-            desc += "\n\nOptions:\n"
-            for i, opt in enumerate(self._options):
-                desc += f"{i}: {opt}\n"
+            desc += "\n\n**Options:**\n"
+            for opt in self._options:
+                desc += f"{opt}\n"
 
         desc += ANSWER_FORMAT_PROMPT
         return desc.strip()
@@ -200,33 +200,33 @@ Grid (H=head, B=body, F=food, .=empty):
         self._generate_food()
 
         # Select question type
-        if self._question_type is not None:
-            self._current_question_type = self._question_type
+        if self._question_type_param is not None:
+            self._question_type_idx = self._question_type_param
         else:
-            self._current_question_type = self.np_random.integers(
+            self._question_type_idx = self.np_random.integers(
                 0, len(self.QUESTION_TYPES)
             )
 
         # Generate question and answer
         self._generate_qa()
 
-        logger.info(f"Reset Snake QA (type={self._current_question_type}).")
+        logger.info(f"Reset Snake QA (type={self._question_type_idx}).")
 
         obs = Observation(
             image=self.render(),
             text=self._get_state_text(),
             metadata={
-                "question": self._current_question,
+                "question": self._question,
                 "options": self._options,
-                "question_type": self.QUESTION_TYPES[self._current_question_type][
+                "question_type": self.QUESTION_TYPES[self._question_type_idx][
                     "name"
                 ],
-                "level": self.QUESTION_TYPES[self._current_question_type]["level"],
+                "level": self.QUESTION_TYPES[self._question_type_idx]["level"],
             },
         )
         info = {
             "oracle_answer": self._oracle_answer,
-            "question_type": self._current_question_type,
+            "question_type": self._question_type_idx,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -252,7 +252,7 @@ Grid (H=head, B=body, F=food, .=empty):
             image=self.render(),
             text=None,
             metadata={
-                "question_type": self.QUESTION_TYPES[self._current_question_type][
+                "question_type": self.QUESTION_TYPES[self._question_type_idx][
                     "name"
                 ],
             },
@@ -328,38 +328,35 @@ Grid (H=head, B=body, F=food, .=empty):
             return 0.0
 
     def _score_choice(self, answer: str) -> float:
-        """Score multiple choice answer (0-3)."""
-        match = re.search(r"[0-3]", answer)
+        """Score multiple choice answer (A-D)."""
+        match = re.search(r"[A-Da-d]", answer)
         if not match:
             return 0.0
 
-        try:
-            choice = int(match.group())
-            oracle = int(self._oracle_answer)
-            return 1.0 if choice == oracle else 0.0
-        except ValueError:
-            return 0.0
+        choice = match.group().upper()
+        oracle = self._oracle_answer.upper()
+        return 1.0 if choice == oracle else 0.0
 
     def _generate_qa(self) -> None:
         """Generate question and oracle answer based on current state."""
-        q_type = self._current_question_type
+        q_type = self._question_type_idx
         self._options = None
         self._moves = None
 
         if q_type == 0:  # head_pos
-            self._current_question = QUESTION_PROMPTS[0]
+            self._question = QUESTION_PROMPTS[0]
             head_row, head_col = self._snake[0]
             self._oracle_answer = f"({int(head_row)}, {int(head_col)})"
             self._answer_format = "coordinate"
 
         elif q_type == 1:  # food_pos
-            self._current_question = QUESTION_PROMPTS[1]
+            self._question = QUESTION_PROMPTS[1]
             food_row, food_col = self._food
             self._oracle_answer = f"({int(food_row)}, {int(food_col)})"
             self._answer_format = "coordinate"
 
         elif q_type == 2:  # snake_len
-            self._current_question = QUESTION_PROMPTS[2]
+            self._question = QUESTION_PROMPTS[2]
             self._oracle_answer = str(len(self._snake))
             self._answer_format = "number"
 
@@ -368,7 +365,7 @@ Grid (H=head, B=body, F=food, .=empty):
             self._answer_format = "choice"
 
         elif q_type == 4:  # path
-            self._current_question = QUESTION_PROMPTS[4]
+            self._question = QUESTION_PROMPTS[4]
             path = self._find_path()
             self._oracle_answer = str(len(path)) if path else "-1"
             self._answer_format = "number"
@@ -388,14 +385,15 @@ Grid (H=head, B=body, F=food, .=empty):
         for i, move in enumerate(moves):
             moves_str += f"\nstep {i+1}: {move}"
 
-        self._current_question = QUESTION_PROMPTS[3] + moves_str
-        self._options = [
+        self._question = QUESTION_PROMPTS[3] + moves_str
+        options_list = [
             "The snake hits the bound of the grid.",
             "The snake hits its body.",
             "The snake reaches the food.",
             "Nothing happens.",
         ]
-        self._oracle_answer = str(result)
+        self._options = [f"{chr(ord('A') + i)}. {opt}" for i, opt in enumerate(options_list)]
+        self._oracle_answer = chr(ord('A') + result)
 
     def _generate_moves(self, length: int) -> list[str]:
         """Generate valid moves that don't immediately reverse."""

@@ -130,7 +130,7 @@ class GameRLFreecellQAEnv(Env):
             cascade_number = random.choice([4, 6, 8])
 
         self._cascade_number = cascade_number
-        self._question_type = question_type
+        self._question_type_param = question_type
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
@@ -138,40 +138,29 @@ class GameRLFreecellQAEnv(Env):
         self._cascade_piles: list[list[Card]] = [[] for _ in range(cascade_number)]
         self._free_cells: list[Card | None] = [None] * 4
         self._foundation_piles: dict[Suit, list[Card]] = {suit: [] for suit in Suit}
-        self._current_question: dict[str, Any] = {}
+
+        # Standard QA variables
+        self._question_type_idx: int = 0
+        self._question: str = ""
+        self._options: list[str] | None = None
+        self._oracle_answer: str = ""
+
+    ANSWER_FORMAT_PROMPT = dedent("""
+        **Answer Format:**
+        Reply with only the answer (number or option number).
+        For multiple choice: 1, 2, 3, etc.
+    """).strip()
 
     @property
     def description(self) -> str:
-        base_desc = dedent(f"""
-            This is a FreeCell QA environment.
-
-            {self.FREECELL_RULES}
-
-            Question Types:
-            - Specified Card: Identify which card is at a specific position in a cascade pile
-            - Valid Move: Determine which of the given moves is valid
-            - Card After Move: Identify the top card of a pile after a move
-
-            The system will present you with a game state and ask a specific question.
-        """).strip()
-
-        # Add question and answer format if question has been generated
-        if hasattr(self, "_current_question") and self._current_question:
-            desc = base_desc + "\n\n" + self._current_question["question"]
-            desc += """
-
-**Answer Format:**
-Reply with only the answer (number or option number).
-
-Examples:
-- For multiple choice: 1, 2, 3, etc.
-- For numbers: 42, 100, etc.
-
-Do not include any explanation or extra text.
-"""
-            return desc.strip()
-
-        return base_desc
+        """Return game rules + current question + answer format."""
+        desc = self.FREECELL_RULES + "\n\n**Question:** " + self._question
+        if self._options:
+            desc += "\n\n**Options:**\n"
+            for i, opt in enumerate(self._options):
+                desc += f"{i+1}. {opt}\n"
+        desc += "\n\n" + self.ANSWER_FORMAT_PROMPT
+        return desc.strip()
 
     def _get_state_text(self) -> str:
         """Generate text description of current FreeCell game state.
@@ -228,41 +217,57 @@ Do not include any explanation or extra text.
         self._initialize_game()
 
         # Select question type
-        if self._question_type is None:
-            question_type = random.choice(self.QUESTION_TYPES)["id"]
-        elif isinstance(self._question_type, int):
-            # Support integer indexing (0, 1, 2, ...)
-            question_type = self.QUESTION_TYPES[self._question_type]["id"]
+        if self._question_type_param is None:
+            self._question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
+        elif isinstance(self._question_type_param, int):
+            self._question_type_idx = self._question_type_param
         else:
-            question_type = self._question_type
+            # Support string IDs
+            for i, qt in enumerate(self.QUESTION_TYPES):
+                if qt["id"] == self._question_type_param:
+                    self._question_type_idx = i
+                    break
+            else:
+                raise ValueError(f"Unknown question type: {self._question_type_param}")
 
-        # Generate question
-        if question_type == "specified_card":
-            self._current_question = self._generate_specified_card_question()
-        elif question_type == "valid_move":
-            self._current_question = self._generate_valid_move_question()
-        elif question_type == "card_after_move":
-            self._current_question = self._generate_card_after_move_question()
+        q_type = self.QUESTION_TYPES[self._question_type_idx]
+
+        # Generate question - sets _question, _options, _oracle_answer
+        if q_type["id"] == "specified_card":
+            result = self._generate_specified_card_question()
+        elif q_type["id"] == "valid_move":
+            result = self._generate_valid_move_question()
+        elif q_type["id"] == "card_after_move":
+            result = self._generate_card_after_move_question()
         else:
-            raise ValueError(f"Unknown question type: {question_type}")
+            raise ValueError(f"Unknown question type: {q_type['id']}")
+
+        # Extract to instance variables
+        self._question = result["question"]
+        self._options = result.get("options")
+        self._oracle_answer = result["answer"]
 
         logger.info(
-            f"Reset FreeCell QA (cascade_number={self._cascade_number}, question: {question_type})."
+            f"Reset FreeCell QA (cascade_number={self._cascade_number}, question: {q_type['id']})."
         )
 
+        text_state = self._get_state_text()
         obs = Observation(
             image=self.render(),
-            text=self._get_state_text(),
+            text=text_state,
             metadata={
-                "question": self._current_question["question"],
-                "options": self._current_question.get("options"),
-                "question_type": question_type,
+                "text_state": text_state,
+                "question": self._question,
+                "options": self._options,
+                "question_type": q_type["name"],
+                "level": q_type["level"],
             },
         )
 
         info = {
-            "oracle_answer": self._current_question["answer"],
-            "question_type": question_type,
+            "seed": seed,
+            "oracle_answer": self._oracle_answer,
+            "question_type": q_type["id"],
         }
 
         return {agent_id: obs for agent_id in self._agent_ids}, {
@@ -287,21 +292,19 @@ Do not include any explanation or extra text.
         truncated = False
 
         # Check answer
-        correct = self._check_answer(action_str.strip())
+        correct = action_str.strip().lower() == self._oracle_answer.strip().lower()
 
         if correct:
             reward = 1.0
             response = "Correct!"
         else:
             reward = 0.0
-            response = (
-                f"Incorrect. The correct answer is: {self._current_question['answer']}"
-            )
+            response = f"Incorrect. The correct answer is: {self._oracle_answer}"
 
         info = {
             "correct": correct,
             "user_answer": action_str.strip(),
-            "oracle_answer": self._current_question["answer"],
+            "oracle_answer": self._oracle_answer,
         }
 
         obs = Observation(image=self.render(), text=response)
@@ -896,5 +899,4 @@ Options:
 
     def _check_answer(self, action: str) -> bool:
         """Check if answer is correct."""
-        correct_answer = self._current_question["answer"]
-        return action.strip().lower() == correct_answer.strip().lower()
+        return action.strip().lower() == self._oracle_answer.strip().lower()

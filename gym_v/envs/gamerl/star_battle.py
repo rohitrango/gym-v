@@ -105,7 +105,7 @@ class GameRLStarBattleQAEnv(Env):
         self._grid_size = grid_size
         self._stars_per_region = stars_per_region
         self._cell_size = cell_size
-        self._question_type = question_type
+        self._question_type_param = question_type
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
@@ -113,45 +113,30 @@ class GameRLStarBattleQAEnv(Env):
         self._grid: list[list[int]] = []
         self._regions: list[list[tuple[int, int]]] = []
         self._solution: list[list[int]] = []
-        self._current_question: dict[str, Any] = {}
+
+        # Standard QA variables
+        self._question_type_idx: int = 0
+        self._question: str = ""
+        self._options: list[str] | None = None
+        self._oracle_answer: str = ""
+
+    STD_ANSWER_FORMAT_PROMPT = dedent("""
+        **Answer Format:**
+        Reply with only the answer (number or option number).
+        For multiple choice: 1, 2, 3, etc.
+    """).strip()
 
     @property
     def description(self) -> str:
+        """Return game rules + current question + answer format."""
         rules = self.GAME_RULES.format(stars_per_region=self._stars_per_region)
-        base_desc = dedent(f"""
-            This is a Star Battle puzzle QA environment.
-
-            {rules}
-
-            In this puzzle, the grid is divided into regions shown by different colors.
-            A star is represented by a black circle in the grid.
-
-            Question Types:
-            - Last Star Placement: Find where to place the final star to complete the puzzle
-            - Cells of Region: Identify which cell belongs to a specific region
-            - Star of Region: Find which cell in a region contains a star
-            - Valid Cell Placement: Determine valid cells for placing a star
-
-            The system will present you with a puzzle state and ask a specific question.
-        """).strip()
-
-        # Add question and answer format if question has been generated
-        if hasattr(self, "_current_question") and self._current_question:
-            desc = base_desc + "\n\n" + self._current_question["question"]
-            desc += """
-
-**Answer Format:**
-Reply with only the answer (number or option number).
-
-Examples:
-- For multiple choice: 1, 2, 3, etc.
-- For numbers: 42, 100, etc.
-
-Do not include any explanation or extra text.
-"""
-            return desc.strip()
-
-        return base_desc
+        desc = rules + "\n\n**Question:** " + self._question
+        if self._options:
+            desc += "\n\n**Options:**\n"
+            for i, opt in enumerate(self._options):
+                desc += f"{i+1}. {opt}\n"
+        desc += "\n\n" + self.STD_ANSWER_FORMAT_PROMPT
+        return desc.strip()
 
     def _get_state_text(self) -> str:
         """Generate text description of current Star Battle puzzle state.
@@ -186,50 +171,58 @@ Grid (*=star, 1-{self._grid_size}=region number):
         super().reset(seed=seed)
 
         # Select question type
-        if self._question_type is None:
-            question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
+        if self._question_type_param is None:
+            self._question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
         else:
-            question_type_idx = self._question_type
+            self._question_type_idx = self._question_type_param
 
         # Validate question type index
-        if not (0 <= question_type_idx < len(self.QUESTION_TYPES)):
-            raise ValueError(f"Invalid question type index: {question_type_idx}")
+        if not (0 <= self._question_type_idx < len(self.QUESTION_TYPES)):
+            raise ValueError(f"Invalid question type index: {self._question_type_idx}")
 
-        # Get question type ID from index
-        question_type = self.QUESTION_TYPES[question_type_idx]["id"]
+        q_type = self.QUESTION_TYPES[self._question_type_idx]
 
         # Generate puzzle
         self._generate_puzzle()
 
         # Generate question based on type
-        if question_type == "last_star":
-            self._current_question = self._generate_last_star_question()
-        elif question_type == "cells_of_region":
-            self._current_question = self._generate_cells_of_region_question()
-        elif question_type == "star_of_region":
-            self._current_question = self._generate_star_of_region_question()
-        elif question_type == "valid_cells":
-            self._current_question = self._generate_valid_cells_question()
+        if q_type["id"] == "last_star":
+            result = self._generate_last_star_question()
+        elif q_type["id"] == "cells_of_region":
+            result = self._generate_cells_of_region_question()
+        elif q_type["id"] == "star_of_region":
+            result = self._generate_star_of_region_question()
+        elif q_type["id"] == "valid_cells":
+            result = self._generate_valid_cells_question()
         else:
-            raise ValueError(f"Unknown question type: {question_type}")
+            raise ValueError(f"Unknown question type: {q_type['id']}")
+
+        # Extract to instance variables
+        self._question = result["question"]
+        self._options = result.get("options")
+        self._oracle_answer = result["answer"]
 
         logger.info(
-            f"Reset Star Battle QA ({self._grid_size}x{self._grid_size}, question: {question_type})."
+            f"Reset Star Battle QA ({self._grid_size}x{self._grid_size}, question: {q_type['id']})."
         )
 
+        text_state = self._get_state_text()
         obs = Observation(
             image=self.render(),
-            text=self._get_state_text(),
+            text=text_state,
             metadata={
-                "question": self._current_question["question"],
-                "options": self._current_question.get("options"),
-                "question_type": question_type,
+                "text_state": text_state,
+                "question": self._question,
+                "options": self._options,
+                "question_type": q_type["name"],
+                "level": q_type["level"],
             },
         )
 
         info = {
-            "oracle_answer": self._current_question["answer"],
-            "question_type": question_type,
+            "seed": seed,
+            "oracle_answer": self._oracle_answer,
+            "question_type": q_type["id"],
         }
 
         return {agent_id: obs for agent_id in self._agent_ids}, {
@@ -257,24 +250,19 @@ Grid (*=star, 1-{self._grid_size}=region number):
         action_str = action_str.strip()
 
         # Check if answer is correct
-        correct = self._check_answer(action_str)
+        correct = action_str.strip().lower() == self._oracle_answer.strip().lower()
 
         if correct:
             reward = 1.0
             response = "Correct!"
         else:
             reward = 0.0
-            response = (
-                f"Incorrect. The correct answer is: {self._current_question['answer']}"
-            )
-
-        if "explanation" in self._current_question:
-            response += f"\n\nExplanation:\n{self._current_question['explanation']}"
+            response = f"Incorrect. The correct answer is: {self._oracle_answer}"
 
         info = {
             "correct": correct,
             "user_answer": action_str,
-            "oracle_answer": self._current_question["answer"],
+            "oracle_answer": self._oracle_answer,
         }
 
         obs = Observation(image=self.render(), text=response)
@@ -775,21 +763,9 @@ Options:
 
     def _check_answer(self, action: str) -> bool:
         """Check if the provided answer is correct."""
-        correct_answer = self._current_question["answer"]
-
         # Normalize both answers for comparison
         action_normalized = action.strip().lower()
-        correct_normalized = correct_answer.strip().lower()
-
-        # For tuple answers, try to parse and compare
-        if "answer_tuple" in self._current_question:
-            try:
-                # Try to parse as tuple
-                action_tuple = eval(action_normalized)
-                correct_tuple = self._current_question["answer_tuple"]
-                return action_tuple == correct_tuple
-            except (ValueError, IndexError, NameError, SyntaxError):
-                pass
+        correct_normalized = self._oracle_answer.strip().lower()
 
         # For multiple choice, compare the option number
         return action_normalized == correct_normalized

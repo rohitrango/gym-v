@@ -321,11 +321,10 @@ class GameRLSpiderSolitaireQAEnv(Env):
         self.num_waste = num_waste
         self.circular = circular
         self.open = open
-        self._question_type = question_type
+        self._question_type_param = question_type
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
         self._card_images = None
-        self._current_question = None
 
         # Game state
         self.deck = []
@@ -333,9 +332,27 @@ class GameRLSpiderSolitaireQAEnv(Env):
         self.foundations = []
         self.waste = []
 
+        # Standard QA variables
+        self._question_type_idx: int = 0
+        self._question: str = ""
+        self._options: list[str] | None = None
+        self._oracle_answer: str = ""
+
+    ANSWER_FORMAT_PROMPT = dedent("""
+        **Answer Format:**
+        Provide your answer directly. For multiple choice, respond with the letter only.
+    """).strip()
+
     @property
     def description(self) -> str:
-        return "Spider Solitaire QA\n\n" + SPIDER_RULES
+        """Return game rules + current question + answer format."""
+        desc = SPIDER_RULES + "\n\n**Question:** " + self._question
+        if self._options:
+            desc += "\n\n**Options:**\n"
+            for opt in self._options:
+                desc += f"{opt}\n"
+        desc += "\n\n" + self.ANSWER_FORMAT_PROMPT
+        return desc.strip()
 
     def _initialize_game(self):
         """Initialize the game state"""
@@ -1143,24 +1160,29 @@ class GameRLSpiderSolitaireQAEnv(Env):
             "options": options,
         }
 
-    def _generate_question(self, question_type: int) -> dict:
-        """Generate a question of the specified type"""
+    def _generate_question(self, question_type: int) -> None:
+        """Generate a question of the specified type - sets _question, _options, _oracle_answer"""
         if question_type == 0:
-            return self._generate_question_type_0()
+            result = self._generate_question_type_0()
         elif question_type == 1:
-            return self._generate_question_type_1()
+            result = self._generate_question_type_1()
         elif question_type == 2:
-            return self._generate_question_type_2()
+            result = self._generate_question_type_2()
         elif question_type == 3:
-            return self._generate_question_type_3()
+            result = self._generate_question_type_3()
         elif question_type == 4:
-            return self._generate_question_type_4()
+            result = self._generate_question_type_4()
         elif question_type == 5:
-            return self._generate_question_type_5()
+            result = self._generate_question_type_5()
         elif question_type == 6:
-            return self._generate_question_type_6()
+            result = self._generate_question_type_6()
         else:
             raise ValueError(f"Invalid question type: {question_type}")
+
+        # Extract to instance variables
+        self._question = result["question"]
+        self._options = result.get("options")
+        self._oracle_answer = result["answer"]
 
     # ========================================================================
     # Gym-v Interface
@@ -1215,25 +1237,32 @@ class GameRLSpiderSolitaireQAEnv(Env):
         self._load_card_images()
 
         # Generate random question type or use specified
-        q_type = (
-            self._question_type
-            if self._question_type is not None
-            else random.randint(0, 6)
-        )
-        self._current_question = self._generate_question(q_type)
+        if self._question_type_param is not None:
+            self._question_type_idx = self._question_type_param
+        else:
+            self._question_type_idx = random.randint(0, 6)
+        q_type = self.QUESTION_TYPES[self._question_type_idx]
 
+        # Generate question - sets _question, _options, _oracle_answer
+        self._generate_question(self._question_type_idx)
+
+        text_state = self._get_state_text()
         obs = Observation(
             image=self.render(),
-            text=self._get_state_text(),
+            text=text_state,
             metadata={
-                "question": self._current_question["question"],
-                "question_type": q_type,
+                "text_state": text_state,
+                "question": self._question,
+                "options": self._options,
+                "question_type": q_type["name"],
+                "level": q_type["level"],
             },
         )
 
         info = {
-            "oracle_answer": self._current_question["answer"],
-            "question_type": q_type,
+            "seed": seed,
+            "oracle_answer": self._oracle_answer,
+            "question_type": q_type["id"],
         }
 
         return {agent_id: obs for agent_id in self._agent_ids}, {
@@ -1255,14 +1284,14 @@ class GameRLSpiderSolitaireQAEnv(Env):
 
         correct = (
             action_str.strip().lower()
-            == self._current_question["answer"].strip().lower()
+            == self._oracle_answer.strip().lower()
         )
         reward = 1.0 if correct else 0.0
 
         if correct:
             response = "Correct!"
         else:
-            response = f"Incorrect. The correct answer is: {self._current_question['answer']}\n\n{self._current_question['analysis']}"
+            response = f"Incorrect. The correct answer is: {self._oracle_answer}"
 
         obs = Observation(image=self.render(), text=response)
 

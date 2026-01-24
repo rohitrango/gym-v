@@ -131,7 +131,7 @@ class GameRLTetrisQAEnv(Env):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self._question_type = question_type
+        self._question_type_param = question_type
         self._rows = rows
         self._cols = cols
         self._cell_size = cell_size
@@ -146,8 +146,8 @@ class GameRLTetrisQAEnv(Env):
         self._current_pos: tuple[int, int] = (0, 0)
 
         # Q&A state
-        self._current_question_type: int = 0
-        self._current_question: str = ""
+        self._question_type_idx: int = 0
+        self._question: str = ""
         self._oracle_answer: str = ""
         self._options: list[str] | None = None
         self._target_row: int = 0
@@ -159,7 +159,7 @@ class GameRLTetrisQAEnv(Env):
         rules = GAME_RULES.format(
             rows=self._rows, cols=self._cols, max_row=self._rows - 1
         )
-        desc = rules + "\n\n**Question:** " + self._current_question
+        desc = rules + "\n\n**Question:** " + self._question
 
         if self._options:
             desc += "\n\n**Options:**\n" + "\n".join(self._options)
@@ -212,33 +212,33 @@ Grid (#=placed, *=falling, .=empty):
         self._generate_game_state()
 
         # Select question type
-        if self._question_type is not None:
-            self._current_question_type = self._question_type
+        if self._question_type_param is not None:
+            self._question_type_idx = self._question_type_param
         else:
-            self._current_question_type = self.np_random.integers(
+            self._question_type_idx = self.np_random.integers(
                 0, len(self.QUESTION_TYPES)
             )
 
         # Generate Q&A
         self._generate_qa()
 
-        logger.info(f"Reset Tetris QA (type={self._current_question_type}).")
+        logger.info(f"Reset Tetris QA (type={self._question_type_idx}).")
 
         obs = Observation(
             image=self.render(),
             text=self._get_state_text(),
             metadata={
-                "question": self._current_question,
+                "question": self._question,
                 "options": self._options,
-                "question_type": self.QUESTION_TYPES[self._current_question_type][
+                "question_type": self.QUESTION_TYPES[self._question_type_idx][
                     "name"
                 ],
-                "level": self.QUESTION_TYPES[self._current_question_type]["level"],
+                "level": self.QUESTION_TYPES[self._question_type_idx]["level"],
             },
         )
         info = {
             "oracle_answer": self._oracle_answer,
-            "question_type": self._current_question_type,
+            "question_type": self._question_type_idx,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -264,7 +264,7 @@ Grid (#=placed, *=falling, .=empty):
             image=self.render(),
             text=None,
             metadata={
-                "question_type": self.QUESTION_TYPES[self._current_question_type][
+                "question_type": self.QUESTION_TYPES[self._question_type_idx][
                     "name"
                 ],
             },
@@ -294,7 +294,7 @@ Grid (#=placed, *=falling, .=empty):
 
     def _score_answer(self, answer: str) -> float:
         """Score the answer."""
-        answer_format = self.QUESTION_TYPES[self._current_question_type][
+        answer_format = self.QUESTION_TYPES[self._question_type_idx][
             "answer_format"
         ]
 
@@ -344,7 +344,7 @@ Grid (#=placed, *=falling, .=empty):
 
     def _generate_qa(self) -> None:
         """Generate question and oracle answer."""
-        q_type = self._current_question_type
+        q_type = self._question_type_idx
         self._options = None
 
         if q_type == 0:
@@ -359,7 +359,7 @@ Grid (#=placed, *=falling, .=empty):
     def _generate_q0_empty_cells(self) -> None:
         """Q0: Count empty cells in a specific row."""
         self._target_row = self.np_random.integers(0, self._rows)
-        self._current_question = (
+        self._question = (
             f"How many empty cells are there in Row {self._target_row} of the grid?"
         )
 
@@ -392,7 +392,7 @@ Grid (#=placed, *=falling, .=empty):
 
     def _generate_q1_tetromino_shape(self) -> None:
         """Q1: Identify the falling tetromino shape."""
-        self._current_question = (
+        self._question = (
             "What is the shape of the active Tetrimino at the top of the screen?"
         )
 
@@ -426,7 +426,7 @@ Grid (#=placed, *=falling, .=empty):
         """Q2: Count timesteps until collision after moving left/right."""
         direction = "left" if self.np_random.random() < 0.5 else "right"
         self._action_direction = direction
-        self._current_question = f"If the current active Tetrimino is only moved one step (After moving {direction} for one column), how many timesteps will it take to collide with another block or the grid boundary?"
+        self._question = f"If the current active Tetrimino is only moved one step (After moving {direction} for one column), how many timesteps will it take to collide with another block or the grid boundary?"
 
         if self._current_piece is None:
             self._oracle_answer = "-1"
@@ -479,7 +479,7 @@ Grid (#=placed, *=falling, .=empty):
 
     def _generate_q3_max_rows_cleared(self) -> None:
         """Q3: Maximum rows that can be cleared with optimal placement."""
-        self._current_question = "What's the maximum number of rows can be cleared after positioning the active Tetrimino in this turn?"
+        self._question = "What's the maximum number of rows can be cleared after positioning the active Tetrimino in this turn?"
 
         if self._current_piece is None:
             self._oracle_answer = "0"

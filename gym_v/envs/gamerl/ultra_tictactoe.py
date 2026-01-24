@@ -434,17 +434,34 @@ class GameRLUltraTicTacToeQAEnv(Env):
         """
         super().__init__(**kwargs)
         self._plot_level = plot_level
-        self._question_type = question_type
+        self._question_type_param = question_type
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
         self._game = None
         self._game_state = None
-        self._current_question = None
+
+        # Standard QA variables
+        self._question_type_idx: int = 0
+        self._question: str = ""
+        self._options: list[str] | None = None
+        self._oracle_answer: str = ""
+        self._question = None
+
+    ANSWER_FORMAT_PROMPT = dedent("""
+        **Answer Format:**
+        Provide your answer directly. For multiple choice, respond with the letter only.
+    """).strip()
 
     @property
     def description(self) -> str:
-        """Return environment description with game rules."""
-        return "Ultra TicTacToe QA\n\n" + GAME_RULES
+        """Return game rules + current question + answer format."""
+        desc = GAME_RULES + "\n\n**Question:** " + self._question
+        if self._options:
+            desc += "\n\n**Options:**\n"
+            for opt in self._options:
+                desc += f"{opt}\n"
+        desc += "\n\n" + self.ANSWER_FORMAT_PROMPT
+        return desc.strip()
 
     def _get_state_text(self) -> str:
         """Generate text description of current Ultra TicTacToe game state.
@@ -519,32 +536,40 @@ class GameRLUltraTicTacToeQAEnv(Env):
         self._game_state = self._game.get_game_state()
 
         # Generate question
-        if self._question_type is None:
-            question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
+        if self._question_type_param is None:
+            self._question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
         else:
-            question_type_idx = self._question_type
+            self._question_type_idx = self._question_type_param
 
         # Validate question type index
-        if not (0 <= question_type_idx < len(self.QUESTION_TYPES)):
-            raise ValueError(f"Invalid question type index: {question_type_idx}")
+        if not (0 <= self._question_type_idx < len(self.QUESTION_TYPES)):
+            raise ValueError(f"Invalid question type index: {self._question_type_idx}")
+
+        q_type = self.QUESTION_TYPES[self._question_type_idx]
 
         # Convert 0-based index to 1-based for _generate_question (expects 1-7)
-        q_type = question_type_idx + 1
-        self._current_question = self._generate_question(q_type)
+        result = self._generate_question(self._question_type_idx + 1)
+        self._question = result["question"]
+        self._options = result.get("options")
+        self._oracle_answer = result["answer"]
 
+        text_state = self._get_state_text()
         obs = Observation(
             image=self.render(),
-            text=self._get_state_text(),
+            text=text_state,
             metadata={
-                "question": self._current_question["question"],
-                "options": self._current_question.get("options"),
-                "question_type": q_type,
+                "text_state": text_state,
+                "question": self._question,
+                "options": self._options,
+                "question_type": q_type["name"],
+                "level": q_type["level"],
             },
         )
 
         info = {
-            "oracle_answer": self._current_question["answer"],
-            "question_type": q_type,
+            "seed": seed,
+            "oracle_answer": self._oracle_answer,
+            "question_type": q_type["id"],
         }
 
         return {agent_id: obs for agent_id in self._agent_ids}, {
@@ -654,10 +679,10 @@ class GameRLUltraTicTacToeQAEnv(Env):
         options = ["First Player", "Second Player", "Not Marked"]
         option_list = " ".join([f"{i+1}. {option}" for i, option in enumerate(options)])
 
-        question = f"{GAME_RULES} Which player marked the cell at {coord_str} in the image? Options: {option_list}"
+        question = f"Which player marked the cell at {coord_str} in the image?"
         analysis = f"{process} So, the option number is {option_number}."
 
-        return {"question": question, "answer": option_number, "analysis": analysis}
+        return {"question": question, "answer": option_number, "options": options, "analysis": analysis}
 
     def _generate_question_type_2(self) -> dict[str, Any]:
         """Type 2: Given opponent's last move, how many possible next coordinates?
@@ -712,10 +737,10 @@ class GameRLUltraTicTacToeQAEnv(Env):
         )
         option_number = str(options_made.index(str(coord_avail_num)) + 1)
 
-        question = f"{GAME_RULES} Now your opponent place a piece at {last_piece_coord}. What is the number of possible coordinates of your next step? Options: {option_list}"
+        question = f"Now your opponent place a piece at {last_piece_coord}. What is the number of possible coordinates of your next step?"
         analysis = f"Since the opponent placed a piece at {last_piece_coord}, our next step should be in the Nine-grid ({next_i}, {next_j}). In this nine grid, we can see that {str_coords_marked_by_X} are marked by the First Player, while {str_coords_marked_by_O} are marked by the Second Player. So, the possible coordinates are the rest cells in the Nine-grid, being {coord_avail_list_str}. This means there are {coord_avail_num} available coordinate(s), so the option number is {option_number}."
 
-        return {"question": question, "answer": option_number, "analysis": analysis}
+        return {"question": question, "answer": option_number, "options": options_made, "analysis": analysis}
 
     def _generate_question_type_3(self) -> dict[str, Any]:
         """Type 3: How many middle cells are marked?
@@ -758,10 +783,10 @@ class GameRLUltraTicTacToeQAEnv(Env):
             [f"{i+1}. {option}" for i, option in enumerate(options_made)]
         )
 
-        question = f"{GAME_RULES} How many middle cells in the image are marked? Options: {option_list}"
+        question = "How many middle cells in the image are marked?"
         analysis = f"We check the middle cells in the Nine-grids one by one.\n{chr(10).join(counting_process)}\nSo there are {marked_middle_cell_num} middle cell(s) marked, the option number is {option_number}."
 
-        return {"question": question, "answer": option_number, "analysis": analysis}
+        return {"question": question, "answer": option_number, "options": options_made, "analysis": analysis}
 
     def _generate_question_type_4(self) -> dict[str, Any]:
         """Type 4: How many pieces are there in total?
@@ -833,10 +858,10 @@ class GameRLUltraTicTacToeQAEnv(Env):
             [f"{i+1}. {option}" for i, option in enumerate(options_made)]
         )
 
-        question = f"{GAME_RULES} How many pieces are there in the image? Options: {option_list}"
+        question = "How many pieces are there in the image?"
         analysis = f"We count the number of chess pieces in the Nine-grids one by one. {chr(10).join(counting_process)} So there are {adding_process} = {total_piece_count} pieces, the option number is {option_number}."
 
-        return {"question": question, "answer": option_number, "analysis": analysis}
+        return {"question": question, "answer": option_number, "options": options_made, "analysis": analysis}
 
     def _generate_question_type_5(self) -> dict[str, Any]:
         """Type 5: How many points has a player got in a Nine-grid?
@@ -886,10 +911,10 @@ class GameRLUltraTicTacToeQAEnv(Env):
             [f"{i+1}. {option}" for i, option in enumerate(options_made)]
         )
 
-        question = f"{GAME_RULES} How many points has the {player_name} got within the Nine-grid {nine_grid}? Options: {option_list}"
+        question = f"How many points has the {player_name} got within the Nine-grid {nine_grid}?"
         analysis = f"The {player_name} uses {piece_type} pieces. We count the points in the order of rows, columns, and diagonals. We can see that in Nine-grid {nine_grid}, there are {point_row} point(s) in rows, {point_col} point(s) in columns, and {point_diag} point(s) in diagonals, which is {point} point(s) in total. So, the option number is {option_number}."
 
-        return {"question": question, "answer": option_number, "analysis": analysis}
+        return {"question": question, "answer": option_number, "options": options_made, "analysis": analysis}
 
     def _generate_question_type_6(self) -> dict[str, Any]:
         """Type 6: In which Nine-grid should you place the next piece?
@@ -977,10 +1002,10 @@ class GameRLUltraTicTacToeQAEnv(Env):
             [f"{i+1}. {option}" for i, option in enumerate(options_made)]
         )
 
-        question = f"{GAME_RULES} If you are {player_name}, from the image, we can see now it's your turn to place a piece. According to the rules of the game, in which Nine-grid should you place the next piece? Options: {option_list}"
+        question = f"If you are {player_name}, from the image, we can see now it's your turn to place a piece. According to the rules of the game, in which Nine-grid should you place the next piece?"
         analysis = f"Since we are the {player_name} now, we use the {piece_type} piece. First, we need to count the number of {piece_type} pieces in each Nine-grid.\n{chr(10).join(counting_process_of_your_piece)}\nThen, we need to count the number of {other_piece_type} pieces in each position of every Nine-grid.\n{chr(10).join(counting_process_of_the_other_piece)}\nSo the quantitative differences corresponding to these coordinates are {', '.join([str(diff) for diff in diff_piece_num])} respectively.\nFrom this difference, {supp_for_X}we can tell that our next step should be in {answer}, which means the option number is {option_number}."
 
-        return {"question": question, "answer": option_number, "analysis": analysis}
+        return {"question": question, "answer": option_number, "options": options_made, "analysis": analysis}
 
     def _generate_question_type_7(self) -> dict[str, Any]:
         """Type 7: At which coordinate to place next piece for highest point?
@@ -1048,7 +1073,7 @@ class GameRLUltraTicTacToeQAEnv(Env):
                 max_coord = f"({next_i}, {next_j}, {row}, {col})"
                 max_point = point
 
-        question = f"{GAME_RULES} Now your opponent place a piece at {last_piece_coord}. At which coordinate should you place your next piece to win the highest point?"
+        question = f"Now your opponent place a piece at {last_piece_coord}. At which coordinate should you place your next piece to win the highest point?"
         analysis = f"Since the opponent placed a piece at {last_piece_coord}, our next step should be in the Nine-grid ({next_i}, {next_j}). In this Nine-grid, {avail_coord_num} coordinate(s) are available, and we count their points one by one. {chr(10).join(counting_process)} We can see that when choosing {max_coord}, the final point is the highest, being {max_point}. So, the answer is {max_coord}."
 
         return {"question": question, "answer": max_coord, "analysis": analysis}
@@ -1070,24 +1095,21 @@ class GameRLUltraTicTacToeQAEnv(Env):
         Returns:
             Tuple of (observation, reward, terminated, truncated, info)
         """
-        if self._current_question is None:
+        if not self._question:
             raise RuntimeError("No question has been generated. Call reset() first.")
 
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
 
         # Check answer
-        correct = action_str.strip() == self._current_question["answer"].strip()
+        correct = action_str.strip() == self._oracle_answer.strip()
         reward = 1.0 if correct else 0.0
 
         # Generate response
         if correct:
             response = "Correct!"
         else:
-            response = (
-                f"Incorrect. The correct answer is: {self._current_question['answer']}\n\n"
-                f"{self._current_question['analysis']}"
-            )
+            response = f"Incorrect. The correct answer is: {self._oracle_answer}"
 
         obs = Observation(image=self.render(), text=response)
 
