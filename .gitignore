@@ -211,3 +211,6 @@ __marimo__/
 
 # Test output directories
 tests/test_output_*/
+
+*.bak
+docs/plans/
