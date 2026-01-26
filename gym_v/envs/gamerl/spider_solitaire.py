@@ -13,6 +13,7 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation, get_logger
+from gym_v.envs.gamerl.utils import build_description, score_exact
 
 logger = get_logger()
 
@@ -67,19 +68,38 @@ class Stack(list):
     def __init__(self):
         super().__init__()
 
-    def add(self, card, faceUp=True):
+    def add(self, card, face_up: bool = True) -> None:
+        """Add a card to the stack.
+
+        Args:
+            card: The card to add.
+            face_up: Whether the card should be face up (default True).
+        """
         self.append(card)
-        if faceUp:
+        if face_up:
             self[-1].showFace()
 
-    def isEmpty(self):
+    def isEmpty(self) -> bool:
+        """Check if the stack is empty.
+
+        Returns:
+            True if the stack is empty, False otherwise.
+        """
         return not self
 
-    def clear(self):
+    def clear(self) -> None:
+        """Clear all cards from the stack."""
         self[:] = []
 
-    def find(self, code):
-        """If the card with the given code is in the stack, return its index. If not, return -1."""
+    def find(self, code: int) -> int:
+        """Find a card by its code.
+
+        Args:
+            code: The unique code of the card to find.
+
+        Returns:
+            The index of the card if found, -1 otherwise.
+        """
         for idx, card in enumerate(self):
             if card.code == code:
                 return idx
@@ -95,17 +115,36 @@ class SelectableStack(Stack):
     def __init__(self):
         super().__init__()
 
-    def grab(self, n):
-        """Remove the card at index n and all those on top of it."""
+    def grab(self, n: int) -> list:
+        """Remove the card at index n and all cards above it.
+
+        Args:
+            n: The starting index.
+
+        Returns:
+            List of cards removed from the stack.
+        """
         answer = self[n:]
         del self[n:]
         return answer
 
-    def replace(self, cards):
-        """Move aborted. Replace these cards on the stack."""
+    def replace(self, cards: list) -> None:
+        """Replace cards on the stack (aborted move).
+
+        Args:
+            cards: The cards to put back.
+        """
         self.extend(cards)
 
-    def canSelect(self, idx):
+    def canSelect(self, idx: int) -> bool:
+        """Check if a card at the given index can be selected.
+
+        Args:
+            idx: The index of the card to check.
+
+        Returns:
+            True if the card can be selected, False otherwise.
+        """
         if idx >= len(self):
             return False
         if self[idx].faceDown():
@@ -116,18 +155,25 @@ class SelectableStack(Stack):
 
 
 class OneWayStack(Stack):
-    """
-    Used for the stock and the foundations.
-    No cards can be selected.
-    Cards are either all face up, or all face down.
+    """Stack for stock and foundations where cards cannot be selected.
+
+    Cards are either all face up or all face down.
+
+    Args:
+        face_up: Whether all cards in this stack should be face up.
     """
 
-    def __init__(self, faceUp):
+    def __init__(self, face_up: bool):
         super().__init__()
-        self.faceUp = faceUp
+        self.face_up = face_up
 
-    def add(self, card):
-        super().add(card, self.faceUp)
+    def add(self, card) -> None:
+        """Add a card to the stack with the stack's face orientation.
+
+        Args:
+            card: The card to add.
+        """
+        super().add(card, self.face_up)
 
 
 # ============================================================================
@@ -136,27 +182,43 @@ class OneWayStack(Stack):
 
 
 class Card:
-    """A card is identified by its rank, suit, and back color."""
+    """A playing card identified by rank, suit, and back color.
+
+    Attributes:
+        circular: Class variable for circular mode (King can be placed on Ace).
+    """
 
     circular = False
 
-    def __init__(self, rank, suit, back, code):
+    def __init__(self, rank: int, suit: str, back: str, code: int):
         self.rank = rank
         self.suit = suit
         self.back = back
         self.up = False  # all cards are initially face down
         self.code = code
 
-    def showFace(self):
+    def showFace(self) -> None:
+        """Turn the card face up."""
         self.up = True
 
-    def showBack(self):
+    def showBack(self) -> None:
+        """Turn the card face down."""
         self.up = False
 
-    def faceUp(self):
+    def faceUp(self) -> bool:
+        """Check if the card is face up.
+
+        Returns:
+            True if the card is face up, False otherwise.
+        """
         return self.up
 
-    def faceDown(self):
+    def faceDown(self) -> bool:
+        """Check if the card is face down.
+
+        Returns:
+            True if the card is face down, False otherwise.
+        """
         return not self.faceUp()
 
     def __lt__(self, other):
@@ -177,8 +239,15 @@ class Card:
         return self.__repr__()
 
     @staticmethod
-    def isDescending(seq):
-        """Are the cards in a descending sequence of the same suit?"""
+    def isDescending(seq: list) -> bool:
+        """Check if cards form a descending sequence of the same suit.
+
+        Args:
+            seq: Sequence of cards to check.
+
+        Returns:
+            True if cards are in descending order of the same suit.
+        """
         return all(x > y for x, y in zip(seq, seq[1:], strict=False))
 
 
@@ -186,7 +255,7 @@ class Card:
 # Spider Solitaire QA Environment
 # ============================================================================
 
-SPIDER_RULES = dedent("""
+GAME_RULES = dedent("""
     Spider Solitaire
 
 # OBJECTIVE
@@ -251,9 +320,10 @@ In **circular spider solitaire**, a King can be placed on an Ace, allowing for e
 
 
 class GameRLSpiderSolitaireQAEnv(Env):
-    """Spider Solitaire QA Environment
+    """Spider Solitaire QA Environment.
 
     A single-turn QA environment for Spider Solitaire with 7 question types.
+    Players answer questions about game state, valid moves, and optimal strategies.
     """
 
     QUESTION_TYPES = [
@@ -321,11 +391,10 @@ class GameRLSpiderSolitaireQAEnv(Env):
         self.num_waste = num_waste
         self.circular = circular
         self.open = open
-        self._question_type = question_type
+        self._question_type_param = question_type
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
         self._card_images = None
-        self._current_question = None
 
         # Game state
         self.deck = []
@@ -333,12 +402,25 @@ class GameRLSpiderSolitaireQAEnv(Env):
         self.foundations = []
         self.waste = []
 
+        # Standard QA variables
+        self._question_type_idx: int = 0
+        self._question: str = ""
+        self._options: list[str] | None = None
+        self._oracle_answer: str = ""
+
     @property
     def description(self) -> str:
-        return "Spider Solitaire QA\n\n" + SPIDER_RULES
+        """Return game rules + current question + answer format."""
+        return build_description(
+            game_name="Spider Solitaire",
+            rules=GAME_RULES,
+            question=self._question,
+            options=self._options,
+            oracle_answer=self._oracle_answer,
+        )
 
-    def _initialize_game(self):
-        """Initialize the game state"""
+    def _initialize_game(self) -> None:
+        """Initialize the game state with deck, piles, and initial layout."""
         # Create 104 cards (8 decks of spades)
         self.deck = []
         code = 0
@@ -360,8 +442,8 @@ class GameRLSpiderSolitaireQAEnv(Env):
         self.stock.extend(self.deck)
         self._deal_initial_layout()
 
-    def _deal_initial_layout(self):
-        """Deal the initial layout of cards"""
+    def _deal_initial_layout(self) -> None:
+        """Deal the initial layout of cards to waste piles."""
         # Deal face-down cards
         total_face_down = max(104 - self.num_waste * 6, 0)
 
@@ -369,7 +451,7 @@ class GameRLSpiderSolitaireQAEnv(Env):
             if not self.stock:
                 break
             card = self.stock.pop()
-            self.waste[n % self.num_waste].add(card, faceUp=self.open)
+            self.waste[n % self.num_waste].add(card, face_up=self.open)
 
         # Deal face-up cards
         for n in range(self.num_waste):
@@ -378,8 +460,8 @@ class GameRLSpiderSolitaireQAEnv(Env):
             card = self.stock.pop()
             self.waste[n].add(card, True)
 
-    def _load_card_images(self):
-        """Load card images from the Game-RL cards directory"""
+    def _load_card_images(self) -> None:
+        """Load card images from the assets directory."""
         if self._card_images is not None:
             return  # Already loaded
 
@@ -641,7 +723,7 @@ class GameRLSpiderSolitaireQAEnv(Env):
     def _generate_question_type_0(self) -> dict:
         """How many times can the stockpile still deal cards?"""
         answer = str(self._dealsLeft())
-        question = f"{SPIDER_RULES}\n\n**Question:** How many times can the stockpile still deal cards?"
+        question = f"{GAME_RULES}\n\n**Question:** How many times can the stockpile still deal cards?"
         analysis = (
             f"We can see that the stockpile has {self._dealsLeft()} stacks of overlapping cards. "
             f"By counting the number of overlapping cards in the stockpile, we know that the stockpile can now be dealt {answer} times"
@@ -668,7 +750,7 @@ class GameRLSpiderSolitaireQAEnv(Env):
             answer = "Empty"
             analysis = f"Waste pile {pile_num} is currently empty."
 
-        question = f"{SPIDER_RULES}\n\n**Question:** Which card is on the top of waste pile {pile_num}?"
+        question = f"{GAME_RULES}\n\n**Question:** Which card is on the top of waste pile {pile_num}?"
         return {
             "question": question,
             "answer": answer,
@@ -693,7 +775,7 @@ class GameRLSpiderSolitaireQAEnv(Env):
             f"Therefore, there are a total of {self._downCards()} face-down cards across all waste piles."
         )
 
-        question = f"{SPIDER_RULES}\n\n**Question:** How many face-down cards are currently in all waste piles?"
+        question = f"{GAME_RULES}\n\n**Question:** How many face-down cards are currently in all waste piles?"
         return {
             "question": question,
             "answer": answer,
@@ -719,7 +801,7 @@ class GameRLSpiderSolitaireQAEnv(Env):
             f"Therefore, after clicking the stock pile, there would be {new_face_up} face-up card(s) in waste pile {pile_num}."
         )
 
-        question = f"{SPIDER_RULES}\n\n**Question:** If I click the stockpile for {num1} times, how many face-up cards will be in waste pile {pile_num}?"
+        question = f"{GAME_RULES}\n\n**Question:** If I click the stockpile for {num1} times, how many face-up cards will be in waste pile {pile_num}?"
         return {
             "question": question,
             "answer": answer,
@@ -778,7 +860,7 @@ class GameRLSpiderSolitaireQAEnv(Env):
                 destination_pile_index = random.randint(0, self.num_waste - 1)
 
         # Format the question
-        question = f"{SPIDER_RULES}\n\n**Question:** What will happen if I want to move the number {card_index} card of pile {source_pile_index} to pile {destination_pile_index}?"
+        question = f"{GAME_RULES}\n\n**Question:** What will happen if I want to move the number {card_index} card of pile {source_pile_index} to pile {destination_pile_index}?"
 
         # Standard note text
         note_text = (
@@ -989,7 +1071,7 @@ class GameRLSpiderSolitaireQAEnv(Env):
                     for i in range(6)
                 ]
 
-        question = f"{SPIDER_RULES}\n\n**Question:** What should I do if I want to reveal the first face-down card in waste pile {waste_pile_num}?"
+        question = f"{GAME_RULES}\n\n**Question:** What should I do if I want to reveal the first face-down card in waste pile {waste_pile_num}?"
         question += "\n\n**Options:**\n" + "\n".join(options)
         answer = correct_option
 
@@ -1132,7 +1214,7 @@ class GameRLSpiderSolitaireQAEnv(Env):
                 f"H. We should move cards from pile {random.randint(0, self.num_waste - 1)} to the foundation piles.",
             ]
 
-        question = f"{SPIDER_RULES}\n\n**Question:** Based on the current board state, what is the optimal strategy we should adopt?"
+        question = f"{GAME_RULES}\n\n**Question:** Based on the current board state, what is the optimal strategy we should adopt?"
         question += "\n\n**Options:**\n" + "\n".join(options)
         answer = correct_option
 
@@ -1143,24 +1225,29 @@ class GameRLSpiderSolitaireQAEnv(Env):
             "options": options,
         }
 
-    def _generate_question(self, question_type: int) -> dict:
-        """Generate a question of the specified type"""
+    def _generate_question(self, question_type: int) -> None:
+        """Generate a question of the specified type - sets _question, _options, _oracle_answer"""
         if question_type == 0:
-            return self._generate_question_type_0()
+            result = self._generate_question_type_0()
         elif question_type == 1:
-            return self._generate_question_type_1()
+            result = self._generate_question_type_1()
         elif question_type == 2:
-            return self._generate_question_type_2()
+            result = self._generate_question_type_2()
         elif question_type == 3:
-            return self._generate_question_type_3()
+            result = self._generate_question_type_3()
         elif question_type == 4:
-            return self._generate_question_type_4()
+            result = self._generate_question_type_4()
         elif question_type == 5:
-            return self._generate_question_type_5()
+            result = self._generate_question_type_5()
         elif question_type == 6:
-            return self._generate_question_type_6()
+            result = self._generate_question_type_6()
         else:
             raise ValueError(f"Invalid question type: {question_type}")
+
+        # Extract to instance variables
+        self._question = result["question"]
+        self._options = result.get("options")
+        self._oracle_answer = result["answer"]
 
     # ========================================================================
     # Gym-v Interface
@@ -1215,30 +1302,49 @@ class GameRLSpiderSolitaireQAEnv(Env):
         self._load_card_images()
 
         # Generate random question type or use specified
-        q_type = (
-            self._question_type
-            if self._question_type is not None
-            else random.randint(0, 6)
-        )
-        self._current_question = self._generate_question(q_type)
+        if self._question_type_param is not None:
+            self._question_type_idx = self._question_type_param
+        else:
+            self._question_type_idx = random.randint(0, 6)
+        q_type = self.QUESTION_TYPES[self._question_type_idx]
 
+        # Generate question - sets _question, _options, _oracle_answer
+        self._generate_question(self._question_type_idx)
+
+        text_state = self._get_state_text()
         obs = Observation(
             image=self.render(),
-            text=self._get_state_text(),
+            text=text_state,
             metadata={
-                "question": self._current_question["question"],
-                "question_type": q_type,
+                "text_state": text_state,
+                "text_prompt": f"{text_state}\n\n{self.description}",
+                "question": self._question,
+                "options": self._options,
+                "question_type": q_type["name"],
+                "level": q_type["level"],
             },
         )
 
         info = {
-            "oracle_answer": self._current_question["answer"],
-            "question_type": q_type,
+            "seed": seed,
+            "oracle_answer": self._oracle_answer,
+            "question_type": q_type["id"],
         }
 
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
         }
+
+    def _score_answer(self, answer: str) -> float:
+        """Score the user's answer.
+
+        Args:
+            answer: User's answer string
+
+        Returns:
+            1.0 if correct, 0.0 otherwise
+        """
+        return score_exact(answer, self._oracle_answer)
 
     def inner_step(
         self, action: dict[str, str]
@@ -1253,22 +1359,23 @@ class GameRLSpiderSolitaireQAEnv(Env):
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
 
-        correct = (
-            action_str.strip().lower()
-            == self._current_question["answer"].strip().lower()
-        )
-        reward = 1.0 if correct else 0.0
+        reward = self._score_answer(action_str)
+        correct = reward == 1.0
 
         if correct:
             response = "Correct!"
         else:
-            response = f"Incorrect. The correct answer is: {self._current_question['answer']}\n\n{self._current_question['analysis']}"
+            response = f"Incorrect. The correct answer is: {self._oracle_answer}"
 
         obs = Observation(image=self.render(), text=response)
 
         terminated = True
         truncated = False
-        info = {}
+        info = {
+            "oracle_answer": self._oracle_answer,
+            "user_answer": action_str,
+            "correct": correct,
+        }
 
         return (
             {agent_id: obs for agent_id in self._agent_ids},

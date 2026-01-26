@@ -10,6 +10,7 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation, get_logger
+from gym_v.envs.gamerl.utils import build_description, score_exact
 
 logger = get_logger()
 
@@ -130,7 +131,7 @@ class GameRLTentsQAEnv(Env):
             self._num_trees = num_trees
 
         self._cell_size = cell_size
-        self._question_type = question_type
+        self._question_type_param = question_type
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
@@ -140,44 +141,23 @@ class GameRLTentsQAEnv(Env):
         self._tent_positions: set[tuple[int, int]] = set()
         self._row_tent_counts: list[int] = []
         self._col_tent_counts: list[int] = []
-        self._current_question: dict[str, Any] = {}
+
+        # Standard QA variables
+        self._question_type_idx: int = 0
+        self._question: str = ""
+        self._options: list[str] | None = None
+        self._oracle_answer: str = ""
 
     @property
     def description(self) -> str:
-        base_desc = dedent(f"""
-            This is a Tents puzzle QA environment.
-
-            {self.GAME_RULES}
-
-            Question Types:
-            - Number of Tents in Row: Count tents in a specific row
-            - Missing Tents in Column: Count missing tents in a specific column
-            - Missing Tents in Grid: Count missing tents in entire grid
-            - Possible Tent Positions: Count all positions where tents could be placed
-            - New Tent Count: Count valid positions for placing a new tent
-            - Tree Position: Identify which position contains a tree
-            - New Tent Position: Identify valid position for a new tent
-
-            The system will present you with a puzzle state and ask a specific question.
-        """).strip()
-
-        # Add question and answer format if question has been generated
-        if hasattr(self, "_current_question") and self._current_question:
-            desc = base_desc + "\n\n" + self._current_question["question"]
-            desc += """
-
-**Answer Format:**
-Reply with only the answer (number or option number).
-
-Examples:
-- For multiple choice: 1, 2, 3, etc.
-- For numbers: 42, 100, etc.
-
-Do not include any explanation or extra text.
-"""
-            return desc.strip()
-
-        return base_desc
+        """Return game rules + current question + answer format."""
+        return build_description(
+            game_name="Tents Puzzle",
+            rules=self.GAME_RULES,
+            question=self._question,
+            options=self._options,
+            oracle_answer=self._oracle_answer,
+        )
 
     def _get_state_text(self) -> str:
         """Generate text description of current Tents puzzle state.
@@ -212,59 +192,79 @@ Grid (T=tree, X=tent, .=empty):
         self._generate_puzzle()
 
         # Select question type
-        if self._question_type is None:
-            question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
+        if self._question_type_param is None:
+            self._question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
         else:
-            question_type_idx = self._question_type
+            self._question_type_idx = self._question_type_param
 
         # Validate question type index
-        if not (0 <= question_type_idx < len(self.QUESTION_TYPES)):
-            raise ValueError(f"Invalid question type index: {question_type_idx}")
+        if not (0 <= self._question_type_idx < len(self.QUESTION_TYPES)):
+            raise ValueError(f"Invalid question type index: {self._question_type_idx}")
 
-        # Get question type ID from index
-        question_type = self.QUESTION_TYPES[question_type_idx]["id"]
+        q_type = self.QUESTION_TYPES[self._question_type_idx]
 
         # Generate question based on type
-        if question_type == "num_tents_in_row":
-            self._current_question = self._generate_num_tents_in_row_question()
-        elif question_type == "num_missing_tents_in_column":
-            self._current_question = self._generate_missing_tents_in_column_question()
-        elif question_type == "num_missing_tents_in_grid":
-            self._current_question = self._generate_missing_tents_in_grid_question()
-        elif question_type == "possible_tent_positions":
-            self._current_question = self._generate_possible_tent_positions_question()
-        elif question_type == "new_tent_count":
-            self._current_question = self._generate_new_tent_count_question()
-        elif question_type == "tree_position":
-            self._current_question = self._generate_tree_position_question()
-        elif question_type == "new_tent_position":
-            self._current_question = self._generate_new_tent_position_question()
+        if q_type["id"] == "num_tents_in_row":
+            result = self._generate_num_tents_in_row_question()
+        elif q_type["id"] == "num_missing_tents_in_column":
+            result = self._generate_missing_tents_in_column_question()
+        elif q_type["id"] == "num_missing_tents_in_grid":
+            result = self._generate_missing_tents_in_grid_question()
+        elif q_type["id"] == "possible_tent_positions":
+            result = self._generate_possible_tent_positions_question()
+        elif q_type["id"] == "new_tent_count":
+            result = self._generate_new_tent_count_question()
+        elif q_type["id"] == "tree_position":
+            result = self._generate_tree_position_question()
+        elif q_type["id"] == "new_tent_position":
+            result = self._generate_new_tent_position_question()
         else:
-            raise ValueError(f"Unknown question type: {question_type}")
+            raise ValueError(f"Unknown question type: {q_type['id']}")
+
+        # Extract to instance variables
+        self._question = result["question"]
+        self._options = result.get("options")
+        self._oracle_answer = result["answer"]
 
         logger.info(
             f"Reset Tents QA ({self._grid_size[0]}x{self._grid_size[1]}, "
-            f"{self._num_trees} trees, question: {question_type})."
+            f"{self._num_trees} trees, question: {q_type['id']})."
         )
 
+        text_state = self._get_state_text()
         obs = Observation(
             image=self.render(),
-            text=self._get_state_text(),
+            text=text_state,
             metadata={
-                "question": self._current_question["question"],
-                "options": self._current_question.get("options"),
-                "question_type": question_type,
+                "text_state": text_state,
+                "text_prompt": f"{text_state}\n\n{self.description}",
+                "question": self._question,
+                "options": self._options,
+                "question_type": q_type["name"],
+                "level": q_type["level"],
             },
         )
 
         info = {
-            "oracle_answer": self._current_question["answer"],
-            "question_type": question_type,
+            "seed": seed,
+            "oracle_answer": self._oracle_answer,
+            "question_type": q_type["id"],
         }
 
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
         }
+
+    def _score_answer(self, answer: str) -> float:
+        """Score the user's answer.
+
+        Args:
+            answer: User's answer string
+
+        Returns:
+            1.0 if correct, 0.0 otherwise
+        """
+        return score_exact(answer, self._oracle_answer)
 
     def inner_step(
         self, action: dict[str, str]
@@ -279,7 +279,6 @@ Grid (T=tree, X=tent, .=empty):
         action_str = action[agent_id]
 
         info: dict[str, Any] = {}
-        reward = 0.0
         terminated = True
         truncated = False
 
@@ -287,24 +286,21 @@ Grid (T=tree, X=tent, .=empty):
         action_str = action_str.strip()
 
         # Check if answer is correct
-        correct = self._check_answer(action_str)
+        reward = self._score_answer(action_str)
+        correct = reward == 1.0
 
         if correct:
-            reward = 1.0
             response = "Correct!"
         else:
-            reward = 0.0
-            response = (
-                f"Incorrect. The correct answer is: {self._current_question['answer']}"
-            )
+            response = f"Incorrect. The correct answer is: {self._oracle_answer}"
 
-        if "explanation" in self._current_question:
-            response += f"\n\nExplanation:\n{self._current_question['explanation']}"
+        if "explanation" in self._question:
+            response += f"\n\nExplanation:\n{self._question['explanation']}"
 
         info = {
             "correct": correct,
             "user_answer": action_str,
-            "oracle_answer": self._current_question["answer"],
+            "oracle_answer": self._oracle_answer,
         }
 
         obs = Observation(image=self.render(), text=response)
@@ -549,11 +545,7 @@ Grid (T=tree, X=tent, .=empty):
         tents_in_row = [(tx, ty) for tx, ty in self._tent_positions if tx == row_to_ask]
         answer = len(tents_in_row)
 
-        question = f"""{self.GAME_RULES}
-
-In the current state, only some of the correct positions of the tents are marked in the grid.
-
-Given the current state, how many tents are there in row {row_to_ask} currently?"""
+        question = f"In the current state, only some of the correct positions of the tents are marked in the grid. Given the current state, how many tents are there in row {row_to_ask} currently?"
 
         return {
             "question": question,
@@ -571,11 +563,7 @@ Given the current state, how many tents are there in row {row_to_ask} currently?
         )
         answer = self._col_tent_counts[col_to_ask] - current_tents
 
-        question = f"""{self.GAME_RULES}
-
-In the current state, only some of the correct positions of the tents are marked in the grid.
-
-Given the current state, how many tents are still missing in column {col_to_ask}?"""
+        question = f"In the current state, only some of the correct positions of the tents are marked in the grid. Given the current state, how many tents are still missing in column {col_to_ask}?"
 
         return {
             "question": question,
@@ -588,11 +576,7 @@ Given the current state, how many tents are still missing in column {col_to_ask}
         current_placed = len(self._tent_positions)
         answer = total_needed - current_placed
 
-        question = f"""{self.GAME_RULES}
-
-In the current state, only some of the correct positions of the tents are marked in the grid.
-
-Given the current state, how many tents are still missing in the entire grid?"""
+        question = "In the current state, only some of the correct positions of the tents are marked in the grid. Given the current state, how many tents are still missing in the entire grid?"
 
         return {
             "question": question,
@@ -617,11 +601,7 @@ Given the current state, how many tents are still missing in the entire grid?"""
 
         answer = len(possible_positions)
 
-        question = f"""{self.GAME_RULES}
-
-In the current state, only some of the correct positions of the tents are marked in the grid.
-
-Given the tree positions and considering only the first and the third rule, how many positions in the entire grid are available to place tents (including both positions that are currently occupied by tents and positions that are currently empty)?"""
+        question = "In the current state, only some of the correct positions of the tents are marked in the grid. Given the tree positions and considering only the first and the third rule, how many positions in the entire grid are available to place tents (including both positions that are currently occupied by tents and positions that are currently empty)?"
 
         return {
             "question": question,
@@ -640,11 +620,7 @@ Given the tree positions and considering only the first and the third rule, how 
 
         answer = len(valid_positions)
 
-        question = f"""{self.GAME_RULES}
-
-In the current state, only some of the correct positions of the tents are marked in the grid.
-
-Given the current state, how many positions in the grid are available to place a new tent without breaking the game rules immediately (it does not have to be a part of a whole solution to the puzzle)?"""
+        question = "In the current state, only some of the correct positions of the tents are marked in the grid. Given the current state, how many positions in the grid are available to place a new tent without breaking the game rules immediately (it does not have to be a part of a whole solution to the puzzle)?"
 
         return {
             "question": question,
@@ -677,23 +653,12 @@ Given the current state, how many positions in the grid are available to place a
         # Find correct answer index
         correct_answer = options.index(correct_option) + 1
 
-        # Generate option text
-        options_str = "\n".join(
-            [f"{i+1}: ({x}, {y})" for i, (x, y) in enumerate(options)]
-        )
-
-        question = f"""{self.GAME_RULES}
-
-In the current state, only some of the correct positions of the tents are marked in the grid.
-
-Given the current state, which of the following positions contains a tree?
-Options:
-{options_str}"""
+        question = "In the current state, only some of the correct positions of the tents are marked in the grid. Given the current state, which of the following positions contains a tree?"
 
         return {
             "question": question,
             "answer": str(correct_answer),
-            "options": options,
+            "options": [f"({x}, {y})" for x, y in options],
         }
 
     def _generate_new_tent_position_question(self) -> dict[str, Any]:
@@ -731,23 +696,12 @@ Options:
         # Find correct answer index
         correct_answer = options.index(correct_option) + 1
 
-        # Generate option text
-        options_str = "\n".join(
-            [f"{i+1}: ({x}, {y})" for i, (x, y) in enumerate(options)]
-        )
-
-        question = f"""{self.GAME_RULES}
-
-In the current state, only some of the correct positions of the tents are marked in the grid.
-
-Given the current state, which of the following positions is allowed to place a new tent without breaking the game rules immediately (it does not have to be a part of a whole solution to the puzzle)?
-Options:
-{options_str}"""
+        question = "In the current state, only some of the correct positions of the tents are marked in the grid. Given the current state, which of the following positions is allowed to place a new tent without breaking the game rules immediately (it does not have to be a part of a whole solution to the puzzle)?"
 
         return {
             "question": question,
             "answer": str(correct_answer),
-            "options": options,
+            "options": [f"({x}, {y})" for x, y in options],
         }
 
     def _is_valid_new_tent_position(self, x: int, y: int) -> bool:
@@ -800,7 +754,6 @@ Options:
 
     def _check_answer(self, action: str) -> bool:
         """Check if the provided answer is correct."""
-        correct_answer = self._current_question["answer"]
         action_normalized = action.strip().lower()
-        correct_normalized = correct_answer.strip().lower()
+        correct_normalized = self._oracle_answer.strip().lower()
         return action_normalized == correct_normalized

@@ -19,7 +19,10 @@ from typing import Any
 
 from PIL import Image, ImageDraw
 
-from gym_v import Env, Observation
+from gym_v import Env, Observation, get_logger
+from gym_v.envs.gamerl.utils import build_description, score_choice
+
+logger = get_logger()
 
 
 class TicTacToe:
@@ -207,7 +210,7 @@ class TicTacToe:
         return new_game
 
 
-TICTACTOE_RULES = dedent("""
+GAME_RULES = dedent("""
     # TicTacToe Game Rules
 
     ## Basic Setup
@@ -282,16 +285,27 @@ class GameRLTicTacToeQAEnv(Env):
             **kwargs: Additional arguments passed to base Env class
         """
         super().__init__(**kwargs)
-        self._question_type = question_type
+        self._question_type_param = question_type
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
         self._game = TicTacToe()
-        self._current_question = None
+
+        # Standard QA variables
+        self._question_type_idx: int = 0
+        self._question: str = ""
+        self._options: list[str] | None = None
+        self._oracle_answer: str = ""
 
     @property
     def description(self) -> str:
-        """Return environment description with game rules."""
-        return "TicTacToe QA\n\n" + TICTACTOE_RULES
+        """Return game rules + current question + answer format."""
+        return build_description(
+            game_name="Tic-Tac-Toe",
+            rules=GAME_RULES,
+            question=self._question,
+            options=self._options,
+            oracle_answer=self._oracle_answer,
+        )
 
     def _get_state_text(self) -> str:
         """Generate text description of current TicTacToe game state.
@@ -337,25 +351,36 @@ Grid (O=first player, X=second player, .=empty):
         self._generate_random_state()
 
         # Generate question
-        q_type = (
-            self._question_type
-            if self._question_type is not None
-            else random.randint(0, 2)
-        )
-        self._current_question = self._generate_question(q_type)
+        if self._question_type_param is not None:
+            self._question_type_idx = self._question_type_param
+        else:
+            self._question_type_idx = random.randint(0, 2)
+        q_type = self.QUESTION_TYPES[self._question_type_idx]
 
+        # Generate question - sets _question, _options, _oracle_answer
+        result = self._generate_question(self._question_type_idx)
+        self._question = result["question"]
+        self._options = result.get("options")
+        self._oracle_answer = result["answer"]
+
+        text_state = self._get_state_text()
         obs = Observation(
             image=self.render(),
-            text=self._get_state_text(),
+            text=text_state,
             metadata={
-                "question": self._current_question["question"],
-                "options": self._current_question.get("options"),
+                "text_state": text_state,
+                "text_prompt": f"{text_state}\n\n{self.description}",
+                "question": self._question,
+                "options": self._options,
+                "question_type": q_type["name"],
+                "level": q_type["level"],
             },
         )
 
         info = {
-            "oracle_answer": self._current_question["answer"],
-            "question_type": q_type,
+            "seed": seed,
+            "oracle_answer": self._oracle_answer,
+            "question_type": q_type["id"],
         }
 
         return {agent_id: obs for agent_id in self._agent_ids}, {
@@ -419,7 +444,7 @@ Grid (O=first player, X=second player, .=empty):
             answer = "C"
             color = "white"
 
-        question = f"""{TICTACTOE_RULES}
+        question = f"""{GAME_RULES}
 
 **Question:** What is the color of the block at position ({row}, {col})?
 
@@ -474,7 +499,7 @@ C. white"""
                             options.append((opt_letter, f"({pos[0]}, {pos[1]})"))
 
         # Build question text
-        question = f"""{TICTACTOE_RULES}
+        question = f"""{GAME_RULES}
 
 **Question:** What is the optimal move for the current player ({player_name})?
 
@@ -558,7 +583,7 @@ C. white"""
                             options.append((opt_letter, f"({pos[0]}, {pos[1]})"))
 
         # Build question text
-        question = f"""{TICTACTOE_RULES}
+        question = f"""{GAME_RULES}
 
 **Question:** If the current player ({player_name}) moves to position ({move_pos[0]}, {move_pos[1]}), what is the opponent's ({opponent_name}) optimal response?
 
@@ -573,6 +598,17 @@ C. white"""
             "answer": correct_option,
             "analysis": analysis,
         }
+
+    def _score_answer(self, answer: str) -> float:
+        """Score the user's answer.
+
+        Args:
+            answer: User's answer string
+
+        Returns:
+            1.0 if correct, 0.0 otherwise
+        """
+        return score_choice(answer, self._oracle_answer)
 
     def inner_step(
         self, action: dict[str, str]
@@ -591,30 +627,31 @@ C. white"""
         Returns:
             Tuple of (observation, reward, terminated, truncated, info)
         """
-        if self._current_question is None:
+        if not self._question:
             raise RuntimeError("No question has been generated. Call reset() first.")
 
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
 
         # Check answer
-        correct = action_str.strip().upper() == self._current_question["answer"].upper()
-        reward = 1.0 if correct else 0.0
+        reward = self._score_answer(action_str)
+        correct = reward == 1.0
 
         # Generate response
         if correct:
             response = "Correct!"
         else:
-            response = (
-                f"Incorrect. The correct answer is: {self._current_question['answer']}\n\n"
-                f"{self._current_question['analysis']}"
-            )
+            response = f"Incorrect. The correct answer is: {self._oracle_answer}"
 
         obs = Observation(image=self.render(), text=response)
 
         terminated = True
         truncated = False
-        info = {}
+        info = {
+            "oracle_answer": self._oracle_answer,
+            "user_answer": action_str,
+            "correct": correct,
+        }
 
         return (
             {agent_id: obs for agent_id in self._agent_ids},

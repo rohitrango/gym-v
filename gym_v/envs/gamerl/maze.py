@@ -16,6 +16,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation, get_logger
+from gym_v.envs.gamerl.utils import build_description
 
 logger = get_logger()
 
@@ -28,14 +29,7 @@ GAME_RULES = dedent("""
     2. The red circle represents the player, the green block is the goal and the blue blocks are obstacles.
     3. The player can only move within the white blocks.
     4. The coordinates are given in the format (row, col), where row represents the vertical position and col represents the horizontal position.
-""").strip()
-
-ANSWER_FORMAT_PROMPT = dedent("""
-    **Answer Format:**
-    - For multiple choice: Reply with only the letter (A, B, C, etc.)
-    - For numbers: Reply with only the number
-
-    Do not include any explanation or extra text.
+    5. The top-left cell is (0, 0).
 """).strip()
 
 
@@ -55,43 +49,43 @@ class GameRLMazeQAEnv(Env):
     # Question types
     QUESTION_TYPES = [
         {
-            "id": "type_1",
-            "name": "player_pos",
+            "id": "player_pos",
+            "name": "Player Position",
             "level": "Easy",
             "answer_format": "multiple_choice",
             "qa_type": "State Prediction",
         },
         {
-            "id": "type_2",
-            "name": "goal_pos",
+            "id": "goal_pos",
+            "name": "Goal Position",
             "level": "Easy",
             "answer_format": "multiple_choice",
             "qa_type": "State Prediction",
         },
         {
-            "id": "type_3",
-            "name": "path_to_goal",
+            "id": "path_to_goal",
+            "name": "Path to Goal",
             "level": "Medium",
             "answer_format": "multiple_choice",
             "qa_type": "State Prediction",
         },
         {
-            "id": "type_4",
-            "name": "turn_count",
+            "id": "turn_count",
+            "name": "Turn Count",
             "level": "Hard",
             "answer_format": "fill_in_blank",
             "qa_type": "State Prediction",
         },
         {
-            "id": "type_5",
-            "name": "available_directions",
+            "id": "available_directions",
+            "name": "Available Directions",
             "level": "Easy",
             "answer_format": "multiple_choice",
             "qa_type": "State Prediction",
         },
         {
-            "id": "type_6",
-            "name": "position_after_move",
+            "id": "position_after_move",
+            "name": "Position After Move",
             "level": "Medium",
             "answer_format": "multiple_choice",
             "qa_type": "State Prediction",
@@ -136,7 +130,7 @@ class GameRLMazeQAEnv(Env):
             size in self.SIZE_CONFIG
         ), f"size must be one of {list(self.SIZE_CONFIG.keys())}"
 
-        self._question_type = question_type
+        self._question_type_param = question_type
         self._size_name = size
         self._grid_size = self.SIZE_CONFIG[size]
         self._cell_size = cell_size
@@ -150,8 +144,8 @@ class GameRLMazeQAEnv(Env):
         self._goal_pos: tuple[int, int] = (0, 0)
 
         # Q&A state (initialized in reset)
-        self._current_question_type: int = 1
-        self._current_question: str = ""
+        self._question_type_idx: int = 0
+        self._question: str = ""
         self._oracle_answer: str = ""
         self._answer_format: str = ""
         self._options: list[str] | None = None
@@ -160,15 +154,13 @@ class GameRLMazeQAEnv(Env):
     @property
     def description(self) -> str:
         """Return game rules + current question + answer format."""
-        desc = GAME_RULES + "\n\n**Question:** " + self._current_question
-
-        if self._options:
-            desc += "\n\n**Options:**\n"
-            for opt in self._options:
-                desc += f"{opt}\n"
-
-        desc += ANSWER_FORMAT_PROMPT
-        return desc.strip()
+        return build_description(
+            game_name="Maze",
+            rules=GAME_RULES,
+            question=self._question,
+            options=self._options,
+            oracle_answer=self._oracle_answer,
+        )
 
     def _get_state_text(self) -> str:
         """Generate text description of current maze state.
@@ -211,38 +203,41 @@ Grid (#=wall, .=path, P=player, G=goal):
         # Generate maze
         self._generate_maze()
 
-        # Select question type (convert 0-based to 1-based)
-        if self._question_type is not None:
-            # Validate question type index
-            if not (0 <= self._question_type < len(self.QUESTION_TYPES)):
-                raise ValueError(f"Invalid question type index: {self._question_type}")
-            # Convert 0-based index to 1-based for internal use
-            self._current_question_type = self._question_type + 1
+        # Select question type (0-based index)
+        if self._question_type_param is not None:
+            if not (0 <= self._question_type_param < len(self.QUESTION_TYPES)):
+                raise ValueError(
+                    f"Invalid question type index: {self._question_type_param}"
+                )
+            self._question_type_idx = self._question_type_param
         else:
-            self._current_question_type = self.np_random.integers(
-                1, len(self.QUESTION_TYPES) + 1
+            self._question_type_idx = self.np_random.integers(
+                0, len(self.QUESTION_TYPES)
             )
 
         # Generate question and answer
         self._generate_qa()
 
-        logger.info(f"Reset Maze QA (type={self._current_question_type}).")
+        logger.info(f"Reset Maze QA (type={self._question_type_idx}).")
+
+        text_state = self._get_state_text()
 
         obs = Observation(
             image=self.render(),
-            text=self._get_state_text(),
+            text=text_state,
             metadata={
-                "question": self._current_question,
+                "text_state": text_state,
+                "text_prompt": f"{text_state}\n\n{self.description}",
+                "question": self._question,
                 "options": self._options,
-                "question_type": self.QUESTION_TYPES[self._current_question_type - 1][
-                    "name"
-                ],
-                "level": self.QUESTION_TYPES[self._current_question_type - 1]["level"],
+                "question_type": self.QUESTION_TYPES[self._question_type_idx]["name"],
+                "level": self.QUESTION_TYPES[self._question_type_idx]["level"],
             },
         )
         info = {
+            "seed": seed,
             "oracle_answer": self._oracle_answer,
-            "question_type": self._current_question_type,
+            "question_type": self.QUESTION_TYPES[self._question_type_idx]["id"],
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -268,9 +263,7 @@ Grid (#=wall, .=path, P=player, G=goal):
             image=self.render(),
             text=None,
             metadata={
-                "question_type": self.QUESTION_TYPES[self._current_question_type - 1][
-                    "name"
-                ],
+                "question_type": self.QUESTION_TYPES[self._question_type_idx]["name"],
             },
         )
         info = {
@@ -298,9 +291,7 @@ Grid (#=wall, .=path, P=player, G=goal):
 
     def _score_answer(self, answer: str) -> float:
         """Score the answer based on answer format."""
-        answer_format = self.QUESTION_TYPES[self._current_question_type - 1][
-            "answer_format"
-        ]
+        answer_format = self.QUESTION_TYPES[self._question_type_idx]["answer_format"]
 
         if answer_format == "multiple_choice":
             # Extract first letter
@@ -322,28 +313,26 @@ Grid (#=wall, .=path, P=player, G=goal):
 
     def _generate_qa(self) -> None:
         """Generate question and oracle answer based on current state."""
-        q_type = self._current_question_type
+        q_type = self._question_type_idx
         self._options = None
         self._move_direction = None
 
-        if q_type == 1:  # player_pos
+        if q_type == 0:  # player_pos
             self._generate_player_pos_qa()
-        elif q_type == 2:  # goal_pos
+        elif q_type == 1:  # goal_pos
             self._generate_goal_pos_qa()
-        elif q_type == 3:  # path_to_goal
+        elif q_type == 2:  # path_to_goal
             self._generate_path_qa()
-        elif q_type == 4:  # turn_count
+        elif q_type == 3:  # turn_count
             self._generate_turn_count_qa()
-        elif q_type == 5:  # available_directions
+        elif q_type == 4:  # available_directions
             self._generate_available_directions_qa()
-        elif q_type == 6:  # position_after_move
+        elif q_type == 5:  # position_after_move
             self._generate_position_after_move_qa()
 
     def _generate_player_pos_qa(self) -> None:
         """Generate player position question."""
-        self._current_question = (
-            "Which of the following are the coordinates of the player?"
-        )
+        self._question = "Which of the following are the coordinates of the player?"
         correct = self._player_pos
         distractors = self._generate_nearby_distractors(correct, 4)
         all_options = [correct] + distractors
@@ -359,9 +348,7 @@ Grid (#=wall, .=path, P=player, G=goal):
 
     def _generate_goal_pos_qa(self) -> None:
         """Generate goal position question."""
-        self._current_question = (
-            "Which of the following are the coordinates of the goal?"
-        )
+        self._question = "Which of the following are the coordinates of the goal?"
         correct = self._goal_pos
         distractors = self._generate_nearby_distractors(correct, 4)
         all_options = [correct] + distractors
@@ -377,7 +364,7 @@ Grid (#=wall, .=path, P=player, G=goal):
 
     def _generate_path_qa(self) -> None:
         """Generate path to goal question."""
-        self._current_question = "Which sequence of movements will allow the player to reach the destination?"
+        self._question = "Which sequence of movements will allow the player to reach the destination?"
         path = self._find_path()
 
         if not path:
@@ -403,7 +390,7 @@ Grid (#=wall, .=path, P=player, G=goal):
 
     def _generate_turn_count_qa(self) -> None:
         """Generate turn count question."""
-        self._current_question = "Find the path to the finish and count the number of turns it takes to get there. You only need to provide one number."
+        self._question = "Find the path to the finish and count the number of turns it takes to get there."
         path = self._find_path()
 
         if not path:
@@ -420,7 +407,7 @@ Grid (#=wall, .=path, P=player, G=goal):
 
     def _generate_available_directions_qa(self) -> None:
         """Generate available directions question."""
-        self._current_question = "Which directions are available to move now?"
+        self._question = "Which directions are available to move now?"
         directions = self._get_available_directions()
 
         if not directions:
@@ -491,9 +478,7 @@ Grid (#=wall, .=path, P=player, G=goal):
 
         direction = available_dirs[self.np_random.integers(0, len(available_dirs))]
         self._move_direction = direction
-        self._current_question = (
-            f"What are the coordinates of player after moving {direction}?"
-        )
+        self._question = f"What are the coordinates of player after moving {direction}?"
 
         # Calculate new position
         dir_map = {"up": (-1, 0), "down": (1, 0), "left": (0, -1), "right": (0, 1)}

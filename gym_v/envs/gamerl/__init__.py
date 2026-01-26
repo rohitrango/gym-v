@@ -7,7 +7,6 @@ from gym_v.envs.gamerl.langton_ant import GameRLLangtonAntQAEnv
 from gym_v.envs.gamerl.lifegame import GameRLLifegameQAEnv
 from gym_v.envs.gamerl.maze import GameRLMazeQAEnv
 from gym_v.envs.gamerl.maze_3d import GameRL3dMazeQAEnv
-from gym_v.envs.gamerl.minecraft import GameRLMinecraftQAEnv
 from gym_v.envs.gamerl.minesweeper import GameRLMinesweeperQAEnv
 from gym_v.envs.gamerl.pacman import GameRLPacmanQAEnv
 from gym_v.envs.gamerl.pyramidchess import GameRLPyramidChessQAEnv

@@ -902,17 +902,6 @@ register(
 )
 
 register(
-    id="GameRL/Minecraft-QA-v0",
-    entry_point="gym_v.envs.gamerl.minecraft:GameRLMinecraftQAEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        question_type=None,
-        space_ub=(5, 5, 5),
-        num_players=1,
-    ),
-)
-
-register(
     id="GameRL/Sudoku-QA-v0",
     entry_point="gym_v.envs.gamerl.sudoku:GameRLSudokuQAEnv",
     max_episode_steps=1,

@@ -12,6 +12,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation, get_logger
+from gym_v.envs.gamerl.utils import build_description, score_exact
 
 logger = get_logger()
 
@@ -69,7 +70,7 @@ class GameRLHueQAEnv(Env):
         board_size: int | None = None,
         num_lines: int | None = None,
         cell_size: int = 60,
-        question_type: str | int | None = None,
+        question_type: int | None = None,
         num_players: int = 1,
         **kwargs,
     ):
@@ -80,7 +81,7 @@ class GameRLHueQAEnv(Env):
         )
         self._num_lines = num_lines if num_lines is not None else random.randint(3, 4)
         self._cell_size = cell_size
-        self._question_type = question_type
+        self._question_type_param = question_type
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
@@ -94,40 +95,23 @@ class GameRLHueQAEnv(Env):
         self._removed_positions: list[tuple[int, int]] = []
         self._shuffled_colors: list[tuple[int, int, int]] = []
         self._color_mapping: dict[int, int] = {}
-        self._current_question: dict[str, Any] = {}
+
+        # Standard QA variables
+        self._question_type_idx: int = 0
+        self._question: str = ""
+        self._options: list[str] | None = None
+        self._oracle_answer: str = ""
 
     @property
     def description(self) -> str:
-        base_desc = dedent(f"""
-            This is a Hue color gradient puzzle QA environment.
-
-            {self.GAME_RULES}
-
-            Question Types:
-            - Color Description: Identify the color of a specific cell
-            - Gradient Pattern: Describe the gradient pattern in a row or column
-            - Color Matching: Determine which color fits a specific empty cell
-
-            The system will present you with a puzzle state and ask a specific question.
-        """).strip()
-
-        # Add question and answer format if question has been generated
-        if hasattr(self, "_current_question") and self._current_question:
-            desc = base_desc + "\n\n" + self._current_question["question"]
-            desc += """
-
-**Answer Format:**
-Reply with only the answer (number or option number).
-
-Examples:
-- For multiple choice: 1, 2, 3, etc.
-- For numbers: 42, 100, etc.
-
-Do not include any explanation or extra text.
-"""
-            return desc.strip()
-
-        return base_desc
+        """Return game rules + current question + answer format."""
+        return build_description(
+            game_name="Hue Color Gradient Puzzle",
+            rules=self.GAME_RULES,
+            question=self._question,
+            options=self._options,
+            oracle_answer=self._oracle_answer,
+        )
 
     def _get_state_text(self) -> str:
         """Generate text description of current puzzle state.
@@ -164,27 +148,35 @@ Do not include any explanation or extra text.
         self._generate_puzzle()
 
         # Select question type
-        if self._question_type is None:
-            question_type = random.choice(self.QUESTION_TYPES)["id"]
-        elif isinstance(self._question_type, int):
-            # Support integer indexing (0, 1, 2, ...)
-            question_type = self.QUESTION_TYPES[self._question_type]["id"]
+        if self._question_type_param is None:
+            self._question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
         else:
-            question_type = self._question_type
+            if not (0 <= self._question_type_param < len(self.QUESTION_TYPES)):
+                raise ValueError(
+                    f"Invalid question type index: {self._question_type_param}"
+                )
+            self._question_type_idx = self._question_type_param
+
+        q_type = self.QUESTION_TYPES[self._question_type_idx]
 
         # Generate question based on type
-        if question_type == "color_description":
-            self._current_question = self._generate_color_description_question()
-        elif question_type == "gradient_pattern":
-            self._current_question = self._generate_gradient_pattern_question()
-        elif question_type == "color_matching":
-            self._current_question = self._generate_color_matching_question()
+        if q_type["id"] == "color_description":
+            result = self._generate_color_description_question()
+        elif q_type["id"] == "gradient_pattern":
+            result = self._generate_gradient_pattern_question()
+        elif q_type["id"] == "color_matching":
+            result = self._generate_color_matching_question()
         else:
-            raise ValueError(f"Unknown question type: {question_type}")
+            raise ValueError(f"Unknown question type: {q_type['id']}")
+
+        # Extract to instance variables
+        self._question = result["question"]
+        self._options = result.get("options")
+        self._oracle_answer = result["answer"]
 
         logger.info(
             f"Reset Hue QA ({self._board_size}x{self._board_size}, "
-            f"question: {question_type})."
+            f"question: {q_type['id']})."
         )
 
         # Generate text state representation
@@ -194,19 +186,35 @@ Do not include any explanation or extra text.
             image=self.render(),
             text=text_state,
             metadata={
-                "question": self._current_question["question"],
-                "options": self._current_question.get("options"),
+                "text_state": text_state,
+                "text_prompt": f"{text_state}\n\n{self.description}",
+                "question": self._question,
+                "options": self._options,
+                "question_type": q_type["name"],
+                "level": q_type["level"],
             },
         )
 
         info = {
-            "oracle_answer": self._current_question["answer"],
-            "question_type": question_type,
+            "seed": seed,
+            "oracle_answer": self._oracle_answer,
+            "question_type": q_type["id"],
         }
 
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
         }
+
+    def _score_answer(self, answer: str) -> float:
+        """Score the user's answer.
+
+        Args:
+            answer: User's answer string
+
+        Returns:
+            1.0 if correct, 0.0 otherwise
+        """
+        return score_exact(answer, self._oracle_answer)
 
     def inner_step(
         self, action: dict[str, str]
@@ -229,24 +237,18 @@ Do not include any explanation or extra text.
         action_str = action_str.strip()
 
         # Check if answer is correct
-        correct = self._check_answer(action_str)
+        reward = self._score_answer(action_str)
+        correct = reward == 1.0
 
         if correct:
-            reward = 1.0
             response = "Correct!"
         else:
-            reward = 0.0
-            response = (
-                f"Incorrect. The correct answer is: {self._current_question['answer']}"
-            )
-
-        if "explanation" in self._current_question:
-            response += f"\n\nExplanation:\n{self._current_question['explanation']}"
+            response = f"Incorrect. The correct answer is: {self._oracle_answer}"
 
         info = {
             "correct": correct,
             "user_answer": action_str,
-            "oracle_answer": self._current_question["answer"],
+            "oracle_answer": self._oracle_answer,
         }
 
         obs = Observation(image=self.render(), text=response)
@@ -266,224 +268,197 @@ Do not include any explanation or extra text.
         )
 
     def render(self) -> Image.Image | list[Image.Image] | None:
-        """Render the current puzzle state as a PIL Image (matching original with title and border)."""
+        """Render the current puzzle state to match the original Game-RL layout."""
         index_margin = 30
         board_size = self._board_size * self._cell_size
-        title_height = 50  # Space for title
-        border_width = 10  # Decorative border
+        padding = 20
+        options_height = 70
 
-        # Only add options area if shuffled_colors exist (matching original)
-        if self._shuffled_colors:
-            options_height = 70
-            padding = 20
-            content_height = board_size + index_margin + options_height + padding
-        else:
-            content_height = board_size + index_margin
+        img_width = board_size + index_margin
+        img_height = board_size + padding + options_height + index_margin
 
-        content_width = board_size + index_margin
-
-        # Total image size with title and border
-        img_width = content_width + 2 * border_width
-        img_height = content_height + title_height + 2 * border_width
-
-        # Create image with border color (tan/beige)
-        img = Image.new(
-            "RGB", (img_width, img_height), (222, 184, 135)
-        )  # Burlywood color
+        img = Image.new("RGB", (img_width, img_height), (255, 255, 255))
         draw = ImageDraw.Draw(img)
 
-        # Draw white content area
-        draw.rectangle(
-            [
-                border_width,
-                border_width + title_height,
-                img_width - border_width,
-                img_height - border_width,
-            ],
-            fill=(255, 255, 255),
-            outline=None,
-        )
-
-        # Adjust drawing offset for border and title
-        x_offset = border_width
-        y_offset = border_width + title_height
-
-        # Load fonts
         try:
-            title_font = ImageFont.truetype(str(self.assets_dir / "DejaVuSans.ttf"), 28)
-            font = ImageFont.truetype(str(self.assets_dir / "DejaVuSans.ttf"), 14)
+            index_font = ImageFont.truetype(
+                str(self.assets_dir / "DejaVuSans.ttf"),
+                max(12, int(self._cell_size * 0.35)),
+            )
+            label_font = ImageFont.truetype(
+                str(self.assets_dir / "DejaVuSans.ttf"),
+                max(16, int(self._cell_size * 0.6)),
+            )
         except Exception:
-            title_font = ImageFont.load_default()
-            font = ImageFont.load_default()
+            index_font = ImageFont.load_default()
+            label_font = ImageFont.load_default()
 
-        # Draw title
-        title_text = "Color Hue"
-        # Get text bbox for centering
-        bbox = draw.textbbox((0, 0), title_text, font=title_font)
-        title_width = bbox[2] - bbox[0]
-        title_x = (img_width - title_width) // 2
-        draw.text(
-            (title_x, border_width + 10),
-            title_text,
-            fill=(0, 0, 0),
-            font=title_font,
-        )
-
-        # Draw row indices (1-based, matching original OpenCV positions)
+        # Row indices (1-based)
         for i in range(self._board_size):
-            text = str(i + 1)
             draw.text(
                 (
-                    x_offset + 10,
-                    y_offset
-                    + index_margin
-                    + i * self._cell_size
-                    + self._cell_size // 2
-                    + 5,
+                    10,
+                    index_margin + i * self._cell_size + self._cell_size // 2 + 2,
                 ),
-                text,
+                str(i + 1),
                 fill=(0, 0, 0),
-                font=font,
+                font=index_font,
             )
 
-        # Draw column indices (1-based, matching original OpenCV positions)
+        # Column indices (1-based)
         for j in range(self._board_size):
-            text = str(j + 1)
             draw.text(
                 (
-                    x_offset
-                    + index_margin
-                    + j * self._cell_size
-                    + self._cell_size // 3,
-                    y_offset + 25,
+                    index_margin + j * self._cell_size + self._cell_size // 3,
+                    25,
                 ),
-                text,
+                str(j + 1),
                 fill=(0, 0, 0),
-                font=font,
+                font=index_font,
             )
 
-        # Draw the board
+        # Draw board
         for i in range(self._board_size):
             for j in range(self._board_size):
                 pos = (i, j)
-                x = x_offset + index_margin + j * self._cell_size
-                y = y_offset + index_margin + i * self._cell_size
+                x = index_margin + j * self._cell_size
+                y = index_margin + i * self._cell_size
 
-                # Determine cell appearance
+                cell_label = self._cells_to_fill.get(pos)
                 if pos in self._cells_to_fill:
-                    # Empty cell with label (matching original OpenCV position)
-                    draw.rectangle(
-                        [x, y, x + self._cell_size, y + self._cell_size],
-                        fill=(255, 255, 255),
-                        outline=(0, 0, 0),
-                        width=1,
-                    )
-                    label = self._cells_to_fill[pos]
-                    # Original OpenCV uses (cell_size//3, 2*cell_size//3) position
-                    draw.text(
-                        (x + self._cell_size // 3, y + 2 * self._cell_size // 3),
-                        label,
-                        fill=(0, 0, 0),
-                        font=font,
+                    cell = self._create_cell_image(
+                        (255, 255, 255),
+                        empty=True,
+                        cell_label=cell_label,
+                        label_font=label_font,
                     )
                 elif pos in self._colored_cells:
-                    # Colored cell
-                    color = tuple(self._board[i, j])
-                    margin = 2
-                    draw.rectangle(
-                        [x, y, x + self._cell_size, y + self._cell_size],
-                        fill=(255, 255, 255),
-                        outline=(0, 0, 0),
-                        width=1,
-                    )
-                    draw.rectangle(
-                        [
-                            x + margin,
-                            y + margin,
-                            x + self._cell_size - margin,
-                            y + self._cell_size - margin,
-                        ],
-                        fill=color,
-                        outline=None,
-                    )
+                    cell = self._create_cell_image(tuple(self._board[i, j]))
                 else:
-                    # Empty cell with diagonal lines - using safer approach with clipping
-                    # First draw the background
-                    draw.rectangle(
-                        [x, y, x + self._cell_size, y + self._cell_size],
-                        fill=(245, 245, 245),
-                        outline=(0, 0, 0),
-                        width=1,
-                    )
+                    cell = self._create_cell_image((255, 255, 255), empty=True)
 
-                    # Create a temporary image for the cell to ensure lines don't overflow
-                    cell_img = Image.new(
-                        "RGB", (self._cell_size, self._cell_size), (245, 245, 245)
-                    )
-                    cell_draw = ImageDraw.Draw(cell_img)
+                img.paste(cell, (x, y))
 
-                    # Parameters matching original OpenCV code
-                    line_spacing = 12
-                    line_color = (200, 200, 200)
-                    line_thickness = 2
-
-                    # Draw lines from top-left to bottom-right (matching OpenCV exactly)
-                    for k in range(-self._cell_size, self._cell_size * 2, line_spacing):
-                        start_x = max(0, k)
-                        start_y = max(0, -k)
-                        end_x = min(self._cell_size - 1, k + self._cell_size)
-                        end_y = min(self._cell_size - 1, -k + self._cell_size)
-
-                        if start_x <= end_x and start_y <= end_y:
-                            cell_draw.line(
-                                [(start_x, start_y), (end_x, end_y)],
-                                fill=line_color,
-                                width=line_thickness,
-                            )
-
-                    # Draw lines from top-right to bottom-left (matching OpenCV exactly)
-                    for k in range(-self._cell_size, self._cell_size * 2, line_spacing):
-                        start_x = min(self._cell_size - 1, k)
-                        start_y = max(0, k - self._cell_size)
-                        end_x = max(0, k - self._cell_size)
-                        end_y = min(self._cell_size - 1, k)
-
-                        if start_x >= end_x and start_y <= end_y:
-                            cell_draw.line(
-                                [(start_x, start_y), (end_x, end_y)],
-                                fill=line_color,
-                                width=line_thickness,
-                            )
-
-                    # Paste the cell image onto the main image (ensures lines stay within bounds)
-                    img.paste(cell_img, (x, y))
-
-        # Draw color options if present (matching original OpenCV layout)
+        # Draw color options (palette) if present
         if self._shuffled_colors:
-            option_width = (board_size + index_margin) // len(self._shuffled_colors)
-            y_start = y_offset + board_size + index_margin + padding + 20
-
+            option_width = img_width // len(self._shuffled_colors)
+            y_start = board_size + padding + index_margin + 20
             for idx, color in enumerate(self._shuffled_colors):
-                x_start = x_offset + idx * option_width + 5
-                # Draw option number (matching original position)
-                draw.text(
-                    (x_start, y_start - 5), f"{idx + 1}", fill=(0, 0, 0), font=font
+                x_start = idx * option_width + 5
+                swatch = self._create_color_swatch(
+                    tuple(color), width=option_width - 10
                 )
-                # Draw color swatch
-                draw.rectangle(
-                    [x_start, y_start, x_start + option_width - 10, y_start + 40],
-                    fill=tuple(color),
-                    outline=(0, 0, 0),
-                    width=1,
+                img.paste(swatch, (x_start, y_start))
+                label_text = f"{idx + 1}"
+                bbox = draw.textbbox((0, 0), label_text, font=index_font)
+                text_height = bbox[3] - bbox[1]
+                draw.text(
+                    (x_start, y_start - 10 - text_height),
+                    label_text,
+                    fill=(0, 0, 0),
+                    font=index_font,
                 )
 
         return img
+
+    def _create_color_swatch(
+        self, color: tuple[int, int, int], width: int = 60, height: int = 40
+    ) -> Image.Image:
+        swatch = Image.new("RGB", (width, height), color)
+        draw = ImageDraw.Draw(swatch)
+        draw.rectangle([0, 0, width - 1, height - 1], outline=(0, 0, 0), width=1)
+        return swatch
+
+    def _create_cell_image(
+        self,
+        color: tuple[int, int, int],
+        *,
+        empty: bool = False,
+        cell_label: str | None = None,
+        label_font: ImageFont.ImageFont | None = None,
+    ) -> Image.Image:
+        cell = Image.new("RGB", (self._cell_size, self._cell_size), (255, 255, 255))
+        draw = ImageDraw.Draw(cell)
+
+        if empty:
+            if cell_label:
+                bbox = draw.textbbox(
+                    (0, 0),
+                    cell_label,
+                    font=label_font,
+                    stroke_width=2,
+                )
+                text_width = bbox[2] - bbox[0]
+                text_height = bbox[3] - bbox[1]
+                draw.text(
+                    (
+                        (self._cell_size - text_width) // 2,
+                        (self._cell_size - text_height) // 2,
+                    ),
+                    cell_label,
+                    fill=(0, 0, 0),
+                    font=label_font,
+                    stroke_width=2,
+                    stroke_fill=(0, 0, 0),
+                )
+            else:
+                draw.rectangle(
+                    [0, 0, self._cell_size, self._cell_size],
+                    fill=(245, 245, 245),
+                )
+                line_spacing = 12
+                line_color = (200, 200, 200)
+                line_thickness = 2
+                for k in range(-self._cell_size, self._cell_size * 2, line_spacing):
+                    start_x = max(0, k)
+                    start_y = max(0, -k)
+                    end_x = min(self._cell_size - 1, k + self._cell_size)
+                    end_y = min(self._cell_size - 1, -k + self._cell_size)
+                    if start_x <= end_x and start_y <= end_y:
+                        draw.line(
+                            [(start_x, start_y), (end_x, end_y)],
+                            fill=line_color,
+                            width=line_thickness,
+                        )
+                for k in range(-self._cell_size, self._cell_size * 2, line_spacing):
+                    start_x = min(self._cell_size - 1, k)
+                    start_y = max(0, k - self._cell_size)
+                    end_x = max(0, k - self._cell_size)
+                    end_y = min(self._cell_size - 1, k)
+                    if start_x >= end_x and start_y <= end_y:
+                        draw.line(
+                            [(start_x, start_y), (end_x, end_y)],
+                            fill=line_color,
+                            width=line_thickness,
+                        )
+        else:
+            margin = 2
+            draw.rectangle(
+                [
+                    margin,
+                    margin,
+                    self._cell_size - margin,
+                    self._cell_size - margin,
+                ],
+                fill=color,
+            )
+
+        draw.rectangle(
+            [0, 0, self._cell_size - 1, self._cell_size - 1],
+            outline=(0, 0, 0),
+            width=1,
+        )
+        return cell
 
     def _generate_puzzle(self):
         """Generate a color gradient puzzle."""
         self._board = np.zeros((self._board_size, self._board_size, 3), dtype=np.uint8)
         self._colored_cells = set()
         self._gradient_info = []
+        self._cells_to_fill = {}
+        self._removed_positions = []
+        self._shuffled_colors = []
+        self._color_mapping = {}
 
         # Add gradient lines
         for _ in range(self._num_lines):
@@ -567,13 +542,7 @@ Do not include any explanation or extra text.
         options = list(wrong_descriptions) + [correct_description]
         random.shuffle(options)
 
-        question = f"""{self.GAME_RULES}
-
-Question:
-What color is the cell at row {target_pos[0] + 1}, column {target_pos[1] + 1}?
-
-Options:
-""" + "\n".join(f"{i+1}: {opt}" for i, opt in enumerate(options))
+        question = f"What color is the cell at row {target_pos[0] + 1}, column {target_pos[1] + 1}?"
 
         return {
             "question": question,
@@ -605,13 +574,9 @@ Options:
 
         line_type = "row" if gradient["type"] == "row" else "column"
 
-        question = f"""{self.GAME_RULES}
-
-Question:
-What is the gradient pattern in {line_type} {gradient["index"] + 1}?
-
-Options:
-""" + "\n".join(f"{i+1}: {opt}" for i, opt in enumerate(options))
+        question = (
+            f"What is the gradient pattern in {line_type} {gradient['index'] + 1}?"
+        )
 
         return {
             "question": question,
@@ -663,18 +628,12 @@ Options:
         original_idx = self._removed_positions.index(target_pos)
         shuffled_answer = self._color_mapping[original_idx] + 1
 
-        question = f"""{self.GAME_RULES}
-
-Question:
-Which color should be put in cell {target_label}?
-
-Options:
-Colors are numbered from 1 to 6 in the palette below"""
+        question = f"Which color should be put in cell {target_label}? (Colors are numbered from 1 to 6 in the palette below)"
 
         return {
             "question": question,
             "answer": str(shuffled_answer),
-            "options": list(range(1, len(self._shuffled_colors) + 1)),
+            "options": [str(i) for i in range(1, len(self._shuffled_colors) + 1)],
         }
 
     def _get_color_name(self, rgb: tuple[int, int, int]) -> str:
@@ -770,5 +729,4 @@ Colors are numbered from 1 to 6 in the palette below"""
 
     def _check_answer(self, action: str) -> bool:
         """Check if the provided answer is correct."""
-        correct_answer = self._current_question["answer"]
-        return action.strip().lower() == correct_answer.strip().lower()
+        return action.strip().lower() == self._oracle_answer.strip().lower()

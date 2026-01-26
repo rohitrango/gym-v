@@ -13,6 +13,7 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation, get_logger
+from gym_v.envs.gamerl.utils import build_description
 
 logger = get_logger()
 
@@ -38,16 +39,9 @@ GAME_RULES = dedent("""
     3. Any live cell with more than three live neighbors dies (overpopulation)
     4. Any dead cell with exactly three live neighbors becomes alive (reproduction)
 
-    In the image, black squares represent live cells, white squares represent dead cells, and the grid lines help visualize the cell boundaries.
+    Legend: In the image, black squares represent live cells, white squares represent dead cells, and the grid lines help visualize the cell boundaries.
 
     Coordinate System: In this grid, we use (row, col) coordinates where row increases from top to bottom (0 at top) and col increases from left to right (0 at left). For example, the top-left cell is at (0, 0), and the cell below it is at (1, 0).
-""").strip()
-
-ANSWER_FORMAT_PROMPT = dedent("""
-    **Answer Format:**
-    - For multiple choice: Reply with only the letter (A, B, C, D, E, F, G, or H)
-
-    Do not include any explanation or extra text.
 """).strip()
 
 
@@ -117,7 +111,7 @@ class GameRLLifegameQAEnv(Env):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self._question_type = question_type
+        self._question_type_param = question_type
         self._override_grid_size = grid_size
         self._cell_size = cell_size
         self._margin = 40
@@ -129,8 +123,8 @@ class GameRLLifegameQAEnv(Env):
         self._grid_size: int = 3
 
         # Q&A state (initialized in reset)
-        self._current_question_type: int = 0
-        self._current_question: str = ""
+        self._question_type_idx: int = 0
+        self._question: str = ""
         self._oracle_answer: str = ""
         self._answer_format: str = ""
         self._options: list[str] = []
@@ -139,13 +133,13 @@ class GameRLLifegameQAEnv(Env):
     @property
     def description(self) -> str:
         """Return game rules + current question + answer format."""
-        desc = GAME_RULES + "\n\n**Question:** " + self._current_question
-
-        if self._options:
-            desc += "\n\nOptions:\n" + "\n".join(self._options)
-
-        desc += ANSWER_FORMAT_PROMPT
-        return desc.strip()
+        return build_description(
+            game_name="Game of Life",
+            rules=GAME_RULES,
+            question=self._question,
+            options=self._options,
+            oracle_answer=self._oracle_answer,
+        )
 
     def _get_state_text(self) -> str:
         """Generate text description of current Game of Life state.
@@ -176,15 +170,15 @@ Grid (#=alive, .=dead):
             random.seed(seed)
 
         # Select question type
-        if self._question_type is not None:
-            self._current_question_type = self._question_type
+        if self._question_type_param is not None:
+            self._question_type_idx = self._question_type_param
         else:
-            self._current_question_type = self.np_random.integers(
+            self._question_type_idx = self.np_random.integers(
                 0, len(self.QUESTION_TYPES)
             )
 
         # Determine difficulty and grid size
-        self._difficulty = self.QUESTION_TYPES[self._current_question_type]["level"]
+        self._difficulty = self.QUESTION_TYPES[self._question_type_idx]["level"]
         if self._override_grid_size is not None:
             self._grid_size = self._override_grid_size
         else:
@@ -197,25 +191,42 @@ Grid (#=alive, .=dead):
         self._generate_qa()
 
         logger.info(
-            f"Reset Lifegame QA (type={self._current_question_type}, grid={self._grid_size}x{self._grid_size})."
+            f"Reset Lifegame QA (type={self._question_type_idx}, grid={self._grid_size}x{self._grid_size})."
         )
+
+        text_state = self._get_state_text()
 
         obs = Observation(
             image=self.render(),
-            text=self._get_state_text(),
+            text=text_state,
             metadata={
-                "question": self._current_question,
+                "text_state": text_state,
+                "text_prompt": f"{text_state}\n\n{self.description}",
+                "question": self._question,
                 "options": self._options,
-                "question_type": self.QUESTION_TYPES[self._current_question_type][
-                    "name"
-                ],
-                "level": self.QUESTION_TYPES[self._current_question_type]["level"],
+                "question_type": self.QUESTION_TYPES[self._question_type_idx]["name"],
+                "level": self.QUESTION_TYPES[self._question_type_idx]["level"],
             },
         )
-        info = {"oracle_answer": self._oracle_answer}
+        info = {
+            "seed": seed,
+            "oracle_answer": self._oracle_answer,
+            "question_type": self.QUESTION_TYPES[self._question_type_idx]["id"],
+        }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
         }
+
+    def _score_answer(self, answer: str) -> float:
+        """Score the user's answer.
+
+        Args:
+            answer: User's answer string
+
+        Returns:
+            1.0 if correct, 0.0 otherwise
+        """
+        return 1.0 if self._check_answer(answer) else 0.0
 
     def inner_step(
         self, action: dict[str, str]
@@ -235,10 +246,9 @@ Grid (#=alive, .=dead):
 
         user_answer = action_str.strip().upper()
 
-        # Normalize answer
-        correct = self._check_answer(user_answer)
-
-        reward = 1.0 if correct else 0.0
+        # Check answer
+        reward = self._score_answer(user_answer)
+        correct = reward == 1.0
 
         obs = Observation(
             image=self.render(),
@@ -388,7 +398,7 @@ Grid (#=alive, .=dead):
 
     def _generate_qa(self) -> None:
         """Generate question and answer based on question type."""
-        qtype = self._current_question_type
+        qtype = self._question_type_idx
 
         if qtype == 0:
             self._generate_state_info_qa()
@@ -408,7 +418,7 @@ Grid (#=alive, .=dead):
             correct_count, min_val=0, max_val=self._grid_size * self._grid_size
         )
 
-        self._current_question = "How many live cells are currently in the grid?"
+        self._question = "How many live cells are currently in the grid?"
         self._options = [f"{chr(65 + i)}: {opt}" for i, opt in enumerate(options)]
         self._oracle_answer = chr(65 + correct_idx)
 
@@ -421,7 +431,7 @@ Grid (#=alive, .=dead):
             correct_count, min_val=0, max_val=self._grid_size * self._grid_size
         )
 
-        self._current_question = (
+        self._question = (
             "After 1 iteration, how many live cells will remain in the grid?"
         )
         self._options = [f"{chr(65 + i)}: {opt}" for i, opt in enumerate(options)]
@@ -455,7 +465,7 @@ Grid (#=alive, .=dead):
         # Convert to text
         options_text = [self._sequence_to_text(seq) for seq in sequence_options]
 
-        self._current_question = (
+        self._question = (
             f"Consider the cell at position ({row}, {col}). "
             f"How will its state change over the next {iterations} iterations?"
         )
@@ -483,7 +493,7 @@ Grid (#=alive, .=dead):
             steps, min_val=0, max_val=max(steps + 5, 10)
         )
 
-        self._current_question = (
+        self._question = (
             f"Consider the {region_size}x{region_size} region starting at cell ({row_start},{col_start}). "
             "When analyzing this region's stability, we treat it as an independent Game of Life system. "
             "The region is stable when all cells maintain their current states or form a repeating pattern. "

@@ -14,6 +14,7 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation, get_logger
+from gym_v.envs.gamerl.utils import build_description
 
 logger = get_logger()
 
@@ -21,7 +22,7 @@ logger = get_logger()
 # Question types from original Game-RL
 # Removed module-level QUESTION_TYPES - now defined as class variable
 GAME_RULES = dedent("""
-    The given image represents a simplified interface of the game Space Invaders. The enemy area is implicitly divided into a grid of cells, with the row and column numbers shown on the left and top sides of the grid respectively which you should strictly follow. Each cell is either empty or occupied by an incoming enemy which can be purple, blue or green. The ship is at the bottom row, aligned with one of the columns, which shoots the enemies using laser while dodging possible lasers from the enemies.
+    The given image represents a simplified interface of the game Space Invaders. The enemy area is implicitly divided into a grid of cells, with the row and column numbers shown on the left and top sides of the grid respectively which you should strictly follow (top-left cell is row 1, column 1). Each cell is either empty or occupied by an incoming enemy which can be purple, blue or green. The ship is at the bottom row, aligned with one of the columns, which shoots the enemies using laser while dodging possible lasers from the enemies.
 
     If the ship shoots, the enemy closest to the ship (i.e. the lowermost one) on the same column as the ship, if any, will be destroyed and disappear, adding points to the player's score and exposing the enemy behind (if any). Purple enemies are worth 30 points, blue enemies are worth 20 points, and green enemies are worth 10 points.
 
@@ -32,13 +33,6 @@ GAME_RULES = dedent("""
       - The ship can move to another column before shooting.
       - The enemies keep still.
     - At the very end of this time interval t, the enemies move one step in the direction they are moving, thus changing the columns they are on.
-""").strip()
-
-ANSWER_FORMAT_PROMPT = dedent("""
-    **Answer Format:**
-    - For numbers: Reply with only the number
-
-    Do not include any explanation or extra text.
 """).strip()
 
 
@@ -72,50 +66,50 @@ class GameRLSpaceInvadersQAEnv(Env):
     # Question types
     QUESTION_TYPES = [
         {
-            "id": "type_0",
-            "name": "enemies_on_row",
+            "id": "enemies_on_row",
+            "name": "Enemies on Row",
             "level": "Easy",
             "answer_format": "fill_in_blank",
             "qa_type": "State Prediction",
         },
         {
-            "id": "type_1",
-            "name": "enemies_on_col",
+            "id": "enemies_on_col",
+            "name": "Enemies on Column",
             "level": "Easy",
             "answer_format": "fill_in_blank",
             "qa_type": "State Prediction",
         },
         {
-            "id": "type_2",
-            "name": "total_enemies",
+            "id": "total_enemies",
+            "name": "Total Enemies",
             "level": "Medium",
             "answer_format": "fill_in_blank",
             "qa_type": "State Prediction",
         },
         {
-            "id": "type_3",
-            "name": "colored_enemies",
+            "id": "colored_enemies",
+            "name": "Colored Enemies",
             "level": "Medium",
             "answer_format": "fill_in_blank",
             "qa_type": "State Prediction",
         },
         {
-            "id": "type_4",
-            "name": "shoot_here_points",
+            "id": "shoot_here_points",
+            "name": "Shoot Here Points",
             "level": "Easy",
             "answer_format": "fill_in_blank",
             "qa_type": "State Prediction",
         },
         {
-            "id": "type_5",
-            "name": "move_and_shoot_points",
+            "id": "move_and_shoot_points",
+            "name": "Move and Shoot Points",
             "level": "Easy",
             "answer_format": "fill_in_blank",
             "qa_type": "State Prediction",
         },
         {
-            "id": "type_6",
-            "name": "max_shoot_once_points",
+            "id": "max_shoot_once_points",
+            "name": "Max Shoot Once Points",
             "level": "Medium",
             "answer_format": "fill_in_blank",
             "qa_type": "State Prediction",
@@ -149,7 +143,7 @@ class GameRLSpaceInvadersQAEnv(Env):
         super().__init__(**kwargs)
         assert enemy_rows in [3, 4, 5], "enemy_rows should be 3, 4 or 5"
 
-        self._question_type = question_type
+        self._question_type_param = question_type
         self._enemy_rows = enemy_rows
         self._enemy_cols = enemy_cols
         self._enemy_area_rows = enemy_area_rows
@@ -166,9 +160,10 @@ class GameRLSpaceInvadersQAEnv(Env):
         self._ship_col: int = 1
         self._score: int = 0
 
-        # Q&A state
-        self._current_question_type: int = 0
-        self._current_question: str = ""
+        # Q&A state (standard QA variables)
+        self._question_type_idx: int = 0
+        self._question: str = ""
+        self._options: list[str] | None = None
         self._oracle_answer: str = ""
         self._target_row: int = 0
         self._target_col: int = 0
@@ -198,9 +193,13 @@ class GameRLSpaceInvadersQAEnv(Env):
     @property
     def description(self) -> str:
         """Return game rules + current question + answer format."""
-        desc = GAME_RULES + "\n\n**Question:** " + self._current_question
-        desc += ANSWER_FORMAT_PROMPT
-        return desc.strip()
+        return build_description(
+            game_name="Space Invaders",
+            rules=GAME_RULES,
+            question=self._question,
+            options=self._options,
+            oracle_answer=self._oracle_answer,
+        )
 
     def _get_state_text(self) -> str:
         """Generate text description of current Space Invaders game state.
@@ -258,33 +257,36 @@ Ship Row: {ship_str}"""
             self._ship_col = self._total_cols // 2
 
         # Select question type
-        if self._question_type is not None:
-            self._current_question_type = self._question_type
+        if self._question_type_param is not None:
+            self._question_type_idx = self._question_type_param
         else:
-            self._current_question_type = self.np_random.integers(
+            self._question_type_idx = self.np_random.integers(
                 0, len(self.QUESTION_TYPES)
             )
 
         # Generate Q&A
         self._generate_qa()
 
-        logger.info(f"Reset Space Invaders QA (type={self._current_question_type}).")
+        logger.info(f"Reset Space Invaders QA (type={self._question_type_idx}).")
+
+        text_state = self._get_state_text()
 
         obs = Observation(
             image=self.render(),
-            text=self._get_state_text(),
+            text=text_state,
             metadata={
-                "question": self._current_question,
+                "text_state": text_state,
+                "text_prompt": f"{text_state}\n\n{self.description}",
+                "question": self._question,
                 "options": self._options,
-                "question_type": self.QUESTION_TYPES[self._current_question_type][
-                    "name"
-                ],
-                "level": self.QUESTION_TYPES[self._current_question_type]["level"],
+                "question_type": self.QUESTION_TYPES[self._question_type_idx]["name"],
+                "level": self.QUESTION_TYPES[self._question_type_idx]["level"],
             },
         )
         info = {
+            "seed": seed,
             "oracle_answer": self._oracle_answer,
-            "question_type": self._current_question_type,
+            "question_type": self.QUESTION_TYPES[self._question_type_idx]["id"],
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -310,9 +312,7 @@ Ship Row: {ship_str}"""
             image=self.render(),
             text=None,
             metadata={
-                "question_type": self.QUESTION_TYPES[self._current_question_type][
-                    "name"
-                ],
+                "question_type": self.QUESTION_TYPES[self._question_type_idx]["name"],
             },
         )
         info = {
@@ -369,7 +369,7 @@ Ship Row: {ship_str}"""
 
     def _generate_qa(self) -> None:
         """Generate question and oracle answer."""
-        q_type = self._current_question_type
+        q_type = self._question_type_idx
 
         if q_type == 0:
             self._generate_q0_enemies_on_row()
@@ -406,7 +406,7 @@ Ship Row: {ship_str}"""
             self._target_row = self.np_random.integers(1, self._enemy_area_rows + 1)
 
         count = len(self._get_enemies_on_row(self._target_row))
-        self._current_question = f"How many enemies are on row {self._target_row}?"
+        self._question = f"How many enemies are on row {self._target_row}?"
         self._oracle_answer = str(count)
         self._options = []
 
@@ -421,13 +421,13 @@ Ship Row: {ship_str}"""
             self._target_col = self.np_random.integers(1, self._total_cols + 1)
 
         count = len(self._get_enemies_on_col(self._target_col))
-        self._current_question = f"How many enemies are on column {self._target_col}?"
+        self._question = f"How many enemies are on column {self._target_col}?"
         self._oracle_answer = str(count)
         self._options = []
 
     def _generate_q2_total_enemies(self) -> None:
         """Q2: How many enemies are there in total?"""
-        self._current_question = "How many enemies are there in total?"
+        self._question = "How many enemies are there in total?"
         self._oracle_answer = str(len(self._enemies))
         self._options = []
 
@@ -440,15 +440,13 @@ Ship Row: {ship_str}"""
         count = len(
             [e for e in self._enemies if e.type == color_to_type[self._target_color]]
         )
-        self._current_question = (
-            f"How many {self._target_color} enemies are there in total?"
-        )
+        self._question = f"How many {self._target_color} enemies are there in total?"
         self._oracle_answer = str(count)
         self._options = []
 
     def _generate_q4_shoot_here_points(self) -> None:
         """Q4: If the ship shoots at the current position, how many points?"""
-        self._current_question = "If the ship shoots at the current position, how many points will the player get?"
+        self._question = "If the ship shoots at the current position, how many points will the player get?"
 
         enemies_on_col = self._get_enemies_on_col(self._ship_col)
         if enemies_on_col:
@@ -468,7 +466,7 @@ Ship Row: {ship_str}"""
         else:
             self._target_col = self.np_random.integers(1, self._total_cols + 1)
 
-        self._current_question = f"Suppose that all the enemies keep still. If the ship moves to column {self._target_col} and shoots, how many points will the player get?"
+        self._question = f"Suppose that all the enemies keep still. If the ship moves to column {self._target_col} and shoots, how many points will the player get?"
 
         enemies_on_col = self._get_enemies_on_col(self._target_col)
         if enemies_on_col:
@@ -479,7 +477,7 @@ Ship Row: {ship_str}"""
 
     def _generate_q6_max_shoot_once_points(self) -> None:
         """Q6: What is the maximum points from shooting once?"""
-        self._current_question = "Given that the image depicts the scene at the beginning of time interval t, during which the enemies keep still. What is the maximum number of points the player can get if he can move the ship to any column and let the ship shoot?"
+        self._question = "Given that the image depicts the scene at the beginning of time interval t, during which the enemies keep still. What is the maximum number of points the player can get if he can move the ship to any column and let the ship shoot?"
 
         max_score = 0
         for col in range(1, self._total_cols + 1):

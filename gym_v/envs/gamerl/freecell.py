@@ -11,6 +11,7 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation, get_logger
+from gym_v.envs.gamerl.utils import build_description, score_exact
 
 logger = get_logger()
 
@@ -109,7 +110,7 @@ class GameRLFreecellQAEnv(Env):
         13: "K",
     }
 
-    FREECELL_RULES = dedent("""
+    GAME_RULES = dedent("""
         In FreeCell, cards can be moved according to specific rules:
         - Cards in cascade piles must be stacked in descending order with alternating colors
         - Foundation piles must be built up by suit from Ace to King
@@ -120,7 +121,7 @@ class GameRLFreecellQAEnv(Env):
     def __init__(
         self,
         cascade_number: int | None = None,
-        question_type: str | int | None = None,
+        question_type: int | None = None,
         num_players: int = 1,
         **kwargs,
     ):
@@ -130,7 +131,7 @@ class GameRLFreecellQAEnv(Env):
             cascade_number = random.choice([4, 6, 8])
 
         self._cascade_number = cascade_number
-        self._question_type = question_type
+        self._question_type_param = question_type
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
@@ -138,40 +139,23 @@ class GameRLFreecellQAEnv(Env):
         self._cascade_piles: list[list[Card]] = [[] for _ in range(cascade_number)]
         self._free_cells: list[Card | None] = [None] * 4
         self._foundation_piles: dict[Suit, list[Card]] = {suit: [] for suit in Suit}
-        self._current_question: dict[str, Any] = {}
+
+        # Standard QA variables
+        self._question_type_idx: int = 0
+        self._question: str = ""
+        self._options: list[str] | None = None
+        self._oracle_answer: str = ""
 
     @property
     def description(self) -> str:
-        base_desc = dedent(f"""
-            This is a FreeCell QA environment.
-
-            {self.FREECELL_RULES}
-
-            Question Types:
-            - Specified Card: Identify which card is at a specific position in a cascade pile
-            - Valid Move: Determine which of the given moves is valid
-            - Card After Move: Identify the top card of a pile after a move
-
-            The system will present you with a game state and ask a specific question.
-        """).strip()
-
-        # Add question and answer format if question has been generated
-        if hasattr(self, "_current_question") and self._current_question:
-            desc = base_desc + "\n\n" + self._current_question["question"]
-            desc += """
-
-**Answer Format:**
-Reply with only the answer (number or option number).
-
-Examples:
-- For multiple choice: 1, 2, 3, etc.
-- For numbers: 42, 100, etc.
-
-Do not include any explanation or extra text.
-"""
-            return desc.strip()
-
-        return base_desc
+        """Return game rules + current question + answer format."""
+        return build_description(
+            game_name="FreeCell Solitaire",
+            rules=self.GAME_RULES,
+            question=self._question,
+            options=self._options,
+            oracle_answer=self._oracle_answer,
+        )
 
     def _get_state_text(self) -> str:
         """Generate text description of current FreeCell game state.
@@ -228,46 +212,70 @@ Do not include any explanation or extra text.
         self._initialize_game()
 
         # Select question type
-        if self._question_type is None:
-            question_type = random.choice(self.QUESTION_TYPES)["id"]
-        elif isinstance(self._question_type, int):
-            # Support integer indexing (0, 1, 2, ...)
-            question_type = self.QUESTION_TYPES[self._question_type]["id"]
+        if self._question_type_param is None:
+            self._question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
         else:
-            question_type = self._question_type
+            if not (0 <= self._question_type_param < len(self.QUESTION_TYPES)):
+                raise ValueError(
+                    f"Invalid question type index: {self._question_type_param}"
+                )
+            self._question_type_idx = self._question_type_param
 
-        # Generate question
-        if question_type == "specified_card":
-            self._current_question = self._generate_specified_card_question()
-        elif question_type == "valid_move":
-            self._current_question = self._generate_valid_move_question()
-        elif question_type == "card_after_move":
-            self._current_question = self._generate_card_after_move_question()
+        q_type = self.QUESTION_TYPES[self._question_type_idx]
+
+        # Generate question - sets _question, _options, _oracle_answer
+        if q_type["id"] == "specified_card":
+            result = self._generate_specified_card_question()
+        elif q_type["id"] == "valid_move":
+            result = self._generate_valid_move_question()
+        elif q_type["id"] == "card_after_move":
+            result = self._generate_card_after_move_question()
         else:
-            raise ValueError(f"Unknown question type: {question_type}")
+            raise ValueError(f"Unknown question type: {q_type['id']}")
+
+        # Extract to instance variables
+        self._question = result["question"]
+        self._options = result.get("options")
+        self._oracle_answer = result["answer"]
 
         logger.info(
-            f"Reset FreeCell QA (cascade_number={self._cascade_number}, question: {question_type})."
+            f"Reset FreeCell QA (cascade_number={self._cascade_number}, question: {q_type['id']})."
         )
 
+        text_state = self._get_state_text()
         obs = Observation(
             image=self.render(),
-            text=self._get_state_text(),
+            text=text_state,
             metadata={
-                "question": self._current_question["question"],
-                "options": self._current_question.get("options"),
-                "question_type": question_type,
+                "text_state": text_state,
+                "text_prompt": f"{text_state}\n\n{self.description}",
+                "question": self._question,
+                "options": self._options,
+                "question_type": q_type["name"],
+                "level": q_type["level"],
             },
         )
 
         info = {
-            "oracle_answer": self._current_question["answer"],
-            "question_type": question_type,
+            "seed": seed,
+            "oracle_answer": self._oracle_answer,
+            "question_type": q_type["id"],
         }
 
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
         }
+
+    def _score_answer(self, answer: str) -> float:
+        """Score the user's answer.
+
+        Args:
+            answer: User's answer string
+
+        Returns:
+            1.0 if correct, 0.0 otherwise
+        """
+        return score_exact(answer, self._oracle_answer)
 
     def inner_step(
         self, action: dict[str, str]
@@ -287,21 +295,18 @@ Do not include any explanation or extra text.
         truncated = False
 
         # Check answer
-        correct = self._check_answer(action_str.strip())
+        reward = self._score_answer(action_str)
+        correct = reward == 1.0
 
         if correct:
-            reward = 1.0
             response = "Correct!"
         else:
-            reward = 0.0
-            response = (
-                f"Incorrect. The correct answer is: {self._current_question['answer']}"
-            )
+            response = f"Incorrect. The correct answer is: {self._oracle_answer}"
 
         info = {
             "correct": correct,
             "user_answer": action_str.strip(),
-            "oracle_answer": self._current_question["answer"],
+            "oracle_answer": self._oracle_answer,
         }
 
         obs = Observation(image=self.render(), text=response)
@@ -401,7 +406,14 @@ Do not include any explanation or extra text.
                 for j, card in enumerate(pile):
                     y = y_cascade + j * overlap
                     self._draw_card(
-                        draw, x, y, card, card_width, card_height, font, True
+                        draw,
+                        x,
+                        y,
+                        card,
+                        card_width,
+                        card_height,
+                        font,
+                        j == len(pile) - 1,
                     )
 
         return img
@@ -420,7 +432,7 @@ Do not include any explanation or extra text.
     ):
         """Draw a card or empty cell."""
         if card:
-            self._draw_card(draw, x, y, card, width, height, font, False)
+            self._draw_card(draw, x, y, card, width, height, font, True)
         else:
             # Empty cell
             draw.rectangle(
@@ -468,14 +480,10 @@ Do not include any explanation or extra text.
             corner_font = ImageFont.truetype(
                 str(self.assets_dir / "DejaVuSans.ttf"), 10
             )
-            symbol_font = ImageFont.truetype(
-                str(self.assets_dir / "DejaVuSans.ttf"), 14
-            )
         except Exception:
             corner_font = ImageFont.load_default()
-            symbol_font = ImageFont.load_default()
 
-        # Draw value and suit in top-left corner
+        # Use a single corner marker for all cards (top visible or covered).
         draw.text(
             (x + 5, y + 5),
             value_str,
@@ -489,27 +497,6 @@ Do not include any explanation or extra text.
             fill=color,
             font=corner_font,
             anchor="lt",
-        )
-
-        # Draw value and suit in bottom-right corner (upside down effect)
-        draw.text(
-            (x + width - 5, y + height - 5),
-            value_str,
-            fill=color,
-            font=corner_font,
-            anchor="rb",
-        )
-        draw.text(
-            (x + width - 5, y + height - 16),
-            suit_symbol,
-            fill=color,
-            font=corner_font,
-            anchor="rb",
-        )
-
-        # Draw suit symbols in the center based on card value
-        self._draw_card_symbols(
-            draw, x, y, width, height, card.value, suit_symbol, color, symbol_font
         )
 
     def _draw_card_symbols(
@@ -666,7 +653,7 @@ Do not include any explanation or extra text.
         answer_index = options.index(correct_answer) + 1
         options_text = "\n".join([f"{i+1}. {opt}" for i, opt in enumerate(options)])
 
-        question = f"""{self.FREECELL_RULES}
+        question = f"""{self.GAME_RULES}
 
 We have {self._cascade_number} cascade piles, and their indexes are {list(range(self._cascade_number))}.
 We have 4 freecells on the left top, and their indexes are 0,1,2,3.
@@ -729,7 +716,7 @@ Options:
         answer_index = options.index(correct_option) + 1
         options_text = "\n".join([f"{i+1}. {opt}" for i, opt in enumerate(options)])
 
-        question = f"""{self.FREECELL_RULES}
+        question = f"""{self.GAME_RULES}
 
 We have {self._cascade_number} cascade piles, and their indexes are {list(range(self._cascade_number))}.
 We have 4 freecells on the left top, and their indexes are 0,1,2,3.
@@ -780,7 +767,7 @@ Options:
         from_str = selected_move["from"]
         to_str = selected_move["to"]
 
-        question = f"""{self.FREECELL_RULES}
+        question = f"""{self.GAME_RULES}
 
 We have {self._cascade_number} cascade piles, and their indexes are {list(range(self._cascade_number))}.
 We have 4 freecells on the left top, and their indexes are 0,1,2,3.
@@ -896,5 +883,4 @@ Options:
 
     def _check_answer(self, action: str) -> bool:
         """Check if answer is correct."""
-        correct_answer = self._current_question["answer"]
-        return action.strip().lower() == correct_answer.strip().lower()
+        return action.strip().lower() == self._oracle_answer.strip().lower()

@@ -7,8 +7,15 @@ import random
 from textwrap import dedent
 from typing import Any
 
+import matplotlib
+
+from gym_v.envs.gamerl.utils import build_description, score_exact
+
+matplotlib.use("Agg")
+import matplotlib.patches as patches
+import matplotlib.path as mpath
+import matplotlib.pyplot as plt
 import numpy as np
-from PIL import Image, ImageDraw
 
 from gym_v import Env, Observation, get_logger
 
@@ -109,7 +116,7 @@ class GameRLZumaQAEnv(Env):
             ball_radius: Radius of each ball
         """
         super().__init__(**kwargs)
-        self._question_type = question_type
+        self._question_type_param = question_type
         self._curve_type = curve_type
         self._num_balls = num_balls
         self._ball_radius = ball_radius
@@ -126,48 +133,42 @@ class GameRLZumaQAEnv(Env):
         self._track_data: tuple[np.ndarray, np.ndarray] = (np.array([]), np.array([]))
         self._plot_level: str = "Medium"
 
-        # Question data
+        # Question data (standard QA variables)
+        self._question_type_idx: int = 0
         self._question: str = ""
-        self._answer: str = ""
+        self._options: list[str] | None = None
+        self._oracle_answer: str = ""
+        self._answer_format: str | None = None
         self._analysis: str = ""
-        self._options: list[str] = []
         self._selected_question_type: str = ""
+
+    GAME_RULES = dedent("""
+        This is a Zuma game.
+        You need to control a frog to shoot colored marbles from its mouth toward a winding track of approaching marbles.
+        Your goal is to clear all marbles before they reach the black hole at the end of the track.
+        The marbles roll steadily along the track, and the player must fire marbles to create groups of three or more of the same color.
+        These groups will disappear, reducing the number of marbles on the track.
+        The frog will shoot marbles in a straight line.
+        If there is no marble on the track, the shot marble will pass through the track.
+        However, the marble it shoots cannot bypass marbles already in its direct line of fire.
+        In the offered pictures, the frog is represented as a white triangle,
+        with the circle on it representing the next marble it will shoot.
+        The colored marbles are positioned on a gray track.
+        Any directions or angles mentioned in questions are relative to the center of the circle on the frog,
+        with its positive x-axis as the 0-degree reference line.
+    """).strip()
 
     @property
     def description(self) -> str:
-        base_rules = dedent("""
-            This is a Zuma game.
-            You need to control a frog to shoot colored marbles from its mouth toward a winding track of approaching marbles.
-            Your goal is to clear all marbles before they reach the black hole at the end of the track.
-            The marbles roll steadily along the track, and the player must fire marbles to create groups of three or more of the same color.
-            These groups will disappear, reducing the number of marbles on the track.
-            The frog will shoot marbles in a straight line.
-            If there is no marble on the track, the shot marble will pass through the track.
-            However, the marble it shoots cannot bypass marbles already in its direct line of fire.
-            In the offered pictures, the frog is represented as a white triangle,
-            with the circle on it representing the next marble it will shoot.
-            The colored marbles are positioned on a gray track.
-            Any directions or angles mentioned in questions are relative to the center of the circle on the frog,
-            with its positive x-axis as the 0-degree reference line.
-        """).strip()
-
-        # Add question and answer format if question has been generated
-        if hasattr(self, "_question") and self._question:
-            desc = base_rules + "\n" + self._question
-            desc += """
-
-**Answer Format:**
-Reply with only the answer (number or option number).
-
-Examples:
-- For multiple choice: 1, 2, 3, etc.
-- For numbers: 42, 100, etc.
-
-Do not include any explanation or extra text.
-"""
-            return desc.strip()
-
-        return base_rules.strip()
+        """Return game rules + current question + answer format."""
+        return build_description(
+            game_name="Zuma",
+            rules=self.GAME_RULES,
+            question=self._question,
+            options=self._options,
+            oracle_answer=self._oracle_answer,
+            answer_format=self._answer_format,
+        )
 
     def _get_state_text(self) -> str:
         """Generate text description of current Zuma game state.
@@ -207,17 +208,19 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
         super().reset(seed=seed)
 
         # Select question type
-        if self._question_type is None:
-            question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
+        if self._question_type_param is None:
+            self._question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
         else:
-            question_type_idx = self._question_type
+            self._question_type_idx = self._question_type_param
 
         # Validate question type index
-        if not (0 <= question_type_idx < len(self.QUESTION_TYPES)):
-            raise ValueError(f"Invalid question type index: {question_type_idx}")
+        if not (0 <= self._question_type_idx < len(self.QUESTION_TYPES)):
+            raise ValueError(f"Invalid question type index: {self._question_type_idx}")
 
         # Get question type ID from index
-        self._selected_question_type = self.QUESTION_TYPES[question_type_idx]["id"]
+        self._selected_question_type = self.QUESTION_TYPES[self._question_type_idx][
+            "id"
+        ]
 
         # Select curve type
         curve_type = (
@@ -237,13 +240,18 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
         # Generate question
         self._generate_question()
 
+        text_state = self._get_state_text()
+
         obs = Observation(
             image=self.render(),
-            text=self._get_state_text(),
+            text=text_state,
             metadata={
+                "text_state": text_state,
+                "text_prompt": f"{text_state}\n\n{self.description}",
                 "question": self._question,
                 "options": self._options,
-                "question_type": self._selected_question_type,
+                "question_type": self.QUESTION_TYPES[self._question_type_idx]["name"],
+                "level": self.QUESTION_TYPES[self._question_type_idx]["level"],
             },
         )
 
@@ -252,7 +260,8 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
         )
 
         info = {
-            "oracle_answer": self._answer,
+            "seed": seed,
+            "oracle_answer": self._oracle_answer,
             "question_type": self._selected_question_type,
         }
 
@@ -414,33 +423,32 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
     def _question_frog_ball_color(self):
         """Question 1: Color of marble frog will shoot."""
         self._question = (
-            self.description.strip() + "\n\n"
             "What color is the marble that the frog is going to shoot? "
             "Answer in one of the following formats: 'red', 'yellow', 'blue', or 'green'."
         )
-        self._answer = self._frog_color
+        self._options = None
+        self._oracle_answer = self._frog_color
+        self._answer_format = None
         self._analysis = (
             f"According to the color of the circle on the triangle (frog), "
             f"the answer is {self._frog_color}."
         )
-        self._options = []
 
     def _question_color_count(self):
         """Question 2: Count of specific color marbles."""
         target_color = random.choice(self.COLORS)
         count = sum(1 for ball in self._balls if ball["color"] == target_color)
 
-        self._question = (
-            self.description.strip() + "\n\n"
-            f"How many {target_color} marbles are there on the track? "
-            "Answer as a non-negative integer, such as '0', '1', '2', etc."
+        self._question = f"How many {target_color} marbles are there on the track?"
+        self._options = None
+        self._oracle_answer = str(count)
+        self._answer_format = (
+            "- Answer as a non-negative integer, such as '0', '1', '2', etc."
         )
-        self._answer = str(count)
         self._analysis = (
             f"By counting the marbles on the track, it can be determined that "
             f"there are {count} {target_color} marbles."
         )
-        self._options = []
 
     def _question_direction_groups(self):
         """Question 3: Number of same-color marble groups in a direction."""
@@ -448,13 +456,15 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
         ball_groups = self._get_ball_groups_in_direction(direction)
 
         self._question = (
-            self.description.strip() + "\n\n"
             f"How many marble groups of two or more same-colored marbles are there at the {direction} side of the frog? "
             f"The direction '{direction}' refers to the region {self.DIRECTION_RANGES[direction]}, which is already divided by dashed lines. "
             f"Any marble group with at least one marble in this region is considered to be in the '{direction}' direction. "
-            "Answer as a non-negative integer, such as '0', '1', '2', etc."
         )
-        self._answer = str(len(ball_groups))
+        self._options = None
+        self._oracle_answer = str(len(ball_groups))
+        self._answer_format = (
+            "- Answer as a non-negative integer, such as '0', '1', '2', etc."
+        )
 
         # Generate analysis
         color_stats = {}
@@ -487,7 +497,6 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
             analysis_parts.append(".")
         analysis_parts.append(f" So the answer is '{len(ball_groups)}'.")
         self._analysis = "".join(analysis_parts)
-        self._options = []
 
     def _question_angle_shot_color(self):
         """Question 4: Color of marble hit at specific angle."""
@@ -495,12 +504,13 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
         color = self._angle_shot_color(angle)
 
         self._question = (
-            self.description.strip() + "\n\n"
             f"If the frog shoots the marble at {angle} degrees, as shown in the picture, what color is the marble it hits? "
             "If it doesn't hit any marble, answer 'none'. "
             "Answer in one of the following formats: 'red', 'yellow', 'blue', 'green', or 'none'."
         )
-        self._answer = color
+        self._options = None
+        self._oracle_answer = color
+        self._answer_format = None
 
         if color == "none":
             self._analysis = (
@@ -517,7 +527,6 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
                 f"If there are marbles within this distance, we identify the closest marble to the frog, "
                 f"which is of color {color}. Thus, the frog hits this marble. So the answer is {color}."
             )
-        self._options = []
 
     def _question_angle_shot_result(self):
         """Question 5: Result of shooting at specific angle."""
@@ -528,21 +537,24 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
         is_same_color = (color == ball_color) if is_hit else False
 
         self._question = (
-            self.description.strip() + "\n\n"
             f"If the frog shoots the marble at {angle} degrees, as shown in the picture, "
-            "what will happen? Answer with one of the following options: "
-            "'The marble left the field.', 'The marble stayed on the track.', or "
-            "'[X] marbles on the track were removed.', where [X] is a positive integer."
+            "what will happen?"
+        )
+        self._options = None
+        self._answer_format = (
+            "- Answer with one of the following options: 'The marble left the field.', "
+            "'The marble stayed on the track.', or '[X] marbles on the track were removed.', "
+            "where [X] is a positive integer."
         )
 
         if not is_hit:
-            self._answer = "The marble left the field."
+            self._oracle_answer = "The marble left the field."
             self._analysis = (
                 "The marble shot by the frog did not hit any marbles on the track, "
                 "so the answer is 'The marble left the field.'."
             )
         elif is_hit and not can_remove:
-            self._answer = "The marble stayed on the track."
+            self._oracle_answer = "The marble stayed on the track."
             if is_same_color:
                 self._analysis = (
                     f"The marble shot by the frog hit a {ball_color} marble on the track. "
@@ -559,7 +571,7 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
                     f"So the answer is 'The marble stayed on the track.'."
                 )
         else:
-            self._answer = f"{removal_count} marbles on the track were removed."
+            self._oracle_answer = f"{removal_count} marbles on the track were removed."
             if is_same_color:
                 self._analysis = (
                     f"The marble shot by the frog hit a {ball_color} marble on the track. "
@@ -576,7 +588,6 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
                     f"leading to the removal of {removal_count} marbles. "
                     f"So the answer is '{removal_count} marbles on the track were removed.'."
                 )
-        self._options = []
 
     def _question_optimal_strategy(self):
         """Question 6: Optimal strategy for eliminating marbles."""
@@ -584,16 +595,18 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
         optimal_solution_count = len(directions)
 
         self._question = (
-            self.description.strip() + "\n\n"
             "Can the frog eliminate some marbles on the track by shooting the marble? "
             "If yes, how many marbles (excluding the one being shot) can be eliminated in the best case? "
-            "How many distinct optimal solutions (counting different groups in the same direction separately) exist? "
-            "Answer in the format: '<Yes/No>, <number of eliminated marbles>, <number of optimal solutions>'. "
+            "How many distinct optimal solutions (counting different groups in the same direction separately) exist?"
+        )
+        self._options = None
+        self._answer_format = (
+            "- Answer in the format: '<Yes/No>, <number of eliminated marbles>, <number of optimal solutions>'. "
             "For example, 'Yes, 3, 2' or 'No, 0, 0'."
         )
 
         if can_remove:
-            self._answer = f"Yes, {removal_count}, {optimal_solution_count}"
+            self._oracle_answer = f"Yes, {removal_count}, {optimal_solution_count}"
             direction_details = [
                 f"{d} ({self.DIRECTION_RANGES[d]})" for d in set(directions)
             ]
@@ -606,17 +619,16 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
                 f"The specific angle range for each direction is as follows: {direction_text}. "
                 f"Any marble group with at least one marble in the region of the direction is considered to be in the region. "
                 f"These regions have been divided by gray dashed lines in the image. "
-                f"So, the answer is '{self._answer}'."
+                f"So, the answer is '{self._oracle_answer}'."
             )
         else:
-            self._answer = "No, 0, 0"
+            self._oracle_answer = "No, 0, 0"
             self._analysis = (
                 f"By searching for groups of marbles on the track that the frog can hit and eliminate, "
                 f"we find that there are no groups of marbles on the track that the frog can hit and eliminate, "
                 f"so the frog cannot eliminate any marbles. "
-                f"So, the answer is '{self._answer}'."
+                f"So, the answer is '{self._oracle_answer}'."
             )
-        self._options = []
 
     def _get_direction(self, angle: float) -> str:
         """Get direction from angle."""
@@ -885,6 +897,17 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
             return True, best_directions, max_removal
         return False, [], 0
 
+    def _score_answer(self, answer: str) -> float:
+        """Score the user's answer.
+
+        Args:
+            answer: User's answer string
+
+        Returns:
+            1.0 if correct, 0.0 otherwise
+        """
+        return score_exact(answer, self._oracle_answer)
+
     def inner_step(
         self, action: dict[str, str]
     ) -> tuple[
@@ -898,17 +921,14 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
 
-        action_str = action_str.strip().lower()
-        correct = action_str == self._answer.lower()
+        action_str = action_str.strip()
+        reward = self._score_answer(action_str)
+        correct = reward == 1.0
 
         if correct:
             response = f"Correct! {self._analysis}"
-            reward = 1.0
         else:
-            response = (
-                f"Incorrect. The correct answer is: {self._answer}\n\n{self._analysis}"
-            )
-            reward = 0.0
+            response = f"Incorrect. The correct answer is: {self._oracle_answer}\n\n{self._analysis}"
 
         obs = Observation(
             image=self.render(),
@@ -918,7 +938,7 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
         info = {
             "correct": correct,
             "user_answer": action_str,
-            "oracle_answer": self._answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -938,112 +958,88 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
             {agent_id: info for agent_id in self._agent_ids},
         )
 
-    def render(self) -> Image.Image | list[Image.Image] | None:
-        """Render the game state as an image using PIL."""
+    def render(self) -> np.ndarray | None:
+        """Render the game state as an image using Matplotlib."""
         curve_x, curve_y = self._track_data
 
-        # Calculate world bounds
-        margin = 1.5 * self._ball_radius
-        min_x, max_x = curve_x.min() - margin, curve_x.max() + margin
-        min_y, max_y = curve_y.min() - margin, curve_y.max() + margin
+        fig, ax = plt.subplots()
+        ax.set_aspect("equal")
+        ax.axis("off")
 
-        # Image size and scale
-        img_width, img_height = 800, 600
-        scale_x = img_width / (max_x - min_x)
-        scale_y = img_height / (max_y - min_y)
-        scale = min(scale_x, scale_y)
-
-        # Create image
-        img = Image.new("RGB", (img_width, img_height), "white")
-        draw = ImageDraw.Draw(img, "RGBA")
-
-        def world_to_pixel(x, y):
-            """Convert world coordinates to pixel coordinates."""
-            px = int((x - min_x) * scale)
-            py = int((max_y - y) * scale)  # Flip y-axis
-            return px, py
-
-        # Draw track as polygon
+        # Draw track using PathPatch
         dx = np.gradient(curve_x)
         dy = np.gradient(curve_y)
         normal_x = -dy / np.sqrt(dx**2 + dy**2)
         normal_y = dx / np.sqrt(dx**2 + dy**2)
+        left_x = curve_x + normal_x * (2 * self._ball_radius) / 2
+        left_y = curve_y + normal_y * (2 * self._ball_radius) / 2
+        right_x = curve_x - normal_x * (2 * self._ball_radius) / 2
+        right_y = curve_y - normal_y * (2 * self._ball_radius) / 2
 
-        width = 2 * self._ball_radius
-        left_x = curve_x + normal_x * width / 2
-        left_y = curve_y + normal_y * width / 2
-        right_x = curve_x - normal_x * width / 2
-        right_y = curve_y - normal_y * width / 2
-
-        # Build track polygon
-        track_points = []
-        for lx, ly in zip(left_x, left_y, strict=False):
-            track_points.append(world_to_pixel(lx, ly))
-        for rx, ry in zip(right_x[::-1], right_y[::-1], strict=False):
-            track_points.append(world_to_pixel(rx, ry))
-
-        draw.polygon(track_points, fill="lightgray", outline="black")
+        path_data = [
+            (mpath.Path.MOVETO, (left_x[0], left_y[0])),
+            *[
+                (mpath.Path.LINETO, (lx, ly))
+                for lx, ly in zip(left_x[1:], left_y[1:], strict=False)
+            ],
+            (mpath.Path.LINETO, (right_x[-1], right_y[-1])),
+            *[
+                (mpath.Path.LINETO, (rx, ry))
+                for rx, ry in zip(
+                    right_x[:-1][::-1],
+                    right_y[:-1][::-1],
+                    strict=False,
+                )
+            ],
+            (mpath.Path.CLOSEPOLY, (left_x[0], left_y[0])),
+        ]
+        codes, verts = zip(*path_data, strict=False)
+        path = mpath.Path(verts, codes)
+        track_patch = patches.PathPatch(
+            path,
+            facecolor="lightgray",
+            edgecolor="black",
+            linewidth=1,
+        )
+        ax.add_patch(track_patch)
 
         # Draw direction dividers (dashed lines)
         direction_angles = [22.5, -22.5, 67.5, -67.5, 112.5, -112.5, 157.5, -157.5]
-        line_length = max(abs(curve_x).max(), abs(curve_y).max()) * 1.5
-
+        line_length = 20
         for angle in direction_angles:
             rad = math.radians(angle)
-            start_x = self._frog_pos["x"]
-            start_y = self._frog_pos["y"]
-            end_x = start_x + line_length * math.cos(rad)
-            end_y = start_y + line_length * math.sin(rad)
-
-            # Draw dashed line
-            num_dashes = 20
-            for i in range(0, num_dashes, 2):
-                dash_start_x = start_x + (end_x - start_x) * i / num_dashes
-                dash_start_y = start_y + (end_y - start_y) * i / num_dashes
-                dash_end_x = start_x + (end_x - start_x) * (i + 1) / num_dashes
-                dash_end_y = start_y + (end_y - start_y) * (i + 1) / num_dashes
-
-                p1 = world_to_pixel(dash_start_x, dash_start_y)
-                p2 = world_to_pixel(dash_end_x, dash_end_y)
-                draw.line([p1, p2], fill=(128, 128, 128, 80), width=1)
+            end_x = self._frog_pos["x"] + line_length * math.cos(rad)
+            end_y = self._frog_pos["y"] + line_length * math.sin(rad)
+            ax.plot(
+                [self._frog_pos["x"], end_x],
+                [self._frog_pos["y"], end_y],
+                "k--",
+                alpha=0.3,
+            )
 
         # Draw hole
-        hole_px, hole_py = world_to_pixel(self._hole_pos["x"], self._hole_pos["y"])
-        hole_radius_px = int(2 * self._ball_radius * scale)
-        draw.ellipse(
-            [
-                hole_px - hole_radius_px,
-                hole_py - hole_radius_px,
-                hole_px + hole_radius_px,
-                hole_py + hole_radius_px,
-            ],
-            fill="black",
-            outline="black",
+        hole = patches.Circle(
+            (self._hole_pos["x"], self._hole_pos["y"]),
+            2 * self._ball_radius,
+            facecolor="black",
+            edgecolor="black",
         )
+        ax.add_patch(hole)
 
         # Draw balls
-        ball_radius_px = int(self._ball_radius * scale)
         for ball in self._balls:
-            ball_px, ball_py = world_to_pixel(
-                ball["position"]["x"], ball["position"]["y"]
+            circle = patches.Circle(
+                (ball["position"]["x"], ball["position"]["y"]),
+                self._ball_radius,
+                facecolor=ball["color"],
+                edgecolor="black",
             )
-            draw.ellipse(
-                [
-                    ball_px - ball_radius_px,
-                    ball_py - ball_radius_px,
-                    ball_px + ball_radius_px,
-                    ball_py + ball_radius_px,
-                ],
-                fill=ball["color"],
-                outline="black",
-                width=2,
-            )
+            ax.add_patch(circle)
 
         # Draw frog (white triangle)
         angle_rad = math.radians(self._frog_angle)
         base = 4 * self._ball_radius
         height = 6 * self._ball_radius
-
         top_point = (
             self._frog_pos["x"] + height * 2 / 3 * math.cos(angle_rad),
             self._frog_pos["y"] + height * 2 / 3 * math.sin(angle_rad),
@@ -1064,26 +1060,60 @@ Hole position: ({self._hole_pos['x']:.2f}, {self._hole_pos['y']:.2f})"""
             + base / 2 * math.sin(angle_rad - math.pi / 2)
             - height * 1 / 3 * math.sin(angle_rad),
         )
-
-        triangle_points = [
-            world_to_pixel(top_point[0], top_point[1]),
-            world_to_pixel(left_point[0], left_point[1]),
-            world_to_pixel(right_point[0], right_point[1]),
-        ]
-        draw.polygon(triangle_points, fill="white", outline="black", width=2)
+        triangle = patches.Polygon(
+            [top_point, left_point, right_point],
+            facecolor="white",
+            edgecolor="black",
+        )
+        ax.add_patch(triangle)
 
         # Draw frog's next ball color
-        frog_px, frog_py = world_to_pixel(self._frog_pos["x"], self._frog_pos["y"])
-        draw.ellipse(
-            [
-                frog_px - ball_radius_px,
-                frog_py - ball_radius_px,
-                frog_px + ball_radius_px,
-                frog_py + ball_radius_px,
-            ],
-            fill=self._frog_color,
-            outline="black",
-            width=2,
+        frog_ball = patches.Circle(
+            (self._frog_pos["x"], self._frog_pos["y"]),
+            self._ball_radius,
+            facecolor=self._frog_color,
+            edgecolor="black",
         )
+        ax.add_patch(frog_ball)
 
-        return img
+        margin = 1.5 * self._ball_radius
+        x_vals = [
+            float(curve_x.min()),
+            float(curve_x.max()),
+            self._hole_pos["x"] - 2 * self._ball_radius,
+            self._hole_pos["x"] + 2 * self._ball_radius,
+            top_point[0],
+            left_point[0],
+            right_point[0],
+            self._frog_pos["x"] - self._ball_radius,
+            self._frog_pos["x"] + self._ball_radius,
+        ]
+        y_vals = [
+            float(curve_y.min()),
+            float(curve_y.max()),
+            self._hole_pos["y"] - 2 * self._ball_radius,
+            self._hole_pos["y"] + 2 * self._ball_radius,
+            top_point[1],
+            left_point[1],
+            right_point[1],
+            self._frog_pos["y"] - self._ball_radius,
+            self._frog_pos["y"] + self._ball_radius,
+        ]
+        if self._balls:
+            ball_x = [ball["position"]["x"] for ball in self._balls]
+            ball_y = [ball["position"]["y"] for ball in self._balls]
+            x_vals.extend([min(ball_x), max(ball_x)])
+            y_vals.extend([min(ball_y), max(ball_y)])
+
+        min_x = min(x_vals)
+        max_x = max(x_vals)
+        min_y = min(y_vals)
+        max_y = max(y_vals)
+        ax.set_xlim(min_x - margin, max_x + margin)
+        ax.set_ylim(min_y - margin, max_y + margin)
+
+        fig.canvas.draw()
+        buffer = np.asarray(fig.canvas.buffer_rgba())
+        image = buffer[:, :, :3].copy()
+        plt.close(fig)
+        return image

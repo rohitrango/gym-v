@@ -11,6 +11,7 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation, get_logger
+from gym_v.envs.gamerl.utils import build_description
 
 logger = get_logger()
 
@@ -24,11 +25,6 @@ GAME_RULES = dedent("""
     2. Words can be placed in 8 directions: right, down, diagonal-right-down, diagonal-right-up, diagonal-left-down, diagonal-left-up, up, or left
     3. Row and column indexes begin from 1 at the top-left corner
     4. Words read from start to end in the specified direction
-""").strip()
-
-ANSWER_FORMAT_PROMPT = dedent("""
-    **Answer Format:**
-    - Choose the correct option by its number (1-8)
 """).strip()
 
 
@@ -46,29 +42,29 @@ class GameRLWordSearchQAEnv(Env):
     # Question types
     QUESTION_TYPES = [
         {
-            "id": "type_0",
-            "name": "cell_letter",
+            "id": "cell_letter",
+            "name": "Cell Letter",
             "level": "Easy",
             "answer_format": "multiple_choice",
             "qa_type": "Target Perception",
         },
         {
-            "id": "type_1",
-            "name": "letter_count",
+            "id": "letter_count",
+            "name": "Letter Count",
             "level": "Medium",
             "answer_format": "multiple_choice",
             "qa_type": "Target Perception",
         },
         {
-            "id": "type_2",
-            "name": "word_direction",
+            "id": "word_direction",
+            "name": "Word Direction",
             "level": "Medium",
             "answer_format": "multiple_choice",
             "qa_type": "Target Perception",
         },
         {
-            "id": "type_3",
-            "name": "find_word_location",
+            "id": "find_word_location",
+            "name": "Find Word Location",
             "level": "Hard",
             "answer_format": "multiple_choice",
             "qa_type": "Target Perception",
@@ -99,7 +95,7 @@ class GameRLWordSearchQAEnv(Env):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self._question_type = question_type
+        self._question_type_param = question_type
         self._grid_size_param = grid_size
         self._cell_size = cell_size
         self._margin = 0
@@ -133,14 +129,21 @@ class GameRLWordSearchQAEnv(Env):
         self._grid_size: int = 5
 
         # Question state
-        self._current_question: str = ""
+        self._question_type_idx: int = 0
+        self._question: str = ""
+        self._options: list[str] | None = None
         self._oracle_answer: str = ""
         self._current_q_type: dict[str, Any] = self.QUESTION_TYPES[0]
 
     @property
     def description(self) -> str:
-        return (
-            GAME_RULES + "\n\n" + self._current_question + "\n" + ANSWER_FORMAT_PROMPT
+        """Return game rules + current question + answer format."""
+        return build_description(
+            game_name="Word Search",
+            rules=GAME_RULES,
+            question=self._question,
+            options=self._options,
+            oracle_answer=self._oracle_answer,
         )
 
     def _get_state_text(self) -> str:
@@ -159,10 +162,12 @@ Grid (uppercase letters):
         super().reset(seed=seed)
 
         # Select question type
-        if self._question_type is not None:
-            q_type = self.QUESTION_TYPES[self._question_type]
+        if self._question_type_param is not None:
+            self._question_type_idx = self._question_type_param
+            q_type = self.QUESTION_TYPES[self._question_type_idx]
         else:
-            q_type = random.choice(self.QUESTION_TYPES)
+            self._question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
+            q_type = self.QUESTION_TYPES[self._question_type_idx]
 
         self._current_q_type = q_type
 
@@ -176,32 +181,51 @@ Grid (uppercase letters):
         self._generate_grid()
 
         # Generate question
-        if q_type["name"] == "cell_letter":
+        if q_type["id"] == "cell_letter":
             self._generate_cell_letter_question()
-        elif q_type["name"] == "letter_count":
+        elif q_type["id"] == "letter_count":
             self._generate_letter_count_question()
-        elif q_type["name"] == "word_direction":
+        elif q_type["id"] == "word_direction":
             self._generate_word_direction_question()
-        elif q_type["name"] == "find_word_location":
+        elif q_type["id"] == "find_word_location":
             self._generate_find_word_location_question()
 
         logger.info(
             f"Reset Word Search QA ({self._grid_size}x{self._grid_size}, question: {q_type['name']})."
         )
 
+        text_state = self._get_state_text()
         obs = Observation(
             image=self.render(),
-            text=self._get_state_text(),
+            text=text_state,
             metadata={
-                "question": self._current_question,
+                "text_state": text_state,
+                "text_prompt": f"{text_state}\n\n{self.description}",
+                "question": self._question,
+                "options": self._options,
                 "question_type": q_type["name"],
                 "level": q_type["level"],
             },
         )
-        info = {"oracle_answer": self._oracle_answer, "question_type": q_type}
+        info = {
+            "seed": seed,
+            "oracle_answer": self._oracle_answer,
+            "question_type": q_type["id"],
+        }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
         }
+
+    def _score_answer(self, answer: str) -> float:
+        """Score the user's answer.
+
+        Args:
+            answer: User's answer string
+
+        Returns:
+            1.0 if correct, 0.0 otherwise
+        """
+        return 1.0 if self._check_answer(answer) else 0.0
 
     def inner_step(
         self, action: dict[str, str]
@@ -219,12 +243,13 @@ Grid (uppercase letters):
         answer = action_str.strip()
 
         # Check answer
-        correct = self._check_answer(answer)
-        reward = 1.0 if correct else 0.0
+        reward = self._score_answer(answer)
+        correct = reward == 1.0
 
         obs = Observation(image=self.render(), text=None)
         info = {
             "oracle_answer": self._oracle_answer,
+            "user_answer": action_str,
             "correct": correct,
             "question_type": self._current_q_type,
         }
@@ -311,7 +336,7 @@ Grid (uppercase letters):
         return img
 
     def _generate_grid(self) -> None:
-        """Generate a random grid filled with uppercase letters."""
+        """Generate a random grid filled with random uppercase letters."""
         self._grid = [
             [random.choice(string.ascii_uppercase) for _ in range(self._grid_size)]
             for _ in range(self._grid_size)
@@ -320,7 +345,17 @@ Grid (uppercase letters):
     def _insert_word(
         self, word: str, start_row: int, start_col: int, direction: tuple[int, int]
     ) -> bool:
-        """Insert a word into the grid at the specified position and direction."""
+        """Insert a word into the grid at the specified position and direction.
+
+        Args:
+            word: The word to insert.
+            start_row: Starting row index.
+            start_col: Starting column index.
+            direction: Direction tuple (row_delta, col_delta).
+
+        Returns:
+            True if word was successfully inserted, False otherwise.
+        """
         curr_row, curr_col = start_row, start_col
 
         for letter in word:
@@ -365,16 +400,9 @@ Grid (uppercase letters):
         random.shuffle(options)
         correct_idx = options.index(correct_letter) + 1
 
-        # Format question
-        options_text = "\n".join([f"{i+1}: {opt}" for i, opt in enumerate(options)])
-        self._current_question = dedent(f"""
-            **Question (Easy - Target Perception):**
-            What letter is at row {row + 1}, column {col + 1}?
-
-            Options:
-            {options_text}
-        """).strip()
-
+        # Format question - separate question and options
+        self._question = f"What letter is at row {row + 1}, column {col + 1}?"
+        self._options = [f"{i+1}: {opt}" for i, opt in enumerate(options)]
         self._oracle_answer = str(correct_idx)
 
     def _generate_letter_count_question(self) -> None:
@@ -394,16 +422,11 @@ Grid (uppercase letters):
         random.shuffle(options)
         correct_idx = options.index(count) + 1
 
-        # Format question
-        options_text = "\n".join([f"{i+1}: {opt}" for i, opt in enumerate(options)])
-        self._current_question = dedent(f"""
-            **Question (Medium - Target Perception):**
-            How many times does the letter '{letter}' appear in the grid?
-
-            Options:
-            {options_text}
-        """).strip()
-
+        # Format question - separate question and options
+        self._question = (
+            f"How many times does the letter '{letter}' appear in the grid?"
+        )
+        self._options = [f"{i+1}: {opt}" for i, opt in enumerate(options)]
         self._oracle_answer = str(correct_idx)
 
     def _generate_word_direction_question(self) -> None:
@@ -433,16 +456,9 @@ Grid (uppercase letters):
         random.shuffle(options)
         correct_idx = options.index(dir_name) + 1
 
-        # Format question
-        options_text = "\n".join([f"{i+1}: {opt}" for i, opt in enumerate(options)])
-        self._current_question = dedent(f"""
-            **Question (Medium - Target Perception):**
-            Starting from position (row {start_row + 1}, column {start_col + 1}), in which direction can you find the word '{word}'?
-
-            Options:
-            {options_text}
-        """).strip()
-
+        # Format question - separate question and options
+        self._question = f"Starting from position (row {start_row + 1}, column {start_col + 1}), in which direction can you find the word '{word}'?"
+        self._options = [f"{i+1}: {opt}" for i, opt in enumerate(options)]
         self._oracle_answer = str(correct_idx)
 
     def _generate_find_word_location_question(self) -> None:
@@ -502,16 +518,9 @@ Grid (uppercase letters):
         random.shuffle(options)
         correct_idx = options.index(correct_option) + 1
 
-        # Format question
-        options_text = "\n".join([f"{i+1}: {opt}" for i, opt in enumerate(options)])
-        self._current_question = dedent(f"""
-            **Question (Hard - Target Perception):**
-            Find the word '{word}' in the grid. Where does it start and in which direction does it go?
-
-            Options:
-            {options_text}
-        """).strip()
-
+        # Format question - separate question and options
+        self._question = f"Find the word '{word}' in the grid. Where does it start and in which direction does it go?"
+        self._options = [f"{i+1}: {opt}" for i, opt in enumerate(options)]
         self._oracle_answer = str(correct_idx)
 
     def _check_answer(self, answer: str) -> bool:

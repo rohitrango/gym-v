@@ -12,6 +12,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation, get_logger
+from gym_v.envs.gamerl.utils import build_description, score_exact
 
 logger = get_logger()
 
@@ -101,7 +102,7 @@ class GameRLTangramQAEnv(Env):
         20: (115, 220, 233),  # light cyan
     }
 
-    TANGRAM_RULES = dedent("""
+    GAME_RULES = dedent("""
         Rules:
         1. Each numbered region represents a piece on the board.
         2. Pieces are considered adjacent if they share at least one edge.
@@ -131,7 +132,7 @@ class GameRLTangramQAEnv(Env):
         self._grid_size = grid_size
         self._num_seeds = num_seeds
         self._num_pieces_to_remove = num_pieces_to_remove
-        self._question_type = question_type
+        self._question_type_param = question_type
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
@@ -140,42 +141,23 @@ class GameRLTangramQAEnv(Env):
         self._seeds: list[tuple[int, int]] = []
         self._pieces: list[dict[str, Any]] = []
         self._removed_pieces: list[int] = []
-        self._current_question: dict[str, Any] = {}
+
+        # Standard QA variables
+        self._question_type_idx: int = 0
+        self._question: str = ""
+        self._options: list[str] | None = None
+        self._oracle_answer: str = ""
 
     @property
     def description(self) -> str:
-        base_desc = dedent(f"""
-            This is a Tangram QA environment.
-
-            {self.TANGRAM_RULES}
-
-            Question Types:
-            - Piece Count: Count how many pieces are on the main board
-            - Piece Area: Calculate the area (number of cells) of a specific piece
-            - Piece Adjacency: Count how many pieces are adjacent to a target piece
-            - Rotation: Determine if a removed piece can fit back with rotation
-            - Placement: Find the best position to place a removed piece
-
-            The system will present you with a puzzle and ask a specific question.
-        """).strip()
-
-        # Add question and answer format if question has been generated
-        if hasattr(self, "_current_question") and self._current_question:
-            desc = base_desc + "\n\n" + self._current_question["question"]
-            desc += """
-
-**Answer Format:**
-Reply with only the answer (number or option number).
-
-Examples:
-- For multiple choice: 1, 2, 3, etc.
-- For numbers: 42, 100, etc.
-
-Do not include any explanation or extra text.
-"""
-            return desc.strip()
-
-        return base_desc
+        """Return game rules + current question + answer format."""
+        return build_description(
+            game_name="Tangram Puzzle",
+            rules=self.GAME_RULES,
+            question=self._question,
+            options=self._options,
+            oracle_answer=self._oracle_answer,
+        )
 
     def _get_state_text(self) -> str:
         """Generate text description of current Tangram state."""
@@ -204,34 +186,38 @@ Do not include any explanation or extra text.
         self._generate_puzzle()
 
         # Select question type
-        if self._question_type is None:
-            question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
+        if self._question_type_param is None:
+            self._question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
         else:
-            question_type_idx = self._question_type
+            self._question_type_idx = self._question_type_param
 
         # Validate question type index
-        if not (0 <= question_type_idx < len(self.QUESTION_TYPES)):
-            raise ValueError(f"Invalid question type index: {question_type_idx}")
+        if not (0 <= self._question_type_idx < len(self.QUESTION_TYPES)):
+            raise ValueError(f"Invalid question type index: {self._question_type_idx}")
 
-        # Get question type ID from index
-        question_type = self.QUESTION_TYPES[question_type_idx]["id"]
+        q_type = self.QUESTION_TYPES[self._question_type_idx]
 
         # Generate question
-        if question_type == "piece_count":
-            self._current_question = self._generate_piece_count_question()
-        elif question_type == "piece_area":
-            self._current_question = self._generate_piece_area_question()
-        elif question_type == "adjacency":
-            self._current_question = self._generate_adjacency_question()
-        elif question_type == "rotation":
-            self._current_question = self._generate_rotation_question()
-        elif question_type == "placement":
-            self._current_question = self._generate_placement_question()
+        if q_type["id"] == "piece_count":
+            result = self._generate_piece_count_question()
+        elif q_type["id"] == "piece_area":
+            result = self._generate_piece_area_question()
+        elif q_type["id"] == "adjacency":
+            result = self._generate_adjacency_question()
+        elif q_type["id"] == "rotation":
+            result = self._generate_rotation_question()
+        elif q_type["id"] == "placement":
+            result = self._generate_placement_question()
         else:
-            raise ValueError(f"Unknown question type: {question_type}")
+            raise ValueError(f"Unknown question type: {q_type['id']}")
+
+        # Extract to instance variables
+        self._question = result["question"]
+        self._options = result.get("options")
+        self._oracle_answer = result["answer"]
 
         logger.info(
-            f"Reset Tangram QA ({self._grid_size}x{self._grid_size}, question: {question_type})."
+            f"Reset Tangram QA ({self._grid_size}x{self._grid_size}, question: {q_type['id']})."
         )
 
         # Generate text state
@@ -241,19 +227,35 @@ Do not include any explanation or extra text.
             image=self.render(),
             text=text_state,
             metadata={
-                "question": self._current_question["question"],
-                "options": self._current_question.get("options"),
+                "text_state": text_state,
+                "text_prompt": f"{text_state}\n\n{self.description}",
+                "question": self._question,
+                "options": self._options,
+                "question_type": q_type["name"],
+                "level": q_type["level"],
             },
         )
 
         info = {
-            "oracle_answer": self._current_question["answer"],
-            "question_type": question_type,
+            "seed": seed,
+            "oracle_answer": self._oracle_answer,
+            "question_type": q_type["id"],
         }
 
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
         }
+
+    def _score_answer(self, answer: str) -> float:
+        """Score the user's answer.
+
+        Args:
+            answer: User's answer string
+
+        Returns:
+            1.0 if correct, 0.0 otherwise
+        """
+        return score_exact(answer, self._oracle_answer)
 
     def inner_step(
         self, action: dict[str, str]
@@ -268,26 +270,22 @@ Do not include any explanation or extra text.
         action_str = action[agent_id]
 
         info: dict[str, Any] = {}
-        reward = 0.0
         terminated = True
         truncated = False
 
         # Check answer
-        correct = self._check_answer(action_str.strip())
+        reward = self._score_answer(action_str)
+        correct = reward == 1.0
 
         if correct:
-            reward = 1.0
             response = "Correct!"
         else:
-            reward = 0.0
-            response = (
-                f"Incorrect. The correct answer is: {self._current_question['answer']}"
-            )
+            response = f"Incorrect. The correct answer is: {self._oracle_answer}"
 
         info = {
             "correct": correct,
             "user_answer": action_str.strip(),
-            "oracle_answer": self._current_question["answer"],
+            "oracle_answer": self._oracle_answer,
         }
 
         obs = Observation(image=self.render(), text=response)
@@ -328,8 +326,8 @@ Do not include any explanation or extra text.
         # Total image size
         total_width = max(board_width, removed_width) + 2 * margin
         total_height = (
-            board_height + removed_height + 3 * margin + 40
-        )  # Extra for title
+            board_height + removed_height + 4 * margin + 60
+        )  # Extra for both titles (Main Board + Removed Pieces)
 
         img = Image.new("RGB", (total_width, total_height), (255, 255, 255))
         draw = ImageDraw.Draw(img)
@@ -567,7 +565,7 @@ Do not include any explanation or extra text.
         correct_answer = options.index(unique_pieces) + 1
         options_text = "\n".join([f"{i+1}: {opt}" for i, opt in enumerate(options)])
 
-        question = f"""{self.TANGRAM_RULES}
+        question = f"""{self.GAME_RULES}
 
 Question:
 How many pieces are currently on the main board?
@@ -596,7 +594,7 @@ Options:
         correct_answer = options.index(target_area) + 1
         options_text = "\n".join([f"{i+1}: {opt}" for i, opt in enumerate(options)])
 
-        question = f"""{self.TANGRAM_RULES}
+        question = f"""{self.GAME_RULES}
 
 Question:
 What is the area (number of cells) of Piece {target_piece}?
@@ -634,7 +632,7 @@ Options:
         correct_answer = options.index(correct_count) + 1
         options_text = "\n".join([f"{i+1}: {opt}" for i, opt in enumerate(options)])
 
-        question = f"""{self.TANGRAM_RULES}
+        question = f"""{self.GAME_RULES}
 
 Question:
 How many different pieces are adjacent to Piece {target_piece}?
@@ -674,7 +672,7 @@ Options:
         correct_answer = options.index(correct_description) + 1
         options_text = "\n".join([f"{i+1}: {opt}" for i, opt in enumerate(options)])
 
-        question = f"""{self.TANGRAM_RULES}
+        question = f"""{self.GAME_RULES}
 
 One piece is removed from main board and shown below. It has been rotated and may have been flipped.
 
@@ -731,7 +729,7 @@ Options:
         correct_answer = options.index(answer_str) + 1
         options_text = "\n".join([f"{i+1}: {opt}" for i, opt in enumerate(options)])
 
-        question = f"""{self.TANGRAM_RULES}
+        question = f"""{self.GAME_RULES}
 New pieces can only be placed adjacent to existing pieces.
 
 Question:
@@ -769,5 +767,4 @@ Options:
 
     def _check_answer(self, action: str) -> bool:
         """Check if answer is correct."""
-        correct_answer = self._current_question["answer"]
-        return action.strip().lower() == correct_answer.strip().lower()
+        return action.strip().lower() == self._oracle_answer.strip().lower()

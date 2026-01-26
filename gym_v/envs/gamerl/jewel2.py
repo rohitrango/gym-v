@@ -14,6 +14,7 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation, get_logger
+from gym_v.envs.gamerl.utils import build_description, score_exact
 
 logger = get_logger()
 
@@ -45,9 +46,13 @@ ELEMENT_PROBABILITIES = {
 
 
 class Chessboard:
-    """Jewel2 game board with match-3 mechanics"""
+    """Jewel2 game board with match-3 mechanics.
 
-    def __init__(self, size=5):
+    Args:
+        size: Size of the square board (default 5x5).
+    """
+
+    def __init__(self, size: int = 5):
         self.size = size
         self.normal_elements = COMMON_ELEMENTS
         self.special_elements = SPECIAL_ELEMENTS
@@ -55,8 +60,12 @@ class Chessboard:
         self.signboard = [[0 for _ in range(self.size)] for _ in range(self.size)]
         self.score = 0
 
-    def _generate_random_board(self):
-        """Generate random board based on probabilities"""
+    def _generate_random_board(self) -> list[list[str]]:
+        """Generate random board based on probabilities.
+
+        Returns:
+            A 2D list representing the game board.
+        """
         board = []
         elements = list(ELEMENT_PROBABILITIES.keys())
         weights = list(ELEMENT_PROBABILITIES.values())
@@ -69,14 +78,22 @@ class Chessboard:
             board.append(row)
         return board
 
-    def reset_signboard(self):
-        """Reset the signboard marking"""
+    def reset_signboard(self) -> None:
+        """Reset the signboard marking to all zeros."""
         for i in range(self.size):
             for j in range(self.size):
                 self.signboard[i][j] = 0
 
     def clear_chess(self, x: int, y: int) -> int:
-        """Clear element at (x,y) if valid, return number cleared"""
+        """Clear element at position (x,y) if valid.
+
+        Args:
+            x: Row coordinate.
+            y: Column coordinate.
+
+        Returns:
+            Number of elements cleared.
+        """
         self.reset_signboard()
         if not self._check_chess(x, y):
             return 0
@@ -86,7 +103,11 @@ class Chessboard:
             return cleared
 
     def _delete_chess(self) -> int:
-        """Delete marked elements and return count"""
+        """Delete all elements marked in signboard.
+
+        Returns:
+            Number of elements deleted.
+        """
         cleared = 0
         for i in range(self.size):
             for j in range(self.size):
@@ -100,8 +121,14 @@ class Chessboard:
         self.score += cleared
         return cleared
 
-    def _check_special_character(self, target: str, x: int, y: int):
-        """Handle special element abilities"""
+    def _check_special_character(self, target: str, x: int, y: int) -> None:
+        """Handle special element abilities.
+
+        Args:
+            target: The special element type.
+            x: Row coordinate.
+            y: Column coordinate.
+        """
         if target in ["a", "b", "c", "d", "e"]:
             # Clear all corresponding uppercase letters
             uppercase_target = target.upper()
@@ -122,7 +149,15 @@ class Chessboard:
                         self.signboard[i][j] = 1
 
     def _mark_elements_for_line(self, x: int, y: int) -> bool:
-        """Check and mark elements forming 3+ in a line"""
+        """Check and mark elements forming 3+ in a line.
+
+        Args:
+            x: Row coordinate.
+            y: Column coordinate.
+
+        Returns:
+            True if elements were marked, False otherwise.
+        """
         marked = False
 
         # Check horizontal
@@ -142,7 +177,15 @@ class Chessboard:
         return marked
 
     def _check_chess(self, x: int, y: int) -> bool:
-        """Check if element at (x,y) can be cleared"""
+        """Check if element at position (x,y) can be cleared.
+
+        Args:
+            x: Row coordinate.
+            y: Column coordinate.
+
+        Returns:
+            True if the element can be cleared, False otherwise.
+        """
         target = self.chessboard[x][y]
         if target == " ":
             return False
@@ -160,7 +203,15 @@ class Chessboard:
             return False
 
     def _get_horizontal_line(self, x: int, y: int) -> list[tuple[int, int]]:
-        """Get horizontal line of matching elements"""
+        """Get horizontal line of matching elements.
+
+        Args:
+            x: Row coordinate.
+            y: Column coordinate.
+
+        Returns:
+            List of (row, column) tuples forming the horizontal line.
+        """
         target = self.chessboard[x][y]
         line = [(x, y)]
 
@@ -179,7 +230,15 @@ class Chessboard:
         return line
 
     def _get_vertical_line(self, x: int, y: int) -> list[tuple[int, int]]:
-        """Get vertical line of matching elements"""
+        """Get vertical line of matching elements.
+
+        Args:
+            x: Row coordinate.
+            y: Column coordinate.
+
+        Returns:
+            List of (row, column) tuples forming the vertical line.
+        """
         target = self.chessboard[x][y]
         line = [(x, y)]
 
@@ -197,8 +256,8 @@ class Chessboard:
 
         return line
 
-    def _fill_chess(self):
-        """Fill empty spaces with new elements (gravity + new generation)"""
+    def _fill_chess(self) -> None:
+        """Fill empty spaces with new elements using gravity and random generation."""
         for j in range(self.size):
             for i in range(self.size - 1, -1, -1):
                 if self.chessboard[i][j] == " ":
@@ -218,7 +277,16 @@ class Chessboard:
                         )[0]
 
     def swap_chess(self, x: int, y: int, pos: str) -> bool:
-        """Swap element at (x,y) with adjacent element in direction pos"""
+        """Swap element at (x,y) with adjacent element in specified direction.
+
+        Args:
+            x: Row coordinate.
+            y: Column coordinate.
+            pos: Direction string ('up', 'down', 'left', 'right').
+
+        Returns:
+            True if swap was successful and led to elimination, False otherwise.
+        """
         direction_map = {
             "up": (-1, 0),
             "down": (1, 0),
@@ -270,7 +338,7 @@ class Chessboard:
 # Jewel2 QA Environment
 # ============================================================================
 
-JEWEL2_RULES = dedent("""
+GAME_RULES = dedent("""
     # **Game Overview**
 Jewel2 is a strategic puzzle game played on a grid. Your primary objective is to eliminate elements by forming horizontal or vertical lines of three or more identical items. Successfully eliminating elements increases your score and clears space on the board for new elements to appear.
 
@@ -363,7 +431,11 @@ Maximize your **Total Cleared** count by strategically performing clear and swap
 
 
 class GameRLJewel2QAEnv(Env):
-    """Jewel2 QA Environment with 7 question types"""
+    """Jewel2 QA Environment with 7 question types.
+
+    A match-3 puzzle game QA environment where players answer questions
+    about game state, action outcomes, and optimal strategies.
+    """
 
     QUESTION_TYPES = [
         {
@@ -426,25 +498,37 @@ class GameRLJewel2QAEnv(Env):
     ):
         super().__init__(**kwargs)
         self.size = size
-        self._question_type = question_type
+        self._question_type_param = question_type
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
         self._chessboard = None
         self._total_cleared = 0
-        self._current_question = None
         self._element_images = None
+
+        # Standard QA variables
+        self._question_type_idx: int = 0
+        self._question: str = ""
+        self._options: list[str] | None = None
+        self._oracle_answer: str = ""
 
     @property
     def description(self) -> str:
-        return f"Jewel2 QA (size={self.size})\n\n" + JEWEL2_RULES
+        """Return game rules + current question + answer format."""
+        return build_description(
+            game_name="Jewel2 Match Puzzle",
+            rules=GAME_RULES,
+            question=self._question,
+            options=self._options,
+            oracle_answer=self._oracle_answer,
+        )
 
-    def _initialize_game(self):
-        """Initialize game state"""
+    def _initialize_game(self) -> None:
+        """Initialize game state with random board and score."""
         self._chessboard = Chessboard(self.size)
         self._total_cleared = random.randint(0, 100)
 
-    def _load_element_images(self):
-        """Load element images"""
+    def _load_element_images(self) -> None:
+        """Load element images from assets directory."""
         if self._element_images is not None:
             return
 
@@ -646,7 +730,7 @@ class GameRLJewel2QAEnv(Env):
         ]
         count = len(positions)
 
-        question = f"{JEWEL2_RULES}\n\n**Question:** How many '{element}' elements are currently on the board?"
+        question = f"{GAME_RULES}\n\n**Question:** How many '{element}' elements are currently on the board?"
         answer = str(count)
         analysis = (
             f"By iterating through each row and column of the chessboard, we identified and counted all occurrences of the '{element}' element. "
@@ -693,7 +777,7 @@ class GameRLJewel2QAEnv(Env):
         )
         answer = correct_answer_letter
 
-        question = f"{JEWEL2_RULES}\n\n**Question:** Which of the following positions does element '{element}' reside in?"
+        question = f"{GAME_RULES}\n\n**Question:** Which of the following positions does element '{element}' reside in?"
         question += "\n\n**Options:**\n" + "\n".join(options)
 
         analysis = (
@@ -718,7 +802,7 @@ class GameRLJewel2QAEnv(Env):
 
         count = sum(len(positions) for positions in special_positions.values())
 
-        question = f"{JEWEL2_RULES}\n\n**Question:** How many special elements (a, b, c, d, e, +, |) are there on the board?"
+        question = f"{GAME_RULES}\n\n**Question:** How many special elements (a, b, c, d, e, +, |) are there on the board?"
         answer = str(count)
         analysis = (
             "By iterating through the chessboard, we counted all special elements (a, b, c, d, e, +, |).\n\n"
@@ -764,7 +848,7 @@ class GameRLJewel2QAEnv(Env):
         cleared = temp_board.clear_chess(x, y)
         new_total_cleared = current_cleared + cleared
 
-        question = f"{JEWEL2_RULES}\n\n**Question:** What will happen if you execute clear {x} {y}?"
+        question = f"{GAME_RULES}\n\n**Question:** What will happen if you execute clear {x} {y}?"
 
         if cleared == 0:
             options = [
@@ -832,7 +916,7 @@ class GameRLJewel2QAEnv(Env):
             x, y = random.randint(0, self.size - 1), random.randint(0, self.size - 1)
             pos = random.choice(DIRECTIONS)
 
-        question = f"{JEWEL2_RULES}\n\n**Question:** What will happen if you execute swap {x} {y} {pos}?"
+        question = f"{GAME_RULES}\n\n**Question:** What will happen if you execute swap {x} {y} {pos}?"
 
         direction_map = {
             "up": (-1, 0),
@@ -963,7 +1047,7 @@ class GameRLJewel2QAEnv(Env):
                 cleared2 = temp_board.score - score_before
                 total_cleared += cleared2
 
-        question = f"{JEWEL2_RULES}\n\n**Question:** How many elements will be eliminated at least after performing {command1} followed by {command2}?"
+        question = f"{GAME_RULES}\n\n**Question:** How many elements will be eliminated at least after performing {command1} followed by {command2}?"
         answer = str(total_cleared)
         analysis = f"Executing `{command1}` resulted in vertically/horizontally clearing {cleared1} elements, and executing `{command2}` resulted in vertically/horizontally clearing {cleared2} elements. Overall, a total of {total_cleared} elements were cleared."
 
@@ -1010,7 +1094,7 @@ class GameRLJewel2QAEnv(Env):
 
         valid_moves.sort(key=lambda x: x["cleared"], reverse=True)
 
-        question = f"{JEWEL2_RULES}\n\n**Question:** What command will result in the maximum number of elements being cleared in a single move?"
+        question = f"{GAME_RULES}\n\n**Question:** What command will result in the maximum number of elements being cleared in a single move?"
         answer = best_command
 
         if max_cleared > 0:
@@ -1035,24 +1119,29 @@ class GameRLJewel2QAEnv(Env):
             "options": None,
         }
 
-    def _generate_question(self, question_type: int) -> dict:
-        """Generate question of specified type"""
+    def _generate_question(self, question_type: int) -> None:
+        """Generate question of specified type - sets _question, _options, _oracle_answer"""
         if question_type == 0:
-            return self._generate_question_type_0()
+            result = self._generate_question_type_0()
         elif question_type == 1:
-            return self._generate_question_type_1()
+            result = self._generate_question_type_1()
         elif question_type == 2:
-            return self._generate_question_type_2()
+            result = self._generate_question_type_2()
         elif question_type == 3:
-            return self._generate_question_type_3()
+            result = self._generate_question_type_3()
         elif question_type == 4:
-            return self._generate_question_type_4()
+            result = self._generate_question_type_4()
         elif question_type == 5:
-            return self._generate_question_type_5()
+            result = self._generate_question_type_5()
         elif question_type == 6:
-            return self._generate_question_type_6()
+            result = self._generate_question_type_6()
         else:
             raise ValueError(f"Invalid question type: {question_type}")
+
+        # Extract to instance variables
+        self._question = result["question"]
+        self._options = result.get("options")
+        self._oracle_answer = result["answer"]
 
     # ========================================================================
     # Gym-v Interface
@@ -1082,30 +1171,49 @@ Grid:
         self._load_element_images()
 
         # Generate question
-        q_type = (
-            self._question_type
-            if self._question_type is not None
-            else random.randint(0, 6)
-        )
-        self._current_question = self._generate_question(q_type)
+        if self._question_type_param is not None:
+            self._question_type_idx = self._question_type_param
+        else:
+            self._question_type_idx = random.randint(0, 6)
+        q_type = self.QUESTION_TYPES[self._question_type_idx]
 
+        # Generate question - sets _question, _options, _oracle_answer
+        self._generate_question(self._question_type_idx)
+
+        text_state = self._get_state_text()
         obs = Observation(
             image=self.render(),
-            text=self._get_state_text(),
+            text=text_state,
             metadata={
-                "question": self._current_question["question"],
-                "question_type": q_type,
+                "text_state": text_state,
+                "text_prompt": f"{text_state}\n\n{self.description}",
+                "question": self._question,
+                "options": self._options,
+                "question_type": q_type["name"],
+                "level": q_type["level"],
             },
         )
 
         info = {
-            "oracle_answer": self._current_question["answer"],
-            "question_type": q_type,
+            "seed": seed,
+            "oracle_answer": self._oracle_answer,
+            "question_type": q_type["id"],
         }
 
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
         }
+
+    def _score_answer(self, answer: str) -> float:
+        """Score the user's answer.
+
+        Args:
+            answer: User's answer string
+
+        Returns:
+            1.0 if correct, 0.0 otherwise
+        """
+        return score_exact(answer, self._oracle_answer)
 
     def inner_step(
         self, action: dict[str, str]
@@ -1120,22 +1228,23 @@ Grid:
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
 
-        correct = (
-            action_str.strip().lower()
-            == self._current_question["answer"].strip().lower()
-        )
-        reward = 1.0 if correct else 0.0
+        reward = self._score_answer(action_str)
+        correct = reward == 1.0
 
         if correct:
             response = "Correct!"
         else:
-            response = f"Incorrect. The correct answer is: {self._current_question['answer']}\n\n{self._current_question['analysis']}"
+            response = f"Incorrect. The correct answer is: {self._oracle_answer}"
 
         obs = Observation(image=self.render(), text=response)
 
         terminated = True
         truncated = False
-        info = {}
+        info = {
+            "oracle_answer": self._oracle_answer,
+            "user_answer": action_str,
+            "correct": correct,
+        }
 
         return (
             {agent_id: obs for agent_id in self._agent_ids},

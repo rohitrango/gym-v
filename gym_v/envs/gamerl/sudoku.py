@@ -13,6 +13,7 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation, get_logger
+from gym_v.envs.gamerl.utils import build_description
 
 logger = get_logger()
 
@@ -22,15 +23,7 @@ logger = get_logger()
 GAME_RULES_TEMPLATE = dedent("""
     This is a sudoku game in which the board is filled with a total number of colours equal to the length of the board's sides, and no rows, columns or squares are allowed to have duplicate colours. You should fill the empty cells on the board with following {size} colors: {colors}.
 
-    In this Sudoku board, the row coordinates are 1-{size} from top to bottom, and the column coordinates are 1-{size} from left to right.
-""").strip()
-
-ANSWER_FORMAT_PROMPT = dedent("""
-    **Answer Format:**
-    - For numbers: Reply with only the number, e.g., 7
-    - For multiple choice: Reply with only the letter (A, B, C, D, E, F, G, H, or I)
-
-    Do not include any explanation or extra text.
+    In this Sudoku board, the row coordinates are 1-{size} from top to bottom, and the column coordinates are 1-{size} from left to right. The top-left cell is (1, 1).
 """).strip()
 
 
@@ -50,36 +43,36 @@ class GameRLSudokuQAEnv(Env):
     # Question types
     QUESTION_TYPES = [
         {
-            "id": "type_0",
-            "name": "color_position",
+            "id": "color_position",
+            "name": "Color Position",
             "level": "Easy",
             "answer_format": "multiple_choice",
             "qa_type": "Target Perception",
         },
         {
-            "id": "type_1",
-            "name": "color_count",
+            "id": "color_count",
+            "name": "Color Count",
             "level": "Easy",
             "answer_format": "fill_in_blank",
             "qa_type": "Target Perception",
         },
         {
-            "id": "type_2",
-            "name": "possible_colors",
+            "id": "possible_colors",
+            "name": "Possible Colors",
             "level": "Medium",
             "answer_format": "fill_in_blank",
             "qa_type": "State Prediction",
         },
         {
-            "id": "type_3",
-            "name": "empty_count",
+            "id": "empty_count",
+            "name": "Empty Count",
             "level": "Medium",
             "answer_format": "fill_in_blank",
             "qa_type": "Target Perception",
         },
         {
-            "id": "type_4",
-            "name": "deductive_reasoning",
+            "id": "deductive_reasoning",
+            "name": "Deductive Reasoning",
             "level": "Hard",
             "answer_format": "multiple_choice",
             "qa_type": "Deductive Reasoning",
@@ -117,7 +110,7 @@ class GameRLSudokuQAEnv(Env):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self._question_type = question_type
+        self._question_type_param = question_type
         self._size_override = size
         self._cell_size = cell_size
         self._margin = 30
@@ -132,8 +125,8 @@ class GameRLSudokuQAEnv(Env):
         self._colors: dict[str, tuple[int, int, int]] = {}
 
         # Q&A state (initialized in reset)
-        self._current_question_type: int = 0
-        self._current_question: str = ""
+        self._question_type_idx: int = 0
+        self._question: str = ""
         self._oracle_answer: str = ""
         self._answer_format: str = ""
         self._options: list[str] = []
@@ -141,15 +134,17 @@ class GameRLSudokuQAEnv(Env):
     @property
     def description(self) -> str:
         """Return game rules + current question + answer format."""
-        colors_str = ", ".join(self._color_names)
-        game_rules = GAME_RULES_TEMPLATE.format(size=self._size, colors=colors_str)
-        desc = game_rules + "\n\n**Question:** " + self._current_question
-
-        if self._options:
-            desc += "\n\n**Options:**\n" + "\n".join(self._options)
-
-        desc += ANSWER_FORMAT_PROMPT
-        return desc.strip()
+        colors = list(self._colors.keys()) if self._colors else []
+        game_rules = GAME_RULES_TEMPLATE.format(
+            size=self._size, colors=", ".join(colors)
+        )
+        return build_description(
+            game_name="Sudoku",
+            rules=game_rules,
+            question=self._question,
+            options=self._options,
+            oracle_answer=self._oracle_answer,
+        )
 
     def _get_state_text(self) -> str:
         """Generate text description of current Sudoku game state.
@@ -216,10 +211,10 @@ Grid ({color_legend}, .=empty):
         self._generate_game_state()
 
         # Select question type
-        if self._question_type is not None:
-            self._current_question_type = self._question_type
+        if self._question_type_param is not None:
+            self._question_type_idx = self._question_type_param
         else:
-            self._current_question_type = self.np_random.integers(
+            self._question_type_idx = self.np_random.integers(
                 0, len(self.QUESTION_TYPES)
             )
 
@@ -227,26 +222,43 @@ Grid ({color_legend}, .=empty):
         self._generate_qa()
 
         logger.info(
-            f"Reset Sudoku QA (type={self._current_question_type}, size={self._size}x{self._size})."
+            f"Reset Sudoku QA (type={self._question_type_idx}, size={self._size}x{self._size})."
         )
+
+        text_state = self._get_state_text()
 
         obs = Observation(
             image=self.render(),
-            text=self._get_state_text(),
+            text=text_state,
             metadata={
-                "question": self._current_question,
+                "text_state": text_state,
+                "text_prompt": f"{text_state}\n\n{self.description}",
+                "question": self._question,
                 "options": self._options,
-                "question_type": self.QUESTION_TYPES[self._current_question_type][
-                    "name"
-                ],
-                "level": self.QUESTION_TYPES[self._current_question_type]["level"],
+                "question_type": self.QUESTION_TYPES[self._question_type_idx]["name"],
+                "level": self.QUESTION_TYPES[self._question_type_idx]["level"],
                 "size": self._size,
             },
         )
-        info = {"oracle_answer": self._oracle_answer}
+        info = {
+            "seed": seed,
+            "oracle_answer": self._oracle_answer,
+            "question_type": self.QUESTION_TYPES[self._question_type_idx]["id"],
+        }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
         }
+
+    def _score_answer(self, answer: str) -> float:
+        """Score the user's answer.
+
+        Args:
+            answer: User's answer string
+
+        Returns:
+            1.0 if correct, 0.0 otherwise
+        """
+        return 1.0 if self._check_answer(answer) else 0.0
 
     def inner_step(
         self, action: dict[str, str]
@@ -266,10 +278,9 @@ Grid ({color_legend}, .=empty):
 
         user_answer = action_str.strip().upper()
 
-        # Normalize answer
-        correct = self._check_answer(user_answer)
-
-        reward = 1.0 if correct else 0.0
+        # Check answer
+        reward = self._score_answer(user_answer)
+        correct = reward == 1.0
 
         obs = Observation(
             image=self.render(),
@@ -466,7 +477,7 @@ Grid ({color_legend}, .=empty):
 
     def _generate_qa(self) -> None:
         """Generate question and answer based on question type."""
-        qtype = self._current_question_type
+        qtype = self._question_type_idx
 
         if qtype == 0:
             self._generate_color_position_qa()
@@ -502,7 +513,7 @@ Grid ({color_legend}, .=empty):
             for i in range(len(self._color_names))
         ]
 
-        self._current_question = f"What color is at position ({row + 1},{col + 1}) (note that on the board the position ({row + 1},{col + 1}) has already been filled with a certain color)? Choose from following options: {', '.join(options)}"
+        self._question = f"What color is at position ({row + 1},{col + 1}) (note that on the board the position ({row + 1},{col + 1}) has already been filled with a certain color)? Choose from following options: {', '.join(options)}"
         self._options = options
         self._oracle_answer = answer_letter
 
@@ -516,7 +527,7 @@ Grid ({color_legend}, .=empty):
             if self._board[i][j] == color_idx + 1
         )
 
-        self._current_question = (
+        self._question = (
             f"How many times does {self._color_names[color_idx]} appear on the board?"
         )
         self._oracle_answer = str(count)
@@ -538,7 +549,7 @@ Grid ({color_legend}, .=empty):
         row, col = random.choice(empty_cells)
         valid_nums = self._get_valid_numbers(self._board, row, col)
 
-        self._current_question = f"How many colors can be filled in position ({row + 1},{col + 1})? Inference based on the current situation focusing only on the colour of the position."
+        self._question = f"How many colors can be filled in position ({row + 1},{col + 1})? Inference based on the current situation focusing only on the colour of the position."
         self._oracle_answer = str(len(valid_nums))
         self._options = []
 
@@ -559,9 +570,7 @@ Grid ({color_legend}, .=empty):
                 if empty > n:
                     count += 1
 
-        self._current_question = (
-            f"How many {target_type}s have more than {n} empty cells?"
-        )
+        self._question = f"How many {target_type}s have more than {n} empty cells?"
         self._oracle_answer = str(count)
         self._options = []
 
@@ -628,7 +637,7 @@ Grid ({color_legend}, .=empty):
             for i in range(len(self._color_names))
         ]
 
-        self._current_question = f"Based on the current board state, if position ({step1_row + 1},{step1_col + 1}) must be filled with {step1_color}, what color should position ({final_row + 1},{final_col + 1}) be filled with? Choose from following options: {', '.join(options)}"
+        self._question = f"Based on the current board state, if position ({step1_row + 1},{step1_col + 1}) must be filled with {step1_color}, what color should position ({final_row + 1},{final_col + 1}) be filled with? Choose from following options: {', '.join(options)}"
         self._options = options
         self._oracle_answer = answer_letter
 

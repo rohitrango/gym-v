@@ -21,6 +21,7 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation, get_logger
+from gym_v.envs.gamerl.utils import build_description, score_exact
 
 logger = get_logger()
 
@@ -699,16 +700,29 @@ class GameRLChessRangerQAEnv(Env):
     ):
         super().__init__(**kwargs)
         self.num_pieces = num_pieces
-        self._question_type = question_type
+        self._question_type_param = question_type
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
-        self._current_question = None
+
+        # Standard QA variables
+        self._question_type_idx: int = 0
+        self._question: str = ""
+        self._options: list[str] | None = None
+        self._oracle_answer: str = ""
+
         self._fen = None
         self._board = None
 
     @property
     def description(self) -> str:
-        return f"Chess Ranger QA\n\n{self.GAME_RULES}"
+        """Return game rules + current question + answer format."""
+        return build_description(
+            game_name="Chess Ranger",
+            rules=self.GAME_RULES,
+            question=self._question,
+            options=self._options,
+            oracle_answer=self._oracle_answer,
+        )
 
     def _get_state_text(self) -> str:
         """Generate text description of current chess board state."""
@@ -735,23 +749,23 @@ class GameRLChessRangerQAEnv(Env):
         self._board = Board(self._fen)
 
         # Select question type
-        q_type = (
-            self._question_type
-            if self._question_type is not None
-            else random.randint(0, 4)
-        )
+        if self._question_type_param is not None:
+            self._question_type_idx = self._question_type_param
+        else:
+            self._question_type_idx = random.randint(0, 4)
+        q_type = self.QUESTION_TYPES[self._question_type_idx]
 
-        # Generate question
-        if q_type == 0:
-            self._current_question = self._generate_steps_to_solve_question()
-        elif q_type == 1:
-            self._current_question = self._generate_count_pieces_question()
-        elif q_type == 2:
-            self._current_question = self._generate_find_piece_question()
-        elif q_type == 3:
-            self._current_question = self._generate_piece_at_square_question()
-        elif q_type == 4:
-            self._current_question = self._generate_predict_solvable_question()
+        # Generate question - methods set self._question, self._options, self._oracle_answer
+        if self._question_type_idx == 0:
+            self._generate_steps_to_solve_question()
+        elif self._question_type_idx == 1:
+            self._generate_count_pieces_question()
+        elif self._question_type_idx == 2:
+            self._generate_find_piece_question()
+        elif self._question_type_idx == 3:
+            self._generate_piece_at_square_question()
+        elif self._question_type_idx == 4:
+            self._generate_predict_solvable_question()
 
         # Render board
         board_image = ChessBoardImage(self._fen)
@@ -764,18 +778,35 @@ class GameRLChessRangerQAEnv(Env):
             image=image,
             text=text_state,
             metadata={
-                "question": self._current_question["question"],
+                "text_state": text_state,
+                "text_prompt": f"{text_state}\n\n{self.description}",
+                "question": self._question,
+                "options": self._options,
+                "question_type": q_type["name"],
+                "level": q_type["level"],
             },
         )
 
         info = {
-            "oracle_answer": self._current_question["answer"],
-            "question_type": self.QUESTION_TYPES[q_type]["id"],
+            "seed": seed,
+            "oracle_answer": self._oracle_answer,
+            "question_type": q_type["id"],
         }
 
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
         }
+
+    def _score_answer(self, answer: str) -> float:
+        """Score the user's answer.
+
+        Args:
+            answer: User's answer string
+
+        Returns:
+            1.0 if correct, 0.0 otherwise
+        """
+        return score_exact(answer, self._oracle_answer)
 
     def inner_step(
         self, action: dict[str, str]
@@ -789,19 +820,15 @@ class GameRLChessRangerQAEnv(Env):
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
 
-        # Normalize answer
-        answer_normalized = action_str.strip().lower()
-        correct_answer = self._current_question["answer"].strip().lower()
-
         # Check if correct
-        correct = answer_normalized == correct_answer
-        reward = 1.0 if correct else 0.0
+        reward = self._score_answer(action_str)
+        correct = reward == 1.0
 
         # Generate response
         if correct:
             response = "Correct!"
         else:
-            response = f"Incorrect. The correct answer is: {self._current_question['answer']}\n\n{self._current_question['analysis']}"
+            response = f"Incorrect. The correct answer is: {self._oracle_answer}"
 
         # Re-render board for response
         board_image = ChessBoardImage(self._fen)
@@ -811,7 +838,11 @@ class GameRLChessRangerQAEnv(Env):
 
         terminated = True
         truncated = False
-        info = {}
+        info = {
+            "oracle_answer": self._oracle_answer,
+            "user_answer": action_str,
+            "correct": correct,
+        }
 
         return (
             {agent_id: obs for agent_id in self._agent_ids},
@@ -827,7 +858,7 @@ class GameRLChessRangerQAEnv(Env):
             {agent_id: info for agent_id in self._agent_ids},
         )
 
-    def _generate_steps_to_solve_question(self) -> dict:
+    def _generate_steps_to_solve_question(self) -> None:
         """Type 0: How many steps are needed to solve the puzzle?"""
         # Solve the puzzle using a copy (solver modifies the board!)
         board_copy_for_solve = Board(self._fen)
@@ -843,62 +874,25 @@ class GameRLChessRangerQAEnv(Env):
 
         num_steps = len(moves)  # Use length of moves list
 
-        # Get current board situation (from original board, not modified one)
-        pieces_positions = self._board.get_piece_positions()
-        analysis = "The current board situation is: "
-        for piece_name, position in pieces_positions:
-            analysis += f"{piece_name} at {position}. "
+        self._question = "How many steps are needed to solve the puzzle?"
+        self._options = None
+        self._oracle_answer = str(num_steps)
 
-        # Get detailed trace
-        board_copy = Board(self._fen)
-        trace_solver = TraceSolver(board_copy)
-        _, trace = trace_solver.solve()
-
-        analysis += "In the process of solving the puzzle, we have 2 operations and 2 flags to analyze: "
-        analysis += "operation Try indicates the execution of a step, "
-        analysis += "operation Backtrack indicates that the capture operation performed by the last Try step is withdrawn; "
-        analysis += "flag Fail indicates all tries have failed in the current case, "
-        analysis += "flag Success indicates that the puzzle is solved. "
-        analysis += f"The solved steps are as follows: {' '.join(trace)} "
-        analysis += f"So the total number of steps is {num_steps}."
-
-        question = (
-            f"{self.GAME_RULES}\n\nHow many steps are needed to solve the puzzle?"
-        )
-
-        return {"question": question, "answer": str(num_steps), "analysis": analysis}
-
-    def _generate_count_pieces_question(self) -> dict:
+    def _generate_count_pieces_question(self) -> None:
         """Type 1: How many [piece]s are on the board?"""
         piece_types = ["P", "R", "B", "N", "Q", "K"]
-        piece_count, piece_positions = count_pieces_in_fen(self._fen)
+        piece_count, _ = count_pieces_in_fen(self._fen)
 
         # Randomly select a piece type
         random_piece_type = random.choice(piece_types)
         count = piece_count[random_piece_type]
-        positions = piece_positions[random_piece_type]
         piece_full_name = PIECE_NAME_MAPPING[random_piece_type]
 
-        # Build analysis
-        pieces_board = self._board.get_piece_positions()
-        analysis = "The current board situation is: "
-        for piece_name, position in pieces_board:
-            analysis += f"{piece_name} at {position}. "
+        self._question = f"How many {piece_full_name}s are on the board?"
+        self._options = None
+        self._oracle_answer = str(count)
 
-        if count == 0:
-            analysis += f"There's no {piece_full_name} on the board. So the number of {piece_full_name} is {count}."
-        else:
-            positions_str = ", ".join(
-                [convert_to_chess_notation(r, c) for r, c in positions]
-            )
-            analysis += f"The {piece_full_name} is in the following positions on the board: {positions_str}. "
-            analysis += f"So the number of {piece_full_name} is {count}."
-
-        question = f"How many {piece_full_name}s are on the board?"
-
-        return {"question": question, "answer": str(count), "analysis": analysis}
-
-    def _generate_find_piece_question(self) -> dict:
+    def _generate_find_piece_question(self) -> None:
         """Type 2: Where is the [piece] on the board?"""
         piece_types = ["P", "R", "B", "N", "Q", "K"]
         piece_count, piece_positions = count_pieces_in_fen(self._fen)
@@ -918,22 +912,15 @@ class GameRLChessRangerQAEnv(Env):
         positions = piece_positions[random_piece_type]
         piece_full_name = PIECE_NAME_MAPPING[random_piece_type]
 
-        # Build analysis
-        pieces_board = self._board.get_piece_positions()
-        analysis = "The current board situation is: "
-        for piece_name, position in pieces_board:
-            analysis += f"{piece_name} at {position}. "
-
         positions_str = convert_to_chess_notation(positions[0][0], positions[0][1])
-        analysis += f"There is exactly one {piece_full_name} on the board, located at position: {positions_str}."
 
-        question = f"Where is the {piece_full_name} on the board?"
+        self._question = f"Where is the {piece_full_name} on the board?"
+        self._options = None
+        self._oracle_answer = positions_str
 
-        return {"question": question, "answer": positions_str, "analysis": analysis}
-
-    def _generate_piece_at_square_question(self) -> dict:
+    def _generate_piece_at_square_question(self) -> None:
         """Type 3: What piece is at [square]?"""
-        piece_count, piece_positions = count_pieces_in_fen(self._fen)
+        _, piece_positions = count_pieces_in_fen(self._fen)
 
         # Randomly select a square
         while True:
@@ -951,33 +938,28 @@ class GameRLChessRangerQAEnv(Env):
             if piece_at_position != "No Piece" or random.random() < 0.3:
                 break
 
-        # Build analysis
-        pieces_board = self._board.get_piece_positions()
-        analysis = "The current board situation is: "
-        for piece_name, position in pieces_board:
-            analysis += f"{piece_name} at {position}. "
-
         position_str = convert_to_chess_notation(random_row, random_col)
-        analysis += (
-            f"The piece at {position_str} is {piece_at_position}. So the option is "
-        )
 
         # Generate multiple choice options
-        options = ["Pawn", "Rook", "Knight", "Bishop", "Queen", "King", "No Piece"]
-        answer_index = options.index(piece_at_position)
+        option_values = [
+            "Pawn",
+            "Rook",
+            "Knight",
+            "Bishop",
+            "Queen",
+            "King",
+            "No Piece",
+        ]
+        answer_index = option_values.index(piece_at_position)
         letters = ["A", "B", "C", "D", "E", "F", "G"]
-        answer_letter = letters[answer_index]
 
-        analysis += f"{answer_letter}."
+        self._question = f"What piece is at {position_str}?"
+        self._options = [
+            f"{letters[i]}. {option_values[i]}" for i in range(len(option_values))
+        ]
+        self._oracle_answer = letters[answer_index]
 
-        options_str = ", ".join(
-            [f"{letters[i]}.{options[i]}" for i in range(len(options))]
-        )
-        question = f"What piece is at {position_str}? Choose from the following options: {options_str}"
-
-        return {"question": question, "answer": answer_letter, "analysis": analysis}
-
-    def _generate_predict_solvable_question(self) -> dict:
+    def _generate_predict_solvable_question(self) -> None:
         """Type 4: Which of the following moves will lead to a state that can still be solved successfully?"""
         # Get all possible moves
         all_moves = self._board.moves()
@@ -1009,14 +991,8 @@ class GameRLChessRangerQAEnv(Env):
         random.shuffle(all_steps)
         selected_steps = all_steps[:4]
 
-        # Build analysis
-        pieces_board = self._board.get_piece_positions()
-        analysis = "The current board situation is: "
-        for piece_name, position in pieces_board:
-            analysis += f"{piece_name} at {position}. "
-
         # Generate options and find correct answers
-        options = [step["move"] for step in selected_steps]
+        option_moves = [step["move"] for step in selected_steps]
         answer_indices = [
             i for i, step in enumerate(selected_steps) if step["solvable"]
         ]
@@ -1031,22 +1007,8 @@ class GameRLChessRangerQAEnv(Env):
 
         answer_letters = "".join([letters[i] for i in sorted(answer_indices)])
 
-        analysis += "After checking each move: "
-        for i, step in enumerate(selected_steps):
-            if step["solvable"]:
-                analysis += f"Option {letters[i]} leads to a solvable state. "
-            else:
-                analysis += f"Option {letters[i]} leads to an unsolvable state. "
-
-        analysis += f"So the correct options are: {answer_letters}."
-
-        options_str = ", ".join(
-            [f"{letters[i]}.{options[i]}" for i in range(len(options))]
-        )
-        question = (
-            f"{self.GAME_RULES}\n\n"
-            f"Which of the following moves will lead to a state that can still be solved successfully? "
-            f"Choose from the following options: {options_str}"
-        )
-
-        return {"question": question, "answer": answer_letters, "analysis": analysis}
+        self._question = "Which of the following moves will lead to a state that can still be solved successfully?"
+        self._options = [
+            f"{letters[i]}. {option_moves[i]}" for i in range(len(option_moves))
+        ]
+        self._oracle_answer = answer_letters

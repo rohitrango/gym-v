@@ -11,6 +11,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation, get_logger
+from gym_v.envs.gamerl.utils import build_description, score_number_choice
 
 logger = get_logger()
 
@@ -70,7 +71,7 @@ class GameRLSokobanQAEnv(Env):
 
     def __init__(
         self,
-        question_type: str | None = None,
+        question_type: int | None = None,
         size: int = 5,
         num_boxes: int = 1,
         num_players: int = 1,
@@ -79,12 +80,13 @@ class GameRLSokobanQAEnv(Env):
         """Initialize Sokoban QA environment.
 
         Args:
-            question_type: Type of question (default: random)
+            question_type: Question type index (0-based, default: random)
             size: Board size (default: 5)
             num_boxes: Number of boxes (default: 1)
         """
         super().__init__(**kwargs)
-        self._question_type = question_type
+        self._question_type_param = question_type
+        self._question_type_idx: int = 0
         self._size = size
         self._num_boxes = num_boxes
         self.num_players = num_players
@@ -95,56 +97,38 @@ class GameRLSokobanQAEnv(Env):
         self._player_x: int = 0
         self._player_y: int = 0
 
-        # Question data
+        # Question data (standard QA variables)
         self._question: str = ""
-        self._answer: str = ""
+        self._options: list[str] | None = None
+        self._oracle_answer: str = ""
         self._analysis: str = ""
-        self._options: list[str] = []
         self._selected_question_type: str = ""
+
+    GAME_RULES = dedent("""
+        Sokoban Game Rules:
+
+        Movement rules:
+        - Player can move: Up, Down, Left, Right
+        - Player can push one box at a time
+        - Boxes can only be pushed, not pulled
+        - Boxes cannot be pushed into walls or other boxes
+        - Goal: Push all boxes onto target positions
+
+        Coordinates:
+        - (row, column) format
+        - (0, 0) is top-left corner
+    """).strip()
 
     @property
     def description(self) -> str:
-        base_rules = dedent("""
-            Sokoban Game Rules:
-
-            Grid elements:
-            - Empty floor (.)
-            - Wall (#)
-            - Box (B)
-            - Target/Goal (X)
-            - Player (P)
-            - Box on target (*)
-            - Player on target (+)
-
-            Movement rules:
-            - Player can move: Up, Down, Left, Right
-            - Player can push one box at a time
-            - Boxes can only be pushed, not pulled
-            - Boxes cannot be pushed into walls or other boxes
-            - Goal: Push all boxes onto target positions
-
-            Coordinates:
-            - (row, column) format
-            - (0, 0) is top-left corner
-        """).strip()
-
-        # Add question and answer format if question has been generated
-        if hasattr(self, "_question") and self._question:
-            desc = base_rules + "\n" + self._question
-            desc += """
-
-**Answer Format:**
-Reply with only the answer (number or option number).
-
-Examples:
-- For multiple choice: 1, 2, 3, etc.
-- For numbers: 42, 100, etc.
-
-Do not include any explanation or extra text.
-"""
-            return desc.strip()
-
-        return base_rules.strip()
+        """Return game rules + current question + answer format."""
+        return build_description(
+            game_name="Sokoban",
+            rules=self.GAME_RULES,
+            question=self._question,
+            options=self._options,
+            oracle_answer=self._oracle_answer,
+        )
 
     def _get_state_text(self) -> str:
         """Generate text description of current Sokoban game state.
@@ -183,13 +167,21 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
         """Reset the environment and generate a new question."""
         super().reset(seed=seed)
 
-        # Select question type
-        if self._question_type is None:
-            self._selected_question_type = random.choice(
-                [qt["id"] for qt in self.QUESTION_TYPES]
-            )
+        # Select question type (convert 0-based index to question type ID)
+        if self._question_type_param is not None:
+            if not (0 <= self._question_type_param < len(self.QUESTION_TYPES)):
+                raise ValueError(
+                    f"Invalid question type index: {self._question_type_param}"
+                )
+            self._question_type_idx = self._question_type_param
         else:
-            self._selected_question_type = self._question_type
+            self._question_type_idx = self.np_random.integers(
+                0, len(self.QUESTION_TYPES)
+            )
+
+        self._selected_question_type = self.QUESTION_TYPES[self._question_type_idx][
+            "id"
+        ]
 
         # Generate board
         self._generate_board()
@@ -197,13 +189,18 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
         # Generate question
         self._generate_question()
 
+        text_state = self._get_state_text()
+
         obs = Observation(
             image=self.render(),
-            text=self._get_state_text(),
+            text=text_state,
             metadata={
+                "text_state": text_state,
+                "text_prompt": f"{text_state}\n\n{self.description}",
                 "question": self._question,
                 "options": self._options,
-                "question_type": self._selected_question_type,
+                "question_type": self.QUESTION_TYPES[self._question_type_idx]["name"],
+                "level": self.QUESTION_TYPES[self._question_type_idx]["level"],
             },
         )
 
@@ -212,7 +209,8 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
         )
 
         info = {
-            "oracle_answer": self._answer,
+            "seed": seed,
+            "oracle_answer": self._oracle_answer,
             "question_type": self._selected_question_type,
         }
 
@@ -220,8 +218,8 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
             agent_id: info for agent_id in self._agent_ids
         }
 
-    def _generate_board(self):
-        """Generate a random Sokoban board."""
+    def _generate_board(self) -> None:
+        """Generate a random Sokoban board with walls, player, boxes, and targets."""
         # Create board with walls on border
         self._grid = np.zeros((self._size, self._size), dtype=int)
         self._grid[0, :] = 1  # Top wall
@@ -264,8 +262,8 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
                     self._grid[y, x] = 3  # Target
                     break
 
-    def _generate_question(self):
-        """Generate question based on question type."""
+    def _generate_question(self) -> None:
+        """Generate question based on selected question type."""
         if self._selected_question_type == "next_position":
             self._question_next_position()
         elif self._selected_question_type == "box_position":
@@ -279,8 +277,8 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
         elif self._selected_question_type == "transition_path":
             self._question_transition_path()
 
-    def _question_next_position(self):
-        """Generate question about player's final position after moves."""
+    def _question_next_position(self) -> None:
+        """Generate question about player's final position after a sequence of moves."""
         # Generate random move sequence
         num_moves = random.randint(2, 4)
         moves = [
@@ -320,21 +318,17 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
         random.shuffle(self._options)
         correct_idx = self._options.index(f"({final_pos[0]}, {final_pos[1]})") + 1
 
-        self._question = (
-            self.description.strip() + "\n\n"
-            f"After the moves {', '.join(moves)}, what will be the player's final position?\n\n"
-            f"Options:\n"
-            + "\n".join(f"{i+1}: {opt}" for i, opt in enumerate(self._options))
-        )
-        self._answer = str(correct_idx)
+        self._question = f"After the moves {', '.join(moves)}, what will be the player's final position?"
+        self._options = [f"{i+1}. {opt}" for i, opt in enumerate(self._options)]
+        self._oracle_answer = str(correct_idx)
         self._analysis = (
             f"Starting from position ({self._player_y}, {self._player_x}), "
             f"after moves {', '.join(moves)}, the player ends at position {final_pos}. "
             f"This is option {correct_idx}."
         )
 
-    def _question_box_position(self):
-        """Generate question about box position after moves."""
+    def _question_box_position(self) -> None:
+        """Generate question about box position after a sequence of moves."""
         # Find box position
         box_pos = None
         for y in range(self._size):
@@ -385,29 +379,27 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
         correct_idx = self._options.index(f"({final_box[1]}, {final_box[0]})") + 1
 
         self._question = (
-            self.description.strip() + "\n\n"
             f"Treat boxes as objects that can move by themselves. "
-            f"After the moves {', '.join(moves)}, where will the box end up?\n\n"
-            f"Options:\n"
-            + "\n".join(f"{i+1}: {opt}" for i, opt in enumerate(self._options))
+            f"After the moves {', '.join(moves)}, where will the box end up?"
         )
-        self._answer = str(correct_idx)
+        self._options = [f"{i+1}. {opt}" for i, opt in enumerate(self._options)]
+        self._oracle_answer = str(correct_idx)
         self._analysis = (
             f"The box starts at ({box_pos[1]}, {box_pos[0]}). "
             f"After moves {', '.join(moves)}, it ends at ({final_box[1]}, {final_box[0]}). "
             f"This is option {correct_idx}."
         )
 
-    def _question_steps_to_target(self):
-        """Generate question about minimum steps to solve."""
+    def _question_steps_to_target(self) -> None:
+        """Generate question about minimum steps needed to solve the puzzle."""
         # Simplified: just return a random number
         min_steps = random.randint(5, 15)
 
         self._question = (
-            self.description.strip() + "\n\n"
-            "What is the minimum number of moves needed to solve this puzzle?\n"
+            "What is the minimum number of moves needed to solve this puzzle?"
         )
-        self._answer = str(min_steps)
+        self._options = None
+        self._oracle_answer = str(min_steps)
         self._analysis = (
             f"Through pathfinding analysis, the minimum number of moves is {min_steps}."
         )
@@ -431,13 +423,9 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
         random.shuffle(self._options)
         correct_idx = self._options.index(f"({player_pos[0]}, {player_pos[1]})") + 1
 
-        self._question = (
-            self.description.strip() + "\n\n"
-            "What is the current position of the player (row, column)?\n\n"
-            "Options:\n"
-            + "\n".join(f"{i+1}: {opt}" for i, opt in enumerate(self._options))
-        )
-        self._answer = str(correct_idx)
+        self._question = "What is the current position of the player (row, column)?"
+        self._options = [f"{i+1}. {opt}" for i, opt in enumerate(self._options)]
+        self._oracle_answer = str(correct_idx)
         self._analysis = f"The player is at position ({player_pos[0]}, {player_pos[1]}). This is option {correct_idx}."
 
     def _question_state_info_distance(self):
@@ -470,12 +458,10 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
         correct_idx = self._options.index(str(distance)) + 1
 
         self._question = (
-            self.description.strip() + "\n\n"
-            "What is the Manhattan distance between the box and the target?\n\n"
-            "Options:\n"
-            + "\n".join(f"{i+1}: {opt}" for i, opt in enumerate(self._options))
+            "What is the Manhattan distance between the box and the target?"
         )
-        self._answer = str(correct_idx)
+        self._options = [f"{i+1}. {opt}" for i, opt in enumerate(self._options)]
+        self._oracle_answer = str(correct_idx)
         self._analysis = (
             f"Box position: {box_pos}, Target position: {target_pos}. "
             f"Manhattan distance = |{box_pos[0]} - {target_pos[0]}| + |{box_pos[1]} - {target_pos[1]}| = {distance}. "
@@ -521,13 +507,11 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
         correct_idx = self._options.index(moves) + 1
 
         self._question = (
-            self.description.strip() + "\n\n"
             f"Treat boxes as walls. What is the shortest sequence of moves to go from "
-            f"({start[1]}, {start[0]}) to ({end[1]}, {end[0]})?\n\n"
-            f"Options:\n"
-            + "\n".join(f"{i+1}: {opt}" for i, opt in enumerate(self._options))
+            f"({start[1]}, {start[0]}) to ({end[1]}, {end[0]})?"
         )
-        self._answer = str(correct_idx)
+        self._options = [f"{i+1}. {opt}" for i, opt in enumerate(self._options)]
+        self._oracle_answer = str(correct_idx)
         self._analysis = f"The shortest path is: {moves}. This is option {correct_idx}."
 
     def _find_path(
@@ -578,6 +562,17 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
 
         return " → ".join(moves)
 
+    def _score_answer(self, answer: str) -> float:
+        """Score the user's answer.
+
+        Args:
+            answer: User's answer string
+
+        Returns:
+            1.0 if correct, 0.0 otherwise
+        """
+        return score_number_choice(answer, self._oracle_answer)
+
     def inner_step(
         self, action: dict[str, str]
     ) -> tuple[
@@ -592,16 +587,13 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
         action_str = action[agent_id]
 
         action_str = action_str.strip()
-        correct = action_str == self._answer
+        reward = self._score_answer(action_str)
+        correct = reward == 1.0
 
         if correct:
             response = f"Correct! {self._analysis}"
-            reward = 1.0
         else:
-            response = (
-                f"Incorrect. The correct answer is: {self._answer}\n\n{self._analysis}"
-            )
-            reward = 0.0
+            response = f"Incorrect. The correct answer is: {self._oracle_answer}\n\n{self._analysis}"
 
         obs = Observation(
             image=self.render(),
@@ -611,7 +603,7 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
         info = {
             "correct": correct,
             "user_answer": action_str,
-            "oracle_answer": self._answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True

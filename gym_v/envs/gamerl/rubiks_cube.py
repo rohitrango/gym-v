@@ -11,6 +11,7 @@ import numpy as np
 from PIL import Image
 
 from gym_v import Env, Observation, get_logger
+from gym_v.envs.gamerl.utils import build_description, score_exact
 
 logger = get_logger()
 
@@ -78,7 +79,7 @@ class GameRLRubiksCubeQAEnv(Env):
     RUBIKS_RULES = dedent("""
         The Rubik's cube has six faces: Upper (U), Down (D), Left (L), Right (R), Front (F), and Back (B).
         Each face is a 3x3 grid with coordinates (row, col) where row and col go from 0 to 2.
-        For each face, coordinates are determined: column increases from left to right (0,1,2) and row increases from bottom to top (0,1,2).
+        For each face, coordinates are determined: column increases from left to right (0,1,2) and row increases from bottom to top (0,1,2). The bottom-left cell is (0, 0).
         Moves: An uppercase letter indicates which face to rotate, with a prime symbol (') denoting counterclockwise rotation.
     """).strip()
 
@@ -95,7 +96,7 @@ class GameRLRubiksCubeQAEnv(Env):
             num_moves = random.randint(1, 3)
 
         self._num_moves = num_moves
-        self._question_type = question_type
+        self._question_type_param = question_type
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
@@ -109,40 +110,23 @@ class GameRLRubiksCubeQAEnv(Env):
             "F": np.full((3, 3), 4, dtype=int),
             "B": np.full((3, 3), 5, dtype=int),
         }
-        self._current_question: dict[str, Any] = {}
+
+        # Standard QA variables
+        self._question_type_idx: int = 0
+        self._question: str = ""
+        self._options: list[str] | None = None
+        self._oracle_answer: str = ""
 
     @property
     def description(self) -> str:
-        base_desc = dedent(f"""
-            This is a Rubik's Cube QA environment.
-
-            {self.RUBIKS_RULES}
-
-            Question Types:
-            - Face Recognition: Identify the color at a specific position on a face
-            - Color Count: Count how many squares of a specific color appear on a face
-            - Move Prediction: Predict the cube state after performing moves
-
-            The system will present you with a cube state and ask a specific question.
-        """).strip()
-
-        # Add question and answer format if question has been generated
-        if hasattr(self, "_current_question") and self._current_question:
-            desc = base_desc + "\n\n" + self._current_question["question"]
-            desc += """
-
-**Answer Format:**
-Reply with only the answer (number or option number).
-
-Examples:
-- For multiple choice: 1, 2, 3, etc.
-- For numbers: 42, 100, etc.
-
-Do not include any explanation or extra text.
-"""
-            return desc.strip()
-
-        return base_desc
+        """Return game rules + current question + answer format."""
+        return build_description(
+            game_name="Rubik's Cube",
+            rules=self.RUBIKS_RULES,
+            question=self._question,
+            options=self._options,
+            oracle_answer=self._oracle_answer,
+        )
 
     def _get_state_text(self) -> str:
         """Generate text description of current Rubik's Cube state."""
@@ -184,30 +168,34 @@ Do not include any explanation or extra text.
             self._make_move(move)
 
         # Select question type
-        if self._question_type is None:
-            question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
+        if self._question_type_param is None:
+            self._question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
         else:
-            question_type_idx = self._question_type
+            self._question_type_idx = self._question_type_param
 
         # Validate question type index
-        if not (0 <= question_type_idx < len(self.QUESTION_TYPES)):
-            raise ValueError(f"Invalid question type index: {question_type_idx}")
+        if not (0 <= self._question_type_idx < len(self.QUESTION_TYPES)):
+            raise ValueError(f"Invalid question type index: {self._question_type_idx}")
 
-        # Get question type ID from index
-        question_type = self.QUESTION_TYPES[question_type_idx]["id"]
+        q_type = self.QUESTION_TYPES[self._question_type_idx]
 
         # Generate question
-        if question_type == "face_recognition":
-            self._current_question = self._generate_face_recognition_question()
-        elif question_type == "color_count":
-            self._current_question = self._generate_color_count_question()
-        elif question_type == "move_prediction":
-            self._current_question = self._generate_move_prediction_question()
+        if q_type["id"] == "face_recognition":
+            result = self._generate_face_recognition_question()
+        elif q_type["id"] == "color_count":
+            result = self._generate_color_count_question()
+        elif q_type["id"] == "move_prediction":
+            result = self._generate_move_prediction_question()
         else:
-            raise ValueError(f"Unknown question type: {question_type}")
+            raise ValueError(f"Unknown question type: {q_type['id']}")
+
+        # Extract to instance variables
+        self._question = result["question"]
+        self._options = result.get("options")
+        self._oracle_answer = result["answer"]
 
         logger.info(
-            f"Reset Rubik's Cube QA (num_moves={self._num_moves}, question: {question_type})."
+            f"Reset Rubik's Cube QA (num_moves={self._num_moves}, question: {q_type['id']})."
         )
 
         # Generate text state
@@ -217,19 +205,35 @@ Do not include any explanation or extra text.
             image=self.render(),
             text=text_state,
             metadata={
-                "question": self._current_question["question"],
-                "options": self._current_question.get("options"),
+                "text_state": text_state,
+                "text_prompt": f"{text_state}\n\n{self.description}",
+                "question": self._question,
+                "options": self._options,
+                "question_type": q_type["name"],
+                "level": q_type["level"],
             },
         )
 
         info = {
-            "oracle_answer": self._current_question["answer"],
-            "question_type": question_type,
+            "seed": seed,
+            "oracle_answer": self._oracle_answer,
+            "question_type": q_type["id"],
         }
 
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
         }
+
+    def _score_answer(self, answer: str) -> float:
+        """Score the user's answer.
+
+        Args:
+            answer: User's answer string
+
+        Returns:
+            1.0 if correct, 0.0 otherwise
+        """
+        return score_exact(answer, self._oracle_answer)
 
     def inner_step(
         self, action: dict[str, str]
@@ -244,26 +248,22 @@ Do not include any explanation or extra text.
         action_str = action[agent_id]
 
         info: dict[str, Any] = {}
-        reward = 0.0
         terminated = True
         truncated = False
 
         # Check answer
-        correct = self._check_answer(action_str.strip())
+        reward = self._score_answer(action_str)
+        correct = reward == 1.0
 
         if correct:
-            reward = 1.0
             response = "Correct!"
         else:
-            reward = 0.0
-            response = (
-                f"Incorrect. The correct answer is: {self._current_question['answer']}"
-            )
+            response = f"Incorrect. The correct answer is: {self._oracle_answer}"
 
         info = {
             "correct": correct,
             "user_answer": action_str.strip(),
-            "oracle_answer": self._current_question["answer"],
+            "oracle_answer": self._oracle_answer,
         }
 
         obs = Observation(image=self.render(), text=response)
@@ -774,5 +774,4 @@ Options:
 
     def _check_answer(self, action: str) -> bool:
         """Check if answer is correct."""
-        correct_answer = self._current_question["answer"]
-        return action.strip().lower() == correct_answer.strip().lower()
+        return action.strip().lower() == self._oracle_answer.strip().lower()

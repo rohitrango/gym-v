@@ -15,7 +15,10 @@ from typing import Any
 
 from PIL import Image
 
-from gym_v import Env, Observation
+from gym_v import Env, Observation, get_logger
+from gym_v.envs.gamerl.utils import build_description, score_exact
+
+logger = get_logger()
 
 # Constants
 PLAYER_0 = 0
@@ -551,10 +554,10 @@ def draw_pyramid_combined(layers: dict, plot_level: str) -> Image.Image:
 # ============================================================================
 
 
-PYRAMID_RULES = dedent("""
+GAME_RULES = dedent("""
     Pyramid Chess Rules:
 0. Game Board:
-The game board is square and comes in various sizes: 3x3, 4x4, or 5x5. On an nxn board, there are n levels (0 to n-1). At each level k, the x and y coordinates range from 0 to n-1-k, resulting in (n-k)**2 slots per level. The slots in the lower levels act as the base for the slots in the upper levels. Slots at level 0 have no base, while slots at level j (j!=0) with coordinates (m,n) are supported by four base slots (m,n),(m+1,n),(m,n+1),(m+1,n+1) from level j-1.
+The game board is square and comes in various sizes: 3x3, 4x4, or 5x5. On an nxn board, there are n levels (0 to n-1). At each level k, the x and y coordinates range from 0 to n-1-k, resulting in (n-k)**2 slots per level. The slots in the lower levels act as the base for the slots in the upper levels. Slots at level 0 have no base, while slots at level j (j!=0) with coordinates (m,n) are supported by four base slots (m,n),(m+1,n),(m,n+1),(m+1,n+1) from level j-1. The top-left slot on each level is (0,0).
 
 1. Players and Initial Setup:
 The game is played between two players, designated as PLAYER_0 and PLAYER_1, each using balls of a distinct color from their color pool, blue balls for PLAYER_0 and red balls for PLAYER_1. Players take turns placing their balls on a square game board. The number of balls available to each player depends on the size of the board: on a 3x3 board, each player has 7 balls; on a 4x4 board, each has 15 balls; and on a 5x5 board, PLAYER_0 (the first player to place a ball) has 28 balls, while PLAYER_1 has 27 balls.
@@ -642,16 +645,28 @@ class GameRLPyramidChessQAEnv(Env):
     ):
         super().__init__(**kwargs)
         self.plot_level = plot_level
-        self._question_type = question_type
+        self._question_type_param = question_type
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
-        self._current_question = None
         self._board = None
         self._game_gen = None
 
+        # Standard QA variables
+        self._question_type_idx: int = 0
+        self._question: str = ""
+        self._options: list[str] | None = None
+        self._oracle_answer: str = ""
+
     @property
     def description(self) -> str:
-        return f"Pyramid Chess QA\n\n{PYRAMID_RULES}"
+        """Return game rules + current question + answer format."""
+        return build_description(
+            game_name="Pyramid Chess",
+            rules=GAME_RULES,
+            question=self._question,
+            options=self._options,
+            oracle_answer=self._oracle_answer,
+        )
 
     def _get_state_text(self) -> str:
         """Generate text description of current pyramid chess state."""
@@ -684,25 +699,30 @@ class GameRLPyramidChessQAEnv(Env):
         self._board = self._game_gen.random_game()
 
         # Select question type
-        q_type = (
-            self._question_type
-            if self._question_type is not None
-            else random.randint(0, 5)
-        )
+        if self._question_type_param is not None:
+            self._question_type_idx = self._question_type_param
+        else:
+            self._question_type_idx = random.randint(0, 5)
+        q_type = self.QUESTION_TYPES[self._question_type_idx]
 
-        # Generate question
-        if q_type == 0:
-            self._current_question = self._generate_status_question()
-        elif q_type == 1:
-            self._current_question = self._generate_can_place_question()
-        elif q_type == 2:
-            self._current_question = self._generate_steps_question()
-        elif q_type == 3:
-            self._current_question = self._generate_best_position_question()
-        elif q_type == 4:
-            self._current_question = self._generate_count_balls_question()
-        elif q_type == 5:
-            self._current_question = self._generate_coordinate_details_question()
+        # Generate question - sets _question, _options, _oracle_answer
+        if self._question_type_idx == 0:
+            result = self._generate_status_question()
+        elif self._question_type_idx == 1:
+            result = self._generate_can_place_question()
+        elif self._question_type_idx == 2:
+            result = self._generate_steps_question()
+        elif self._question_type_idx == 3:
+            result = self._generate_best_position_question()
+        elif self._question_type_idx == 4:
+            result = self._generate_count_balls_question()
+        elif self._question_type_idx == 5:
+            result = self._generate_coordinate_details_question()
+
+        # Extract to instance variables
+        self._question = result["question"]
+        self._options = result.get("options")
+        self._oracle_answer = result["answer"]
 
         # Render board
         layers = self._board.board_dict()
@@ -715,18 +735,35 @@ class GameRLPyramidChessQAEnv(Env):
             image=combined_image,
             text=text_state,
             metadata={
-                "question": self._current_question["question"],
+                "text_state": text_state,
+                "text_prompt": f"{text_state}\n\n{self.description}",
+                "question": self._question,
+                "options": self._options,
+                "question_type": q_type["name"],
+                "level": q_type["level"],
             },
         )
 
         info = {
-            "oracle_answer": self._current_question["answer"],
-            "question_type": self.QUESTION_TYPES[q_type]["id"],
+            "seed": seed,
+            "oracle_answer": self._oracle_answer,
+            "question_type": q_type["id"],
         }
 
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
         }
+
+    def _score_answer(self, answer: str) -> float:
+        """Score the user's answer.
+
+        Args:
+            answer: User's answer string
+
+        Returns:
+            1.0 if correct, 0.0 otherwise
+        """
+        return score_exact(answer, str(self._oracle_answer))
 
     def inner_step(
         self, action: dict[str, str]
@@ -740,19 +777,15 @@ class GameRLPyramidChessQAEnv(Env):
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
 
-        # Normalize answer
-        answer_normalized = action_str.strip().lower()
-        correct_answer = str(self._current_question["answer"]).strip().lower()
-
         # Check if correct
-        correct = answer_normalized == correct_answer
-        reward = 1.0 if correct else 0.0
+        reward = self._score_answer(action_str)
+        correct = reward == 1.0
 
         # Generate response
         if correct:
             response = "Correct!"
         else:
-            response = f"Incorrect. The correct answer is: {self._current_question['answer']}\n\n{self._current_question['analysis']}"
+            response = f"Incorrect. The correct answer is: {self._oracle_answer}"
 
         # Re-render board
         layers = self._board.board_dict()
@@ -762,7 +795,11 @@ class GameRLPyramidChessQAEnv(Env):
 
         terminated = True
         truncated = False
-        info = {}
+        info = {
+            "oracle_answer": self._oracle_answer,
+            "user_answer": action_str,
+            "correct": correct,
+        }
 
         return (
             {agent_id: obs for agent_id in self._agent_ids},
@@ -787,7 +824,8 @@ class GameRLPyramidChessQAEnv(Env):
         answer_item = random.choice(position_table)
         level, position = answer_item.Level, answer_item.Position
 
-        question = f"{PYRAMID_RULES}\n\nQuestion: What is the status of the ball on Level {level}, which has coordinate {position}?\nOptions:\n1. PLAYER_0\n2. PLAYER_1\n3. Empty\n4. Index out of bound\n"
+        question = f"What is the status of the ball on Level {level}, which has coordinate {position}?"
+        options = ["PLAYER_0", "PLAYER_1", "Empty", "Index out of bound"]
 
         length = len(self._board.Board)
         analysis = f"From the image provided, we can recognize that the board is a {length}x{length} board. "
@@ -803,7 +841,12 @@ class GameRLPyramidChessQAEnv(Env):
             answer = 2
             analysis += f"We can observe the layout of the pyramid across its levels. Based on level {level}'s grid (specifically at coordinate {position}), the ball is red, which corresponds to PLAYER_1."
 
-        return {"question": question, "answer": str(answer), "analysis": analysis}
+        return {
+            "question": question,
+            "answer": str(answer),
+            "options": options,
+            "analysis": analysis,
+        }
 
     def _generate_can_place_question(self) -> dict:
         """Type 1: Can a ball be placed and what outcome?"""
@@ -818,7 +861,13 @@ class GameRLPyramidChessQAEnv(Env):
         color_ind = random.choice([0, 1])
         color = COLOR[color_ind]
 
-        question = f"{PYRAMID_RULES}\n\nQuestion: Can a ball be placed at coordinate {position} on Level {level}? If a {color} ball is placed there, what would be the outcome?\nOptions:\n1. Can place and no balls taken\n2. Can place and then balls can be taken\n3. Cannot place, position already occupied\n4. Cannot place, ball not ready below\n"
+        question = f"Can a ball be placed at coordinate {position} on Level {level}? If a {color} ball is placed there, what would be the outcome?"
+        options = [
+            "Can place and no balls taken",
+            "Can place and then balls can be taken",
+            "Cannot place, position already occupied",
+            "Cannot place, ball not ready below",
+        ]
 
         length = len(self._board.Board)
         analysis = f"From the image provided, we can recognize that the board is a {length}x{length} board. "
@@ -848,7 +897,12 @@ class GameRLPyramidChessQAEnv(Env):
                 ]
                 analysis += f"The coordinate {position} on level {level} cannot have a ball placed there. Because there are no platform which four balls below it form a 2x2 block to support it. To put a ball at coordinate {position} on level {level}, the bases of the position which are {bases} on level {level-1} must be full. But there is no ball at {not_ready} on level {level-1}. If a ball is placed at the position it will fall down. Therefore, the status is: Cannot place, ball not ready below."
 
-        return {"question": question, "answer": str(answer), "analysis": analysis}
+        return {
+            "question": question,
+            "answer": str(answer),
+            "options": options,
+            "analysis": analysis,
+        }
 
     def _generate_steps_question(self) -> dict:
         """Type 2: How many steps to place ball at coordinate?"""
@@ -865,7 +919,7 @@ class GameRLPyramidChessQAEnv(Env):
         steps_needed = count_base(answer_item, info, dict_info)
         steps_needed += 1
 
-        question = f"{PYRAMID_RULES}\n\nQuestion: How many steps (turns) are required for a ball to be placed at coordinate {position} on Level {level}? (including the turn placing the ball)"
+        question = f"How many steps (turns) are required for a ball to be placed at coordinate {position} on Level {level}? (including the turn placing the ball)"
 
         length = len(self._board.Board)
         analysis = f"From the image provided, we can recognize that the board is a {length}x{length} board. To place a ball at coordinate {position} on Level {level}, we need to ensure all the balls in its sub-pyramid, which are the balls supporting the position, are placed. This is determined by checking each level below the target position, from the highest level below it to the base level, and counting how many balls that support the position are missing in each layer. The total number of missing balls represents the steps needed.\n"
@@ -917,7 +971,7 @@ class GameRLPyramidChessQAEnv(Env):
         PLAYER = ["PLAYER_0", "PLAYER_1"]
         COLOR = ["blue", "red"]
 
-        question = f'{PYRAMID_RULES}\n\nIt is {PLAYER[turn]}\'s turn (which uses the {COLOR[turn]} ball). What is the best coordinate to put a ball in order to maximize the opportunity of winning? Please answer in the form of "[x,y] at level z".'
+        question = f'It is {PLAYER[turn]}\'s turn (which uses the {COLOR[turn]} ball). What is the best coordinate to put a ball in order to maximize the opportunity of winning? Please answer in the form of "[x,y] at level z".'
 
         answer = f"{best_pos.Position} at level {best_pos.Level}"
 
@@ -928,7 +982,7 @@ class GameRLPyramidChessQAEnv(Env):
 
     def _generate_count_balls_question(self) -> dict:
         """Type 4: How many balls are on the board?"""
-        question = f"{PYRAMID_RULES}\n\nQuestion: How many balls are there on the board in the image?"
+        question = "How many balls are there on the board in the image?"
 
         board_dict = self._board.board_dict()
         balls_list, count = count_ball(board_dict)
@@ -969,9 +1023,20 @@ class GameRLPyramidChessQAEnv(Env):
             answer = 4
             status_text = "Not ready (base incomplete)"
 
-        question = f"{PYRAMID_RULES}\n\nQuestion: What is the higher level status of coordinate {position} at Level {level}?\nOptions:\n1. Legal to place ball\n2. Contains a ball\n3. Ball can be taken\n4. Not ready\n"
+        question = f"What is the higher level status of coordinate {position} at Level {level}?"
+        options = [
+            "Legal to place ball",
+            "Contains a ball",
+            "Ball can be taken",
+            "Not ready",
+        ]
 
         length = len(self._board.Board)
         analysis = f"From the image provided, we can recognize that the board is a {length}x{length} board. Based on the coordinate {position} at level {level}, the status is: {status_text}."
 
-        return {"question": question, "answer": str(answer), "analysis": analysis}
+        return {
+            "question": question,
+            "answer": str(answer),
+            "options": options,
+            "analysis": analysis,
+        }

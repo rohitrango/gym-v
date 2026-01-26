@@ -10,6 +10,7 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation, get_logger
+from gym_v.envs.gamerl.utils import build_description
 
 logger = get_logger()
 
@@ -26,12 +27,7 @@ GAME_RULES = dedent("""
     The grid uses a coordinate system where:
     - Row coordinates are 1-N from top to bottom
     - Column coordinates are 1-N from left to right
-""").strip()
-
-ANSWER_FORMAT_PROMPT = dedent("""
-    **Answer Format:**
-    - For position questions: Use format like "A) (3, 2) facing up"
-    - For number questions: Just provide the number
+    - The top-left cell is (1, 1)
 """).strip()
 
 
@@ -98,7 +94,7 @@ class GameRLLangtonAntQAEnv(Env):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self._question_type = question_type
+        self._question_type_param = question_type
         self._grid_size_override = grid_size
         self._cell_size = cell_size
         self._margin = 20
@@ -114,14 +110,20 @@ class GameRLLangtonAntQAEnv(Env):
         self._grid_size: int = 5
 
         # Question state
-        self._current_question: str = ""
+        self._question: str = ""
+        self._options: list[str] | None = None
         self._oracle_answer: str = ""
         self._current_q_type: dict[str, Any] = self.QUESTION_TYPES[0]
 
     @property
     def description(self) -> str:
-        return (
-            GAME_RULES + "\n\n" + self._current_question + "\n" + ANSWER_FORMAT_PROMPT
+        """Return game rules + current question + answer format."""
+        return build_description(
+            game_name="Langton's Ant",
+            rules=GAME_RULES,
+            question=self._question,
+            options=self._options,
+            oracle_answer=self._oracle_answer,
         )
 
     def _get_state_text(self) -> str:
@@ -153,8 +155,8 @@ Grid (A=ant, #=black, .=white):
         super().reset(seed=seed)
 
         # Select question type
-        if self._question_type is not None:
-            q_type = self.QUESTION_TYPES[self._question_type]
+        if self._question_type_param is not None:
+            q_type = self.QUESTION_TYPES[self._question_type_param]
         else:
             q_type = random.choice(self.QUESTION_TYPES)
 
@@ -182,19 +184,38 @@ Grid (A=ant, #=black, .=white):
             f"Reset Langton's Ant QA ({self._difficulty}, question: {q_type['name']})."
         )
 
+        text_state = self._get_state_text()
         obs = Observation(
             image=self.render(),
-            text=self._get_state_text(),
+            text=text_state,
             metadata={
-                "question": self._current_question,
+                "text_state": text_state,
+                "text_prompt": f"{text_state}\n\n{self.description}",
+                "question": self._question,
+                "options": self._options,
                 "question_type": q_type["name"],
                 "level": q_type["level"],
             },
         )
-        info = {"oracle_answer": self._oracle_answer, "question_type": q_type}
+        info = {
+            "seed": seed,
+            "oracle_answer": self._oracle_answer,
+            "question_type": q_type["id"],
+        }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
         }
+
+    def _score_answer(self, answer: str) -> float:
+        """Score the user's answer.
+
+        Args:
+            answer: User's answer string
+
+        Returns:
+            1.0 if correct, 0.0 otherwise
+        """
+        return 1.0 if self._check_answer(answer) else 0.0
 
     def inner_step(
         self, action: dict[str, str]
@@ -212,12 +233,13 @@ Grid (A=ant, #=black, .=white):
         answer = action_str.strip()
 
         # Check answer
-        correct = self._check_answer(answer)
-        reward = 1.0 if correct else 0.0
+        reward = self._score_answer(answer)
+        correct = reward == 1.0
 
         obs = Observation(image=self.render(), text=None)
         info = {
             "oracle_answer": self._oracle_answer,
+            "user_answer": action_str,
             "correct": correct,
             "question_type": self._current_q_type,
         }
@@ -407,17 +429,9 @@ Grid (A=ant, #=black, .=white):
         correct_idx = options.index(correct_answer)
         correct_letter = chr(65 + correct_idx)  # A, B, C, D
 
-        # Format question
-        options_text = "\n".join(
-            [f"{chr(65 + i)}) {opt}" for i, opt in enumerate(options)]
-        )
-        self._current_question = dedent(f"""
-            **Question (Easy - Target Perception):**
-            What is the current position and direction of the ant?
-
-            {options_text}
-        """).strip()
-
+        # Store question and options separately
+        self._question = "What is the current position and direction of the ant?"
+        self._options = [f"{chr(65 + i)}. {opt}" for i, opt in enumerate(options)]
         self._oracle_answer = correct_letter
 
     def _generate_future_state_question(self) -> None:
@@ -459,17 +473,9 @@ Grid (A=ant, #=black, .=white):
         correct_idx = options.index(correct_answer)
         correct_letter = chr(65 + correct_idx)
 
-        # Format question
-        options_text = "\n".join(
-            [f"{chr(65 + i)}) {opt}" for i, opt in enumerate(options)]
-        )
-        self._current_question = dedent(f"""
-            **Question (Medium - State Prediction):**
-            After {num_steps} steps from the current state, what will be the ant's position and direction?
-
-            {options_text}
-        """).strip()
-
+        # Store question and options separately
+        self._question = f"After {num_steps} steps from the current state, what will be the ant's position and direction?"
+        self._options = [f"{chr(65 + i)}. {opt}" for i, opt in enumerate(options)]
         self._oracle_answer = correct_letter
 
     def _generate_cell_changes_question(self) -> None:
@@ -498,15 +504,9 @@ Grid (A=ant, #=black, .=white):
         self._ant_x, self._ant_y = saved_x, saved_y
         self._ant_direction = saved_dir
 
-        # Format question
-        self._current_question = dedent(f"""
-            **Question (Hard - State Prediction):**
-            Consider cell at position ({target_y + 1}, {target_x + 1}).
-            If the ant moves {num_steps} steps from the current state, how many times will this cell change its color?
-
-            Answer with just the number.
-        """).strip()
-
+        # Store question (fill-in-blank, no options)
+        self._question = f"Consider cell at position ({target_y + 1}, {target_x + 1}). If the ant moves {num_steps} steps from the current state, how many times will this cell change its color?"
+        self._options = None
         self._oracle_answer = str(change_count)
 
     def _check_answer(self, answer: str) -> bool:
