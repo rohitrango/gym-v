@@ -107,15 +107,6 @@ class GameRLSokobanQAEnv(Env):
     GAME_RULES = dedent("""
         Sokoban Game Rules:
 
-        Grid elements:
-        - Empty floor (.)
-        - Wall (#)
-        - Box (B)
-        - Target/Goal (X)
-        - Player (P)
-        - Box on target (*)
-        - Player on target (+)
-
         Movement rules:
         - Player can move: Up, Down, Left, Right
         - Player can push one box at a time
