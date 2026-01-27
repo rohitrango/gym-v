@@ -23,6 +23,10 @@ class AgentHistory:
 
     records: list[StepRecord] = field(default_factory=list)
 
+    def __len__(self) -> int:
+        """Return the number of records (turns)."""
+        return len(self.records)
+
     def add_observation(self, obs: Observation) -> None:
         """Add a new observation (starts a new record)."""
         self.records.append(StepRecord(observation=obs))
@@ -34,6 +38,15 @@ class AgentHistory:
             self.records[-1].action is None
         ), f"Cannot add action: last record already has action '{self.records[-1].action}'"
         self.records[-1].action = action
+
+    def prune(self, target_turns: int) -> None:
+        """Prune history from the beginning, keeping the most recent records.
+
+        Args:
+            target_turns: Target number of turns to keep
+        """
+        if len(self.records) > target_turns:
+            self.records = self.records[-target_turns:]
 
     def clear(self) -> None:
         """Clear all history."""
@@ -63,18 +76,31 @@ class HistoryRecorder(Wrapper, RecordConstructorArgs):
     but haven't taken an action yet (e.g., after reset).
     """
 
-    def __init__(self, env: Env, include_history_in_info: bool = True):
+    def __init__(
+        self,
+        env: Env,
+        include_history_in_info: bool = True,
+        max_turns: int | None = None,
+        target_turns: int | None = None,
+    ):
         """Initialize the history recorder wrapper.
 
         Args:
             env: The environment to wrap
             include_history_in_info: Whether to include history in info dict
+            max_turns: Maximum turns before pruning is triggered (None = no limit)
+            target_turns: Target turns to keep after pruning (defaults to max_turns)
         """
         RecordConstructorArgs.__init__(
-            self, include_history_in_info=include_history_in_info
+            self,
+            include_history_in_info=include_history_in_info,
+            max_turns=max_turns,
+            target_turns=target_turns,
         )
         Wrapper.__init__(self, env)
         self.include_history_in_info = include_history_in_info
+        self.max_turns = max_turns
+        self.target_turns = target_turns if target_turns is not None else max_turns
         self._history: dict[str, AgentHistory] = {}
 
     def reset(
@@ -140,6 +166,12 @@ class HistoryRecorder(Wrapper, RecordConstructorArgs):
             if agent_id not in self._history:
                 self._history[agent_id] = AgentHistory()
             self._history[agent_id].add_observation(observation)
+
+        # Prune if exceeds max_turns
+        if self.max_turns is not None:
+            for _, history in self._history.items():
+                if len(history) > self.max_turns:
+                    history.prune(self.target_turns)
 
         # Add history to info if enabled
         if self.include_history_in_info:
