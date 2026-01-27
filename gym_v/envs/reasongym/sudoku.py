@@ -131,7 +131,10 @@ class ReasoningGymSudokuEnv(Env):
         obs = Observation(
             image=self.render(),
             text=self._dataset._board_to_string(self._puzzle),
-            metadata=self._metadata,
+            metadata={
+                **self._metadata,
+                "text_prompt": self._entry.get("question", ""),
+            },
         )
         info = {
             "reasoning_gym_seed": self._seed,
@@ -158,7 +161,10 @@ class ReasoningGymSudokuEnv(Env):
         obs = Observation(
             image=self.render(),
             text=None,
-            metadata=self._metadata,
+            metadata={
+                **self._metadata,
+                "text_prompt": self._entry.get("question", ""),
+            },
         )
         info = {
             "reasoning_gym_seed": self._seed,

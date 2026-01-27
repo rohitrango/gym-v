@@ -125,7 +125,10 @@ class ReasoningGymMazeEnv(Env):
         obs = Observation(
             image=self.render(),
             text=maze_text,
-            metadata=self._metadata,
+            metadata={
+                **self._metadata,
+                "text_prompt": self._entry.get("question", ""),
+            },
         )
         info = {
             "reasoning_gym_seed": self._seed,
@@ -152,7 +155,10 @@ class ReasoningGymMazeEnv(Env):
         obs = Observation(
             image=self.render(),
             text=None,
-            metadata=self._metadata,
+            metadata={
+                **self._metadata,
+                "text_prompt": self._entry.get("question", ""),
+            },
         )
         info = {
             "reasoning_gym_seed": self._seed,

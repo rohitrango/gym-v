@@ -227,7 +227,6 @@ class GameRLTangramQAEnv(Env):
             image=self.render(),
             text=text_state,
             metadata={
-                "text_state": text_state,
                 "text_prompt": f"{text_state}\n\n{self.description}",
                 "question": self._question,
                 "options": self._options,

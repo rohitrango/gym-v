@@ -110,7 +110,10 @@ class ReasoningGymRectangleCountEnv(Env):
         obs = Observation(
             image=self.render(),
             text=self._grid_str,
-            metadata=self._metadata,
+            metadata={
+                **self._metadata,
+                "text_prompt": self._entry.get("question", ""),
+            },
         )
         info = {
             "reasoning_gym_seed": self._seed,
@@ -155,7 +158,10 @@ class ReasoningGymRectangleCountEnv(Env):
         obs = Observation(
             image=self.render(),
             text=None,
-            metadata=self._metadata,
+            metadata={
+                **self._metadata,
+                "text_prompt": self._entry.get("question", ""),
+            },
         )
         info = {
             "reasoning_gym_seed": self._seed,
