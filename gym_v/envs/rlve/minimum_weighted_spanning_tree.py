@@ -119,7 +119,7 @@ Output a single line containing the root and the endpoints of the selected edges
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {
@@ -148,7 +148,7 @@ Output a single line containing the root and the endpoints of the selected edges
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {

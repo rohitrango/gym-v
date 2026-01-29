@@ -90,7 +90,7 @@ Select a set of **distinct** cells S such that every cell is either in S or has 
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
                 "rlve_gold_answer": self._gold_answer,
             },
         )
@@ -119,7 +119,7 @@ Select a set of **distinct** cells S such that every cell is either in S or has 
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
                 "rlve_gold_answer": self._gold_answer,
             },
         )

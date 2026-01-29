@@ -116,7 +116,7 @@ Try your best to **minimize the time** when the **last product finishes** on mac
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {
@@ -143,7 +143,7 @@ Try your best to **minimize the time** when the **last product finishes** on mac
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {

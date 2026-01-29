@@ -159,7 +159,7 @@ $x$ and $y$ represent the center of the circle, and $r$ represents the radius of
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {
@@ -186,7 +186,7 @@ $x$ and $y$ represent the center of the circle, and $r$ represents the radius of
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {

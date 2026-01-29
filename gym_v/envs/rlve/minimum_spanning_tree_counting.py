@@ -100,7 +100,7 @@ Please compute **the number of such minimum spanning trees** modulo {MOD}."""
         obs = Observation(
             image=self._last_image,
             text=state_text,
-            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
+            metadata={"text_prompt": self._prompt},
         )
         info = {
             "oracle_answer": str(self._oracle_answer),
@@ -127,7 +127,7 @@ Please compute **the number of such minimum spanning trees** modulo {MOD}."""
         obs = Observation(
             image=self._last_image,
             text=state_text,
-            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
+            metadata={"text_prompt": self._prompt},
         )
         info = {
             "oracle_answer": str(self._oracle_answer),

@@ -108,7 +108,7 @@ We say a line is **visible** if any portion of it can be seen when viewed from y
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {
@@ -135,7 +135,7 @@ We say a line is **visible** if any portion of it can be seen when viewed from y
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {

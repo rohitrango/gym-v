@@ -95,7 +95,7 @@ Please compute the number of three-vertex sets (a triad of vertices A, B, and C 
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {
@@ -124,7 +124,7 @@ Please compute the number of three-vertex sets (a triad of vertices A, B, and C 
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {

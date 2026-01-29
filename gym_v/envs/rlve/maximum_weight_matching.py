@@ -99,7 +99,7 @@ Example: `0 1 3 4` (do **NOT** include the backticks or quotes); this means k = 
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {
@@ -128,7 +128,7 @@ Example: `0 1 3 4` (do **NOT** include the backticks or quotes); this means k = 
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {
@@ -254,9 +254,9 @@ Example: `0 1 3 4` (do **NOT** include the backticks or quotes); this means k = 
         if gold == 0:
             return 1.0 if answer_weight == 0 else -0.5
 
-        assert answer_weight <= gold, (
-            f"answer_weight ({answer_weight}) should be <= gold ({gold})"
-        )
+        assert (
+            answer_weight <= gold
+        ), f"answer_weight ({answer_weight}) should be <= gold ({gold})"
 
         # Return reward based on quality (answer/gold)^5
         return (answer_weight / gold) ** 5

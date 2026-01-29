@@ -127,7 +127,7 @@ Example: `{all_node_sequence}` (do **NOT** include the backticks or quotes)."""
         obs = Observation(
             image=self._last_image,
             text=state_text,
-            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
+            metadata={"text_prompt": self._prompt},
         )
         info = {
             "oracle_answer": self._oracle_answer,
@@ -153,7 +153,7 @@ Example: `{all_node_sequence}` (do **NOT** include the backticks or quotes)."""
         obs = Observation(
             image=self._last_image,
             text=state_text,
-            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
+            metadata={"text_prompt": self._prompt},
         )
         info = {"oracle_answer": self._oracle_answer}
 
@@ -298,9 +298,9 @@ Example: `{all_node_sequence}` (do **NOT** include the backticks or quotes)."""
             return 0.0
 
         # Ensure answer doesn't exceed gold (shouldn't happen, but safety check)
-        assert answer_score <= self._gold, (
-            f"Answer score {answer_score} exceeds gold {self._gold}"
-        )
+        assert (
+            answer_score <= self._gold
+        ), f"Answer score {answer_score} exceeds gold {self._gold}"
 
         # Compute reward based on strategy
         if self.rewards["rewarding_strategy"] == "(answer/gold)^beta":

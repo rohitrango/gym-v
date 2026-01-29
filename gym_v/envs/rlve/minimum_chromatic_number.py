@@ -104,7 +104,7 @@ Example: `0 1 0 2` (do **NOT** include the backticks or quotes); this means vert
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {
@@ -133,7 +133,7 @@ Example: `0 1 0 2` (do **NOT** include the backticks or quotes); this means vert
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {

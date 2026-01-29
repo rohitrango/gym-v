@@ -91,7 +91,7 @@ Your task is to find the **convex hull** of these points, which is the smallest 
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {
@@ -118,7 +118,7 @@ Your task is to find the **convex hull** of these points, which is the smallest 
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {

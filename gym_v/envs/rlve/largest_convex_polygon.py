@@ -91,7 +91,7 @@ Find a subset of distinct points that forms the vertices of a **convex polygon**
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
                 "rlve_gold_answer": self._gold_answer,
             },
         )
@@ -120,7 +120,7 @@ Find a subset of distinct points that forms the vertices of a **convex polygon**
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
                 "rlve_gold_answer": self._gold_answer,
             },
         )

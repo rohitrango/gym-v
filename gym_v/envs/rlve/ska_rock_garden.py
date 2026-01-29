@@ -115,7 +115,7 @@ X, Y, and M are given as follows:
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {
@@ -142,7 +142,7 @@ X, Y, and M are given as follows:
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {
@@ -307,26 +307,26 @@ X, Y, and M are given as follows:
             reward = 0.0
 
             # Perimeter reward (weight: 0.5, beta: 5.0)
-            assert gold_perimeter <= answer_perimeter, (
-                "answer_perimeter should be greater than or equal to gold_perimeter"
-            )
+            assert (
+                gold_perimeter <= answer_perimeter
+            ), "answer_perimeter should be greater than or equal to gold_perimeter"
             if answer_perimeter == 0:
-                assert gold_perimeter == 0, (
-                    "If answer_perimeter is zero, gold_perimeter should also be zero"
-                )
+                assert (
+                    gold_perimeter == 0
+                ), "If answer_perimeter is zero, gold_perimeter should also be zero"
                 reward += 0.5 * 1.0
             else:
                 reward += 0.5 * ((gold_perimeter / answer_perimeter) ** 5.0)
 
             # Cost reward (weight: 0.5, beta: 5.0) - only if perimeters match
             if gold_perimeter == answer_perimeter:
-                assert gold_cost <= answer_cost, (
-                    "answer_cost should be greater than or equal to gold_cost"
-                )
+                assert (
+                    gold_cost <= answer_cost
+                ), "answer_cost should be greater than or equal to gold_cost"
                 if answer_cost == 0:
-                    assert gold_cost == 0, (
-                        "If answer_cost is zero, gold_cost should also be zero"
-                    )
+                    assert (
+                        gold_cost == 0
+                    ), "If answer_cost is zero, gold_cost should also be zero"
                     reward += 0.5 * 1.0
                 else:
                     reward += 0.5 * ((gold_cost / answer_cost) ** 5.0)

@@ -26,7 +26,7 @@ class RLVEJugPuzzleEnv(Env):
     prompt_template = r"""You are given {N} jugs (initially empty) with the following capacities:
 {jug_capacities}
 
-Please fill a jug (you pick the one) with exactly {target_volumn} liters of water. You may perform the following actions:
+Please fill a jug (you pick the one) with exactly {target_volume} liters of water. You may perform the following actions:
 - `Fill i` — Fill jug `i` to its full capacity.
 - `Empty i` — Empty all water from jug `i`.
 - `Pour i j` — Pour water from jug `i` to jug `j` until either jug `i` is empty or jug `j` is full.
@@ -76,7 +76,7 @@ Please fill a jug (you pick the one) with exactly {target_volumn} liters of wate
 
         self._n: int | None = None
         self._jug_capacities: list[int] | None = None
-        self._target_volumn: int | None = None
+        self._target_volume: int | None = None
         self._oracle_answer: str | None = None
         self._prompt: str | None = None
         self._last_image: Image.Image | None = None
@@ -86,7 +86,7 @@ Please fill a jug (you pick the one) with exactly {target_volumn} liters of wate
         if self._n and self._jug_capacities:
             n_jugs = self._n
             capacities_str = ", ".join(str(c) for c in self._jug_capacities)
-            target = self._target_volumn if self._target_volumn else "X"
+            target = self._target_volume if self._target_volume else "X"
         else:
             n_jugs = "N"
             capacities_str = "C1, C2, ..., CN"
@@ -124,14 +124,14 @@ Please fill a jug (you pick the one) with exactly {target_volumn} liters of wate
         if (
             self._n is None
             or self._jug_capacities is None
-            or self._target_volumn is None
+            or self._target_volume is None
         ):
             raise RuntimeError("No problem generated")
 
         capacities_str = ", ".join(
             f"Jug {i}: {cap}L" for i, cap in enumerate(self._jug_capacities)
         )
-        return f"Jugs: [{capacities_str}], Target: {self._target_volumn}L"
+        return f"Jugs: [{capacities_str}], Target: {self._target_volume}L"
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
@@ -158,7 +158,7 @@ Please fill a jug (you pick the one) with exactly {target_volumn} liters of wate
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {
@@ -185,7 +185,7 @@ Please fill a jug (you pick the one) with exactly {target_volumn} liters of wate
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {
@@ -233,11 +233,11 @@ Please fill a jug (you pick the one) with exactly {target_volumn} liters of wate
 
         jug = int(self.np_random.integers(0, N))
         reference_answer = f"Fill {jug}"
-        target_volumn = capacities[jug]
+        target_volume = capacities[jug]
 
-        volumns = [0] * N
+        volumes = [0] * N
         actions = ""
-        existing_volumns = set()
+        existing_volumes = set()
 
         for step in range(steps):
             while True:
@@ -247,46 +247,46 @@ Please fill a jug (you pick the one) with exactly {target_volumn} liters of wate
                 )
                 if operation == "Fill":
                     jug = int(self.np_random.integers(0, N))
-                    if volumns[jug] < capacities[jug]:
+                    if volumes[jug] < capacities[jug]:
                         actions += f"Fill {jug}\n"
-                        volumns[jug] = capacities[jug]
+                        volumes[jug] = capacities[jug]
                         break
                 elif operation == "Empty":
                     jug = int(self.np_random.integers(0, N))
-                    if volumns[jug] > 0:
+                    if volumes[jug] > 0:
                         actions += f"Empty {jug}\n"
-                        volumns[jug] = 0
+                        volumes[jug] = 0
                         break
                 elif operation == "Pour":
                     jug_i = int(self.np_random.integers(0, N))
                     jug_j = int(self.np_random.integers(0, N))
                     if (
                         jug_i != jug_j
-                        and volumns[jug_i] > 0
-                        and volumns[jug_j] < capacities[jug_j]
+                        and volumes[jug_i] > 0
+                        and volumes[jug_j] < capacities[jug_j]
                     ):
                         actions += f"Pour {jug_i} {jug_j}\n"
                         pour_amount = min(
-                            volumns[jug_i], capacities[jug_j] - volumns[jug_j]
+                            volumes[jug_i], capacities[jug_j] - volumes[jug_j]
                         )
-                        volumns[jug_i] -= pour_amount
-                        volumns[jug_j] += pour_amount
+                        volumes[jug_i] -= pour_amount
+                        volumes[jug_j] += pour_amount
                         break
 
-            target_volumns = (
-                set(volumn for volumn in volumns if volumn > 0)
-                - existing_volumns
+            target_volumes = (
+                set(volume for volume in volumes if volume > 0)
+                - existing_volumes
                 - differences
                 - set(capacities)
             )
-            if target_volumns:
+            if target_volumes:
                 reference_answer = actions
-                target_volumn = self.np_random.choice(list(target_volumns))
-                existing_volumns |= target_volumns
+                target_volume = self.np_random.choice(list(target_volumes))
+                existing_volumes |= target_volumes
 
         self._n = N
         self._jug_capacities = capacities
-        self._target_volumn = int(target_volumn)
+        self._target_volume = int(target_volume)
         self._oracle_answer = reference_answer
 
     def _prompt_generate(self) -> str:
@@ -295,7 +295,7 @@ Please fill a jug (you pick the one) with exactly {target_volumn} liters of wate
             raise RuntimeError("No problem generated")
         return self.prompt_template.format(
             N=self._n,
-            target_volumn=self._target_volumn,
+            target_volume=self._target_volume,
             jug_capacities="\n".join(
                 f"Jug {i}'s capacity: {capacity} liters"
                 for i, capacity in enumerate(self._jug_capacities)
@@ -348,18 +348,18 @@ Please fill a jug (you pick the one) with exactly {target_volumn} liters of wate
         """
         processed_result = self._process(answer)
         if processed_result is not None:
-            volumns = [0] * self._n
+            volumes = [0] * self._n
             for action in processed_result:
                 if action[0] == "Fill":
                     jug = action[1]
                     if not (0 <= jug < self._n):
                         return 0.0
-                    volumns[jug] = self._jug_capacities[jug]
+                    volumes[jug] = self._jug_capacities[jug]
                 elif action[0] == "Empty":
                     jug = action[1]
                     if not (0 <= jug < self._n):
                         return 0.0
-                    volumns[jug] = 0
+                    volumes[jug] = 0
                 elif action[0] == "Pour":
                     jug_i, jug_j = action[1], action[2]
                     if not (
@@ -367,15 +367,15 @@ Please fill a jug (you pick the one) with exactly {target_volumn} liters of wate
                     ):
                         return 0.0
                     pour_amount = min(
-                        volumns[jug_i],
-                        self._jug_capacities[jug_j] - volumns[jug_j],
+                        volumes[jug_i],
+                        self._jug_capacities[jug_j] - volumes[jug_j],
                     )
-                    volumns[jug_i] -= pour_amount
-                    volumns[jug_j] += pour_amount
+                    volumes[jug_i] -= pour_amount
+                    volumes[jug_j] += pour_amount
                 else:
                     raise AssertionError("Should be unreachable")
 
-            if self._target_volumn in volumns:
+            if self._target_volume in volumes:
                 return self._rewards["correct_solution"]
             else:
                 return self._rewards["wrong_solution"]
@@ -427,7 +427,7 @@ Please fill a jug (you pick the one) with exactly {target_volumn} liters of wate
             font_small = ImageFont.load_default()
 
         # Draw title with target volume
-        title = f"Fill one jug with exactly {self._target_volumn} liters"
+        title = f"Fill one jug with exactly {self._target_volume} liters"
         bbox = draw.textbbox((0, 0), title, font=font_title)
         title_width = bbox[2] - bbox[0]
         title_x = (total_width - title_width) // 2

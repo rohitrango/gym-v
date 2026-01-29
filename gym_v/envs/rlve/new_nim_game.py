@@ -140,7 +140,7 @@ Your task: Choose which heaps to remove **in your first move** so that you **gua
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {
@@ -167,7 +167,7 @@ Your task: Choose which heaps to remove **in your first move** so that you **gua
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {

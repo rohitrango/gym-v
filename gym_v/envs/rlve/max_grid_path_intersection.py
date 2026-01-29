@@ -110,7 +110,7 @@ You will start at cell (0, 0) and move to cell ({N_minus_1}, {N_minus_1}) exactl
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {
@@ -137,7 +137,7 @@ You will start at cell (0, 0) and move to cell ({N_minus_1}, {N_minus_1}) exactl
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {

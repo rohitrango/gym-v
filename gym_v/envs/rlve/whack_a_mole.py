@@ -116,7 +116,7 @@ You may swing the hammer multiple times, but you cannot change its size after ch
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {
@@ -143,7 +143,7 @@ You may swing the hammer multiple times, but you cannot change its size after ch
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {

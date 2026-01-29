@@ -95,7 +95,7 @@ You may remove one edge from the tree and add a new edge (possibly the same edge
         obs = Observation(
             image=self._last_image,
             text=state_text,
-            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
+            metadata={"text_prompt": self._prompt},
         )
         info = {
             "oracle_answer": self._oracle_answer,
@@ -122,7 +122,7 @@ You may remove one edge from the tree and add a new edge (possibly the same edge
         obs = Observation(
             image=self._last_image,
             text=state_text,
-            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
+            metadata={"text_prompt": self._prompt},
         )
         info = {
             "oracle_answer": self._oracle_answer,
@@ -342,9 +342,9 @@ You may remove one edge from the tree and add a new edge (possibly the same edge
                 (u, v) for u, v in self._edges if (u, v) != (min(u1, v1), max(u1, v1))
             ]
             if len(edges) != N - 2:
-                assert len(edges) == N - 1, (
-                    "There should be exactly N-1 edges in the tree"
-                )
+                assert (
+                    len(edges) == N - 1
+                ), "There should be exactly N-1 edges in the tree"
                 return 0.0
             if not (
                 1 <= u2 <= N
@@ -365,14 +365,14 @@ You may remove one edge from the tree and add a new edge (possibly the same edge
 
             answer, gold = nx.diameter(G), self._gold_answer
             if self._minimize_or_maximize == "minimize":
-                assert 0 < gold <= answer, (
-                    "For minimization, answer should be greater than 0 and at least as large as the gold answer"
-                )
+                assert (
+                    0 < gold <= answer
+                ), "For minimization, answer should be greater than 0 and at least as large as the gold answer"
                 return (gold / answer) ** 5
             elif self._minimize_or_maximize == "maximize":
-                assert 0 < answer <= gold, (
-                    "For maximization, answer should be greater than 0 and at most as large as the gold answer"
-                )
+                assert (
+                    0 < answer <= gold
+                ), "For maximization, answer should be greater than 0 and at most as large as the gold answer"
                 return (answer / gold) ** 5
             else:
                 raise ValueError(

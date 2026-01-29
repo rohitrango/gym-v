@@ -123,7 +123,7 @@ Example: `{all_B_answer}` (do **NOT** include the backticks or quotes)."""
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {
@@ -151,7 +151,7 @@ Example: `{all_B_answer}` (do **NOT** include the backticks or quotes)."""
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {"oracle_answer": self._oracle_answer}
@@ -209,9 +209,9 @@ Example: `{all_B_answer}` (do **NOT** include the backticks or quotes)."""
             return left + right + root
 
         self._oracle_answer = get_postorder(0, 2**N - 1)
-        assert len(self._oracle_answer) == (2 ** (N + 1) - 1), (
-            f"reference_answer length should be {2 ** (N + 1) - 1}"
-        )
+        assert len(self._oracle_answer) == (
+            2 ** (N + 1) - 1
+        ), f"reference_answer length should be {2 ** (N + 1) - 1}"
 
     def _prompt_generate(self) -> str:
         """Generate text prompt."""

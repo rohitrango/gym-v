@@ -113,7 +113,7 @@ Your final answer should be a single line containing the color of each vertex in
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {
@@ -142,7 +142,7 @@ Your final answer should be a single line containing the color of each vertex in
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {
@@ -206,16 +206,16 @@ Your final answer should be a single line containing the color of each vertex in
                 for edge_u, edge_v in edges:
                     color_u = min(colors[edge_u], colors[edge_v])
                     color_v = max(colors[edge_u], colors[edge_v])
-                    assert color_u != color_v, (
-                        "Adjacent vertices should have different colors"
-                    )
+                    assert (
+                        color_u != color_v
+                    ), "Adjacent vertices should have different colors"
                     if not color_adjacent[color_u][color_v]:
                         color_adjacent[color_u][color_v] = True
                         satisfied_color_pair_num += 1
 
-                assert satisfied_color_pair_num <= (max_color + 1) * max_color // 2, (
-                    "The number of satisfied color pairs should not exceed the maximum possible pairs"
-                )
+                assert (
+                    satisfied_color_pair_num <= (max_color + 1) * max_color // 2
+                ), "The number of satisfied color pairs should not exceed the maximum possible pairs"
 
                 if satisfied_color_pair_num == (max_color + 1) * max_color // 2:
                     reference_answer = colors.copy()
@@ -272,17 +272,15 @@ Your final answer should be a single line containing the color of each vertex in
 
         assert (
             len(adjacent_color_pairs) <= len(set(colors)) * (len(set(colors)) - 1) // 2
-        ), (
-            "The number of adjacent color pairs should not exceed the maximum possible pairs"
-        )
+        ), "The number of adjacent color pairs should not exceed the maximum possible pairs"
 
         if len(adjacent_color_pairs) < len(set(colors)) * (len(set(colors)) - 1) // 2:
             return 0.0
         gold = self._gold_answer
         answer_num_colors = len(set(colors))
-        assert answer_num_colors <= gold, (
-            "The number of distinct colors used should not exceed the gold answer"
-        )
+        assert (
+            answer_num_colors <= gold
+        ), "The number of distinct colors used should not exceed the gold answer"
 
         if self._rewarding_strategy == "(answer/gold)^beta":
             return self._rewarding_weight * (

@@ -90,7 +90,7 @@ Please compute the **sum of the areas of all triangles** that can be formed by a
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {
@@ -117,7 +117,7 @@ Please compute the **sum of the areas of all triangles** that can be formed by a
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {

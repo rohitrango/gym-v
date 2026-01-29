@@ -110,7 +110,7 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {
@@ -139,7 +139,7 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {
@@ -267,9 +267,9 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
         gold = self._reference_weight
 
         # Should never exceed gold
-        assert answer_weight <= gold, (
-            f"Answer weight {answer_weight} exceeds gold {gold}"
-        )
+        assert (
+            answer_weight <= gold
+        ), f"Answer weight {answer_weight} exceeds gold {gold}"
 
         if self.rewards["rewarding_strategy"] == "(answer/gold)^beta":
             return self.rewards["rewarding_weight"] * (

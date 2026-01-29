@@ -112,7 +112,7 @@ Do **NOT** include backticks or quotes in your output. Output one action per lin
         obs = Observation(
             image=self._last_image,
             text=state_text,
-            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
+            metadata={"text_prompt": self._prompt},
         )
         info = {
             "oracle_answer": self._oracle_answer,
@@ -137,7 +137,7 @@ Do **NOT** include backticks or quotes in your output. Output one action per lin
         obs = Observation(
             image=self._last_image,
             text=state_text,
-            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
+            metadata={"text_prompt": self._prompt},
         )
         info = {
             "oracle_answer": self._oracle_answer,

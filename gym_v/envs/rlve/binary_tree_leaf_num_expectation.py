@@ -114,7 +114,7 @@ What is the expected number of **leaf** nodes (nodes whose left and right childr
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {
@@ -142,7 +142,7 @@ What is the expected number of **leaf** nodes (nodes whose left and right childr
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {"oracle_answer": self._oracle_answer}

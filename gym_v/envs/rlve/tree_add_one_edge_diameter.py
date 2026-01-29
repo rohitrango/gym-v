@@ -105,7 +105,7 @@ Let's add **exactly one undirected edge** with weight {L} to the tree. Our goal 
         obs = Observation(
             image=self._last_image,
             text=state_text,
-            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
+            metadata={"text_prompt": self._prompt},
         )
         info = {
             "oracle_answer": self._oracle_answer,
@@ -132,7 +132,7 @@ Let's add **exactly one undirected edge** with weight {L} to the tree. Our goal 
         obs = Observation(
             image=self._last_image,
             text=state_text,
-            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
+            metadata={"text_prompt": self._prompt},
         )
         info = {
             "oracle_answer": self._oracle_answer,
@@ -412,9 +412,9 @@ Let's add **exactly one undirected edge** with weight {L} to the tree. Our goal 
                 for u in G.nodes()
             )
             gold = self._gold_answer
-            assert 0 <= gold <= answer_diam, (
-                "The answer should be at least as large as the gold answer"
-            )
+            assert (
+                0 <= gold <= answer_diam
+            ), "The answer should be at least as large as the gold answer"
             if self.rewards["rewarding_strategy"] == "(gold/answer)^beta":
                 if answer_diam == 0:
                     assert gold == 0, "gold should be zero if answer is zero"

@@ -113,7 +113,7 @@ If both players always play optimally, who will win — Stan or Ollie?
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {
@@ -140,7 +140,7 @@ If both players always play optimally, who will win — Stan or Ollie?
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {

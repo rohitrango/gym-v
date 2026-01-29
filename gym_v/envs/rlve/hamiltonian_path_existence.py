@@ -98,7 +98,7 @@ Example: `0 2 1` (do **NOT** include the backticks or quotes); this means the pa
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {
@@ -127,7 +127,7 @@ Example: `0 2 1` (do **NOT** include the backticks or quotes); this means the pa
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {

@@ -90,8 +90,8 @@ A cell is considered a local minimum if its value is strictly less than all of i
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
-            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
+            text=state_text,
+            metadata={"text_prompt": self._prompt},
         )
         info = {
             "oracle_answer": str(self._oracle_answer),
@@ -115,8 +115,8 @@ A cell is considered a local minimum if its value is strictly less than all of i
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
-            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
+            text=state_text,
+            metadata={"text_prompt": self._prompt},
         )
         info = {
             "oracle_answer": str(self._oracle_answer),

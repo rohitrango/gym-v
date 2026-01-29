@@ -106,7 +106,7 @@ Your task is to find four **distinct** points such that they form a rectangle (N
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
                 "rlve_gold_area": self._gold_answer,
             },
         )
@@ -135,7 +135,7 @@ Your task is to find four **distinct** points such that they form a rectangle (N
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
                 "rlve_gold_area": self._gold_answer,
             },
         )

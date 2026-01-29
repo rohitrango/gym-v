@@ -96,7 +96,7 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
         obs = Observation(
             image=self._last_image,
             text=state_text,
-            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
+            metadata={"text_prompt": self._prompt},
         )
         info = {
             "oracle_answer": str(self._oracle_answer),
@@ -123,7 +123,7 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
         obs = Observation(
             image=self._last_image,
             text=state_text,
-            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
+            metadata={"text_prompt": self._prompt},
         )
         info = {
             "oracle_answer": str(self._oracle_answer),
@@ -259,9 +259,9 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
             answer_weight += edge2weight[(s, t)]
 
         gold = self._gold_weight
-        assert answer_weight <= gold and gold > 0, (
-            f"answer_weight ({answer_weight}) should be <= gold ({gold}) and gold > 0"
-        )
+        assert (
+            answer_weight <= gold and gold > 0
+        ), f"answer_weight ({answer_weight}) should be <= gold ({gold}) and gold > 0"
 
         # Return reward based on quality (answer/gold)^5
         return (answer_weight / gold) ** 5

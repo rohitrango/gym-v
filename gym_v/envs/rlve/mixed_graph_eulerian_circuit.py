@@ -98,7 +98,7 @@ Output a single line containing the sequence of vertex labels visited in order, 
         obs = Observation(
             image=self._last_image,
             text=state_text,
-            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
+            metadata={"text_prompt": self._prompt},
         )
         info = {
             "oracle_answer": self._oracle_answer,
@@ -125,7 +125,7 @@ Output a single line containing the sequence of vertex labels visited in order, 
         obs = Observation(
             image=self._last_image,
             text=state_text,
-            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
+            metadata={"text_prompt": self._prompt},
         )
         info = {
             "oracle_answer": self._oracle_answer,
@@ -173,33 +173,33 @@ Output a single line containing the sequence of vertex labels visited in order, 
                     edges.append((u, v))
                     degrees[u] += 1
                     degrees[v] += 1
-            assert all(degree % 2 == 0 for degree in degrees), (
-                "All vertices should have even degree in undirected edges"
-            )
+            assert all(
+                degree % 2 == 0 for degree in degrees
+            ), "All vertices should have even degree in undirected edges"
 
             self.np_random.shuffle(edges)
-            assert len(edges) == len(set(edges)), (
-                "There should be no repeated undirected edges"
-            )
+            assert len(edges) == len(
+                set(edges)
+            ), "There should be no repeated undirected edges"
             for u, v in edges:
-                assert 0 <= u < v < N, (
-                    "Undirected edges should be within the range of vertex labels"
-                )
+                assert (
+                    0 <= u < v < N
+                ), "Undirected edges should be within the range of vertex labels"
 
             # Check if the undirected graph is connected
             undirected_graph = nx.Graph()
             undirected_graph.add_nodes_from(range(N))
             undirected_graph.add_edges_from(edges)
             if nx.is_connected(undirected_graph):
-                assert nx.is_eulerian(undirected_graph), (
-                    "The undirected graph should be Eulerian"
-                )
+                assert nx.is_eulerian(
+                    undirected_graph
+                ), "The undirected graph should be Eulerian"
                 break
 
         eulerian_circuit = list(nx.eulerian_circuit(undirected_graph))
-        assert len(eulerian_circuit) == len(edges), (
-            "The Eulerian circuit should visit each edge exactly once"
-        )
+        assert len(eulerian_circuit) == len(
+            edges
+        ), "The Eulerian circuit should visit each edge exactly once"
         directed_flags = [False] * len(eulerian_circuit)
         num_directed = int(
             self.np_random.integers(1, len(eulerian_circuit))
@@ -222,13 +222,13 @@ Output a single line containing the sequence of vertex labels visited in order, 
             else:
                 undirected_edges.append((min(u, v), max(u, v)))
         reference_answer.append(eulerian_circuit[-1][1])
-        assert reference_answer[0] == reference_answer[-1], (
-            "The Eulerian circuit should start and end at the same vertex"
-        )
+        assert (
+            reference_answer[0] == reference_answer[-1]
+        ), "The Eulerian circuit should start and end at the same vertex"
         self._oracle_answer = " ".join(map(str, reference_answer))
-        assert len(undirected_edges) > 0 and len(directed_edges) > 0, (
-            "There should be at least one undirected edge and one directed edge"
-        )
+        assert (
+            len(undirected_edges) > 0 and len(directed_edges) > 0
+        ), "There should be at least one undirected edge and one directed edge"
         self.np_random.shuffle(undirected_edges)
         self.np_random.shuffle(directed_edges)
         self._undirected_edges = undirected_edges
@@ -259,9 +259,9 @@ Output a single line containing the sequence of vertex labels visited in order, 
     def _score_answer(self, answer: str) -> float:
         processed_result = self._process(answer)
         if processed_result is not None:
-            assert isinstance(processed_result, list), (
-                "processed_result should be a list"
-            )
+            assert isinstance(
+                processed_result, list
+            ), "processed_result should be a list"
 
             if len(processed_result) == 0:
                 return 0.0

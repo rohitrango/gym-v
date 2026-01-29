@@ -105,7 +105,7 @@ Each player plays optimally to maximize **their score minus their opponent's sco
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {
@@ -132,7 +132,7 @@ Each player plays optimally to maximize **their score minus their opponent's sco
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {

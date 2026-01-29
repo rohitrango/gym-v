@@ -101,7 +101,7 @@ Example: `{first_K_vertices}` (do **NOT** include the backticks or quotes)."""
         obs = Observation(
             image=self._last_image,
             text=state_text,
-            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
+            metadata={"text_prompt": self._prompt},
         )
         info = {
             "oracle_answer": self._oracle_answer,
@@ -128,7 +128,7 @@ Example: `{first_K_vertices}` (do **NOT** include the backticks or quotes)."""
         obs = Observation(
             image=self._last_image,
             text=state_text,
-            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
+            metadata={"text_prompt": self._prompt},
         )
         info = {
             "oracle_answer": self._oracle_answer,

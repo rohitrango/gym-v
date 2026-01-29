@@ -95,7 +95,7 @@ Partition all vertices into {N} **disjoint** sets such that: (1) each set contai
         obs = Observation(
             image=self._last_image,
             text=state_text,
-            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
+            metadata={"text_prompt": self._prompt},
         )
         info = {
             "oracle_answer": self._oracle_answer,
@@ -122,7 +122,7 @@ Partition all vertices into {N} **disjoint** sets such that: (1) each set contai
         obs = Observation(
             image=self._last_image,
             text=state_text,
-            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
+            metadata={"text_prompt": self._prompt},
         )
         info = {
             "oracle_answer": self._oracle_answer,
@@ -235,9 +235,9 @@ Partition all vertices into {N} **disjoint** sets such that: (1) each set contai
         labels = [None] * (self._N * self._K + 1)
         for label, group in enumerate(processed_result):
             assert 0 <= label < self._N, f"Label {label} is out of range"
-            assert len(group) == self._K, (
-                f"Group {group} should have exactly {self._K} vertices"
-            )
+            assert (
+                len(group) == self._K
+            ), f"Group {group} should have exactly {self._K} vertices"
             for vertex in group:
                 assert labels[vertex] is None, f"Vertex {vertex} is already labeled"
                 labels[vertex] = label
@@ -249,9 +249,9 @@ Partition all vertices into {N} **disjoint** sets such that: (1) each set contai
                 edge_numbers[labels[u]] += 1
 
         # For a group of K vertices to be connected in a tree, it needs exactly K-1 edges
-        assert all(0 <= edge_number <= self._K - 1 for edge_number in edge_numbers), (
-            "Edge numbers are out of range"
-        )
+        assert all(
+            0 <= edge_number <= self._K - 1 for edge_number in edge_numbers
+        ), "Edge numbers are out of range"
         connected = sum(int(edge_number == self._K - 1) for edge_number in edge_numbers)
         assert connected <= self._N, "Connected components exceed N"
 

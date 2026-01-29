@@ -128,7 +128,7 @@ The **value** of a valid coloring is the number of **distinct colors used** (i.e
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {
@@ -156,7 +156,7 @@ The **value** of a valid coloring is the number of **distinct colors used** (i.e
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {"oracle_answer": str(self._oracle_answer)}

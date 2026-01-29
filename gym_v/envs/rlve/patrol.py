@@ -103,7 +103,7 @@ Please output the **minimum total number of edges traversed** (of course, edges 
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {
@@ -132,7 +132,7 @@ Please output the **minimum total number of edges traversed** (of course, edges 
             image=self._last_image,
             text=state_text,
             metadata={
-                "text_prompt": f"{state_text}\n\n{self.description}",
+                "text_prompt": self._prompt,
             },
         )
         info = {
