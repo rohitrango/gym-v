@@ -755,11 +755,125 @@ register(
 )
 
 register(
+    id="RLVE/CampsitePuzzle-v0",
+    entry_point="gym_v.envs.rlve.campsite_puzzle:RLVECampsitePuzzleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=4,
+        sparsity=0.5,
+        cell_px=56,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/CardColoringCounting-v0",
+    entry_point="gym_v.envs.rlve.card_coloring_counting:RLVECardColoringCountingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        N=8,
+        K=2,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/CirculatingGrid-v0",
+    entry_point="gym_v.envs.rlve.circulating_grid:RLVECirculatingGridEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_r_c=5,
+        cell_px=56,
+        padding=24,
+        num_players=1,
+    ),
+)
+register(
+    id="RLVE/CoinSquareGame-v0",
+    entry_point="gym_v.envs.rlve.coin_square_game:RLVECoinSquareGameEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        weight_multiple=2,
+        cell_px=70,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+
+register(
+    id="RLVE/EightDigitPuzzle-v0",
+    entry_point="gym_v.envs.rlve.eight_digit_puzzle:RLVEEightDigitPuzzleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        n=3,
+        m=3,
+        steps=10,
+        cell_px=72,
+        padding=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/FaceRightWay-v0",
+    entry_point="gym_v.envs.rlve.face_right_way:RLVEFaceRightWayEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        cell_px=60,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
     id="RLVE/HitoriPuzzle-v0",
     entry_point="gym_v.envs.rlve.hitori_puzzle:RLVEHitoriPuzzleEnv",
     max_episode_steps=1,
     kwargs=dict(
         max_n_m=4,
+        cell_px=56,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/JugPuzzle-v0",
+    entry_point="gym_v.envs.rlve.jug_puzzle:RLVEJugPuzzleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_capacity_multiple=10,
+        operation_probabilities=None,
+        jug_width=80,
+        jug_height=200,
+        padding=40,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/KloBlocks-v0",
+    entry_point="gym_v.envs.rlve.klo_blocks:RLVEKloBlocksEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        N=10,
+        cell_px=60,
+        padding=30,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/LandformGenerationCounting-v0",
+    entry_point="gym_v.envs.rlve.landform_generation_counting:RLVELandformGenerationCountingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        max_mod=1000000000,
         cell_px=56,
         padding=24,
         num_players=1,
@@ -779,15 +893,859 @@ register(
 )
 
 register(
-    id="RLVE/LightUpPuzzle-v0",
-    entry_point="gym_v.envs.rlve.light_up_puzzle:RLVELightUpPuzzleEnv",
+    id="RLVE/SkyscraperSumPuzzle-v0",
+    entry_point="gym_v.envs.rlve.skyscraper_sum_puzzle:RLVESkyscraperSumPuzzleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        n=3,
+        cell_px=52,
+        padding=28,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/SumTriangleArea-v0",
+    entry_point="gym_v.envs.rlve.sum_triangle_area:RLVESumTriangleAreaEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/SumManhattanCurvedSurface-v0",
+    entry_point="gym_v.envs.rlve.sum_manhattan_curved_surface:RLVESumManhattanCurvedSurfaceEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_a_b=100,
+        cell_px=80,
+        padding=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/GraMinimaGame-v0",
+    entry_point="gym_v.envs.rlve.gra_minima_game:RLVEGraMinimaGameEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        n=8,
+        cell_px=70,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/GraphContainTreeCounting-v0",
+    entry_point="gym_v.envs.rlve.graph_contain_tree_counting:RLVEGraphContainTreeCountingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=8,
+        edge_density=0.5,
+        node_radius=20,
+        image_size=800,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/GraphIsomorphism-v0",
+    entry_point="gym_v.envs.rlve.graph_isomorphism:RLVEGraphIsomorphismEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=8,
+        edge_density=0.3,
+        node_radius=20,
+        image_size=800,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/HamiltonianPath-v0",
+    entry_point="gym_v.envs.rlve.hamiltonian_path:RLVEHamiltonianPathEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        edge_density=0.5,
+        node_radius=18,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/HamiltonianPathExistence-v0",
+    entry_point="gym_v.envs.rlve.hamiltonian_path_existence:RLVEHamiltonianPathExistenceEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        edge_density=0.3,
+        node_radius=18,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/LongestPath-v0",
+    entry_point="gym_v.envs.rlve.longest_path:RLVELongestPathEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        edge_density=0.5,
+        node_radius=18,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/MaximumAchromaticNumber-v0",
+    entry_point="gym_v.envs.rlve.maximum_achromatic_number:RLVEMaximumAchromaticNumberEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=8,
+        edge_density=0.5,
+        node_radius=20,
+        image_size=700,
+        padding=60,
+        num_players=1,
+        rewarding_strategy="(answer/gold)^beta",
+        rewarding_weight=1.0,
+        rewarding_beta=5.0,
+    ),
+)
+
+register(
+    id="RLVE/MaximumClique-v0",
+    entry_point="gym_v.envs.rlve.maximum_clique:RLVEMaximumCliqueEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=12,
+        edge_density=0.5,
+        node_radius=18,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/MaximumIndependentSetGrid-v0",
+    entry_point="gym_v.envs.rlve.maximum_independent_set_grid:RLVEMaximumIndependentSetGridEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=4,
+        cell_px=64,
+        padding=24,
+        num_players=1,
+        rewarding_strategy="(answer/gold)^beta",
+        rewarding_weight=1.0,
+        rewarding_beta=3.0,
+    ),
+)
+register(
+    id="RLVE/MaximumIndependentSetTree-v0",
+    entry_point="gym_v.envs.rlve.maximum_independent_set_tree:RLVEMaximumIndependentSetTreeEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        node_radius=22,
+        image_size=700,
+        padding=60,
+        num_players=1,
+        rewarding_strategy="(answer/gold)^beta",
+        rewarding_weight=1.0,
+        rewarding_beta=3.0,
+    ),
+)
+
+register(
+    id="RLVE/MaximumWeightMatching-v0",
+    entry_point="gym_v.envs.rlve.maximum_weight_matching:RLVEMaximumWeightMatchingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        edge_density=0.5,
+        node_radius=18,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/MinimumChromaticNumber-v0",
+    entry_point="gym_v.envs.rlve.minimum_chromatic_number:RLVEMinimumChromaticNumberEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        edge_density=0.5,
+        node_radius=18,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/MinimumDominatingSetGrid-v0",
+    entry_point="gym_v.envs.rlve.minimum_dominating_set_grid:RLVEMinimumDominatingSetGridEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=4,
+        cell_px=60,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/MonochromeBlockCounting-v0",
+    entry_point="gym_v.envs.rlve.monochrome_block_counting:RLVEMonochromeBlockCountingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_a_b=10,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/TreeCenter-v0",
+    entry_point="gym_v.envs.rlve.tree_center:RLVETreeCenterEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        node_radius=22,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/TreeAddOneEdgeDiameter-v0",
+    entry_point="gym_v.envs.rlve.tree_add_one_edge_diameter:RLVETreeAddOneEdgeDiameterEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        node_radius=20,
+        image_width=800,
+        image_height=700,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/TreeChangeOneEdgeDiameter-v0",
+    entry_point="gym_v.envs.rlve.tree_change_one_edge_diameter:RLVETreeChangeOneEdgeDiameterEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        N=8,
+        node_radius=22,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/TreeColoring-v0",
+    entry_point="gym_v.envs.rlve.tree_coloring:RLVETreeColoringEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        node_radius=18,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/TreeDistanceEqualTriadCounting-v0",
+    entry_point="gym_v.envs.rlve.tree_distance_equal_triad_counting:RLVETreeDistanceEqualTriadCountingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        node_radius=22,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/TreeEvenPartitioning-v0",
+    entry_point="gym_v.envs.rlve.tree_even_partitioning:RLVETreeEvenPartitioningEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=4,
+        max_k=3,
+        node_radius=20,
+        image_size=800,
+        padding=80,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/TreeTopologicalSequenceCounting-v0",
+    entry_point="gym_v.envs.rlve.tree_topological_sequence_counting:RLVETreeTopologicalSequenceCountingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        max_mod=1000000,
+        node_radius=22,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/AdditionTable-v0",
+    entry_point="gym_v.envs.rlve.addition_table:RLVEAdditionTableEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        min_n=3,
+        max_n=10,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/BinaryTreeLeafNumExpectation-v0",
+    entry_point="gym_v.envs.rlve.binary_tree_leaf_num_expectation:RLVEBinaryTreeLeafNumExpectationEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=15,
+        image_width=800,
+        image_height=600,
+        node_radius=20,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/FbiBinaryTree-v0",
+    entry_point="gym_v.envs.rlve.fbi_binary_tree:RLVEFbiBinaryTreeEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=4,
+        probability_same_as_before=0.7,
+        base_image_width=1000,
+        base_image_height=800,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/MinimumDirectedSpanningTree-v0",
+    entry_point="gym_v.envs.rlve.minimum_directed_spanning_tree:RLVEMinimumDirectedSpanningTreeEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        edge_density=0.5,
+        node_radius=18,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/MinimumSpanningTreeCounting-v0",
+    entry_point="gym_v.envs.rlve.minimum_spanning_tree_counting:RLVEMinimumSpanningTreeCountingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        edge_ratio=2.0,
+        max_mod=10000,
+        weight_range_divisor=10,
+        node_radius=18,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/MinimumWeightedSpanningTree-v0",
+    entry_point="gym_v.envs.rlve.minimum_weighted_spanning_tree:RLVEMinimumWeightedSpanningTreeEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        edge_density=0.5,
+        node_radius=18,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/MixedGraphEulerianCircuit-v0",
+    entry_point="gym_v.envs.rlve.mixed_graph_eulerian_circuit:RLVEMixedGraphEulerianCircuitEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        image_size=800,
+        padding=80,
+        node_radius=20,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/Numbrix-v0",
+    entry_point="gym_v.envs.rlve.numbrix:RLVENumbrixEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=4,
+        sparsity=0.5,
+        cell_px=56,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/PipelineArrangement-v0",
+    entry_point="gym_v.envs.rlve.pipeline_arrangement:RLVEPipelineArrangementEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=8,
+        cell_height=60,
+        cell_width=100,
+        padding=40,
+        num_players=1,
+    ),
+)
+
+
+
+register(
+    id="RLVE/MagicSquarePuzzle-v0",
+    entry_point="gym_v.envs.rlve.magic_square_puzzle:RLVEMagicSquarePuzzleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        min_n=3,
+        max_n=5,
+        sparsity=0.5,
+        cell_px=64,
+        padding=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/MatrixPermutationBothDiagonalOne-v0",
+    entry_point="gym_v.envs.rlve.matrix_permutation_both_diagonal_one:RLVEMatrixPermutationBothDiagonalOneEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        N=4,
+        cell_px=64,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/MatrixPermutationMainDiagonalOne-v0",
+    entry_point="gym_v.envs.rlve.matrix_permutation_main_diagonal_one:RLVEMatrixPermutationMainDiagonalOneEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        N=4,
+        cell_px=64,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/MatrixPooling-v0",
+    entry_point="gym_v.envs.rlve.matrix_pooling:RLVEMatrixPoolingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=7,
+        cell_px=56,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/MaxGridPathIntersection-v0",
+    entry_point="gym_v.envs.rlve.max_grid_path_intersection:RLVEMaxGridPathIntersectionEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        n=5,
+        cell_px=70,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/MatrixRmqCounting-v0",
+    entry_point="gym_v.envs.rlve.matrix_rmq_counting:RLVEMatrixRmqCountingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        H_W_range=2,
+        max_MOD=1000000,
+        cell_px=48,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/MoneyChargingGame-v0",
+    entry_point="gym_v.envs.rlve.money_charging_game:RLVEMoneyChargingGameEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        n=5,
+        cell_px=60,
+        padding=32,
+        num_players=1,
+    ),
+)
+
+
+register(
+    id="RLVE/BinarioNoAdjacencyRequirement-v0",
+    entry_point="gym_v.envs.rlve.binario_no_adjacency_requirement:RLVEBinarioNoAdjacencyRequirementEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=4,
+        sparsity=0.5,
+        cell_px=56,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/BlockImage-v0",
+    entry_point="gym_v.envs.rlve.block_image:RLVEBlockImageEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_m_n=4,
+        max_height=5,
+        cell_px=48,
+        padding=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/ColoringCounting-v0",
+    entry_point="gym_v.envs.rlve.coloring_counting:RLVEColoringCountingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=8,
+        edge_density=0.5,
+        node_radius=20,
+        image_size=800,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/TwiddlePuzzle-v0",
+    entry_point="gym_v.envs.rlve.twiddle_puzzle:RLVETwiddlePuzzleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=4,
+        steps=3,
+        cell_px=56,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/NinePuzzle-v0",
+    entry_point="gym_v.envs.rlve.nine_puzzle:RLVENinePuzzleEnv",
     max_episode_steps=1,
     kwargs=dict(
         max_n_m=3,
-        density_list=[0.5, 0.6, 0.7, 0.8, 0.9, 0.95],
-        black_cell_density_range=(0.6, 0.95),
-        cell_px=48,
+        steps=5,
+        cell_px=64,
+        padding=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/GridComponent-v0",
+    entry_point="gym_v.envs.rlve.grid_component:RLVEGridComponentEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=8,
+        cell_px=56,
         padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/GridBFS-v0",
+    entry_point="gym_v.envs.rlve.grid_bfs:RLVEGridBFSEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=8,
+        cell_px=56,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/GridParityConstruction-v0",
+    entry_point="gym_v.envs.rlve.grid_parity_construction:RLVEGridParityConstructionEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=8,
+        cell_px=56,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/GridLocalMinimumCounting-v0",
+    entry_point="gym_v.envs.rlve.grid_local_minimum_counting:RLVEGridLocalMinimumCountingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=4,
+        cell_px=64,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/GridTriangleCounting-v0",
+    entry_point="gym_v.envs.rlve.grid_triangle_counting:RLVEGridTriangleCountingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=12,
+        cell_px=48,
+        padding=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/ConvexHull-v0",
+    entry_point="gym_v.envs.rlve.convex_hull:RLVEConvexHullEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        N=10,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/SmallestCircle-v0",
+    entry_point="gym_v.envs.rlve.smallest_circle:RLVESmallestCircleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        n_points=10,
+        rewarding_strategy="(gold/answer)^beta",
+        rewarding_weight=1.0,
+        rewarding_beta=10.0,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/LargestConvexPolygon-v0",
+    entry_point="gym_v.envs.rlve.largest_convex_polygon:RLVELargestConvexPolygonEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        n_points=10,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/LargestRectangleAmongPoints-v0",
+    entry_point="gym_v.envs.rlve.largest_rectangle_among_points:RLVELargestRectangleAmongPointsEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=15,
+        rewarding_strategy="(answer/gold)^beta",
+        rewarding_weight=1.0,
+        rewarding_beta=5.0,
+        fig_size=(8, 8),
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/WeightedBinarytree-v0",
+    entry_point="gym_v.envs.rlve.weighted_binarytree:RLVEWeightedBinarytreeEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=8,
+        max_score=10,
+        image_width=800,
+        image_height=600,
+        node_radius=25,
+        num_players=1,
+    ),
+)
+
+
+
+register(
+    id="RLVE/WarehouseConstruction-v0",
+    entry_point="gym_v.envs.rlve.warehouse_construction:RLVEWarehouseConstructionEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        n=6,
+        cell_height=80,
+        cell_width=120,
+        padding=40,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/TetrisAttack-v0",
+    entry_point="gym_v.envs.rlve.tetris_attack:RLVETetrisAttackEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=8,
+        cell_px=60,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/WhackAMole-v0",
+    entry_point="gym_v.envs.rlve.whack_a_mole:RLVEWhackAMoleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=4,
+        max_beat=3,
+        cell_px=80,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/StoneGame-v0",
+    entry_point="gym_v.envs.rlve.stone_game:RLVEStoneGameEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_sum=30,
+        pile_width=60,
+        pile_max_height=200,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/StoneIntervalsGame-v0",
+    entry_point="gym_v.envs.rlve.stone_intervals_game:RLVEStoneIntervalsGameEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        num_players=1,
+    ),
+)
+
+
+
+register(
+    id="RLVE/NewNimGame-v0",
+    entry_point="gym_v.envs.rlve.new_nim_game:RLVENewNimGameEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        match_number_range_coefficient=2,
+        wrong_format=-1.0,
+        invalid_solution=-0.5,
+        unsuccessful_solution=-0.2,
+        rewarding_strategy="(gold/answer)^beta",
+        rewarding_weight=1.0,
+        rewarding_beta=3.0,
+        pile_width=100,
+        pile_height=300,
+        padding=40,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/Patrol-v0",
+    entry_point="gym_v.envs.rlve.patrol:RLVEPatrolEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        node_radius=22,
+        image_size=800,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/VisibleLine-v0",
+    entry_point="gym_v.envs.rlve.visible_line:RLVEVisibleLineEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        canvas_width=800,
+        canvas_height=600,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/SkaRockGarden-v0",
+    entry_point="gym_v.envs.rlve.ska_rock_garden:RLVESkaRockGardenEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        cell_px=60,
+        padding=40,
+        num_players=1,
+    ),
+)
+
+register(
+    id="RLVE/SpyNetwork-v0",
+    entry_point="gym_v.envs.rlve.spy_network:RLVESpyNetworkEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        edge_density=0.3,
+        dominated_probability=0.5,
+        wrong_format=-1.0,
+        invalid_solution=-0.5,
+        unsuccessful_solution=-0.3,
+        rewarding_strategy="(gold/answer)^beta",
+        rewarding_weight=1.0,
+        rewarding_beta=3.0,
+        padding=40,
         num_players=1,
     ),
 )

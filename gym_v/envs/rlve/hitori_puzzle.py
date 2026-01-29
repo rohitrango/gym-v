@@ -46,7 +46,7 @@ The matrix is given in **row-major order**, with each row represented as a list 
 
         self._matrix: list[list[int]] | None = None
         self._prompt: str | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -73,6 +73,12 @@ The matrix is given in **row-major order**, with each row represented as a list 
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current puzzle grid."""
+        if self._matrix is None:
+            return ""
+        return "\n".join(" ".join(map(str, row)) for row in self._matrix)
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -82,16 +88,16 @@ The matrix is given in **row-major order**, with each row represented as a list 
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": self._prompt,
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -109,16 +115,16 @@ The matrix is given in **row-major order**, with each row represented as a list 
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": self._prompt,
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -235,7 +241,7 @@ The matrix is given in **row-major order**, with each row represented as a list 
             return matrix, reference_answer
 
         self._matrix, reference_answer = generate(N, M)
-        self._reference_answer = "\n".join("".join(row) for row in reference_answer)
+        self._oracle_answer = "\n".join("".join(row) for row in reference_answer)
 
     def _prompt_generate(self) -> str:
         if self._matrix is None:
@@ -265,30 +271,24 @@ The matrix is given in **row-major order**, with each row represented as a list 
     def _score_answer(self, answer: str) -> float:
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         N = len(self._matrix)
         M = len(self._matrix[0])
         solution = processed_result
 
         if len(solution) != N or any(len(row) != M for row in solution):
-            return -1.0
+            return 0.0
         if not all(c in ".*" for row in solution for c in row):
-            return -1.0
-
-        # adjacency
+            return 0.0
         for i in range(N):
             for j in range(M):
                 if solution[i][j] == "*":
                     for di, dj in [(-1, 0), (+1, 0), (0, -1), (0, +1)]:
                         ni, nj = i + di, j + dj
                         if 0 <= ni < N and 0 <= nj < M and solution[ni][nj] == "*":
-                            return -0.5
-
-        # connected
+                            return 0.0
         if not self._check_connected(solution, N, M):
-            return -0.5
-
+            return 0.0
         satisfied = 0
         for i in range(N):
             row_numbers = [

@@ -44,7 +44,7 @@ The number of visible buildings is specified as follows:
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         self._prompt: str | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._last_image: Image.Image | None = None
         self._left: list[int] | None = None
         self._right: list[int] | None = None
@@ -69,6 +69,10 @@ The number of visible buildings is specified as follows:
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt or ""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -78,16 +82,16 @@ The number of visible buildings is specified as follows:
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": self._prompt,
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -105,16 +109,16 @@ The number of visible buildings is specified as follows:
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": self._prompt,
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -171,7 +175,7 @@ The number of visible buildings is specified as follows:
             for i in range(N)
         ]
 
-        self._reference_answer = "\n".join(" ".join(map(str, row)) for row in grid)
+        self._oracle_answer = "\n".join(" ".join(map(str, row)) for row in grid)
 
     def _prompt_generate(self) -> str:
         N = int(self._n)
@@ -201,21 +205,18 @@ The number of visible buildings is specified as follows:
     def _score_answer(self, answer: str) -> float:
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         N = int(self._n)
         solution = processed_result
 
         if len(solution) != N or not all(len(row) == N for row in solution):
-            return -1.0
-
+            return 0.0
         if not all(set(row) == set(range(N)) for row in solution):
-            return -0.5
+            return 0.0
         if not all(
             set(solution[i][j] for i in range(N)) == set(range(N)) for j in range(N)
         ):
-            return -0.5
-
+            return 0.0
         left = [
             sum(int(solution[i][j] == max(solution[i][: j + 1])) for j in range(N))
             for i in range(N)
