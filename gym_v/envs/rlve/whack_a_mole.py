@@ -62,7 +62,7 @@ You may swing the hammer multiple times, but you cannot change its size after ch
         self._m: int | None = None
         self._grid: list[list[int]] | None = None
         self._prompt: str | None = None
-        self._reference_answer: int | None = None
+        self._oracle_answer: int | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -98,6 +98,10 @@ You may swing the hammer multiple times, but you cannot change its size after ch
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt or ""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -107,16 +111,16 @@ You may swing the hammer multiple times, but you cannot change its size after ch
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -134,16 +138,16 @@ You may swing the hammer multiple times, but you cannot change its size after ch
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
 
         terminated = True
@@ -206,7 +210,7 @@ You may swing the hammer multiple times, but you cannot change its size after ch
             self._n = N
             self._m = M
             self._grid = grid
-            self._reference_answer = 0
+            self._oracle_answer = 0
             return
 
         best_area = 0
@@ -268,7 +272,7 @@ You may swing the hammer multiple times, but you cannot change its size after ch
         self._n = N
         self._m = M
         self._grid = grid
-        self._reference_answer = total // best_area
+        self._oracle_answer = total // best_area
 
     def _prompt_generate(self) -> str:
         """Generate the prompt text for the problem."""
@@ -302,12 +306,12 @@ You may swing the hammer multiple times, but you cannot change its size after ch
         """
         processed_result = self._process(answer)
         if processed_result is not None:
-            if processed_result == self._reference_answer:
+            if processed_result == self._oracle_answer:
                 return 1.0
             else:
                 return 0.0
         else:
-            return -1.0
+            return 0.0
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the whack-a-mole grid as an image.
@@ -388,14 +392,10 @@ You may swing the hammer multiple times, but you cannot change its size after ch
         # Draw grid lines
         for r in range(rows + 1):
             y = grid_y + r * cell_px
-            draw.line(
-                (grid_x, y, grid_x + grid_width, y), fill=(30, 30, 30), width=2
-            )
+            draw.line((grid_x, y, grid_x + grid_width, y), fill=(30, 30, 30), width=2)
         for c in range(cols + 1):
             x = grid_x + c * cell_px
-            draw.line(
-                (x, grid_y, x, grid_y + grid_height), fill=(30, 30, 30), width=2
-            )
+            draw.line((x, grid_y, x, grid_y + grid_height), fill=(30, 30, 30), width=2)
 
         # Draw mole counts
         for r in range(rows):
@@ -461,10 +461,22 @@ You may swing the hammer multiple times, but you cannot change its size after ch
 
             example_x += c_size * small_cell + 100
 
-        legend_y += max(20, max(r_size for r_size, _ in example_sizes) * small_cell if example_sizes else 0) + 15
+        legend_y += (
+            max(
+                20,
+                max(r_size for r_size, _ in example_sizes) * small_cell
+                if example_sizes
+                else 0,
+            )
+            + 15
+        )
 
         # Add constraint text
-        constraint_text = "Choose ONE hammer size. Each swing removes 1 mole from each covered cell."
-        draw.text((padding, legend_y), constraint_text, fill=(100, 100, 100), font=font_small)
+        constraint_text = (
+            "Choose ONE hammer size. Each swing removes 1 mole from each covered cell."
+        )
+        draw.text(
+            (padding, legend_y), constraint_text, fill=(100, 100, 100), font=font_small
+        )
 
         return img

@@ -93,7 +93,7 @@ The grid is given as follows:
         self._grid: list[list[int]] | None = None
         self._reference_grid: list[list[int]] | None = None
         self._prompt: str | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -124,6 +124,12 @@ The grid is given as follows:
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current puzzle state."""
+        if self._prompt is None:
+            return ""
+        return self._prompt
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -133,16 +139,16 @@ The grid is given as follows:
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -160,16 +166,16 @@ The grid is given as follows:
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -192,9 +198,13 @@ The grid is given as follows:
     def _generate(self) -> None:
         """Generate a magic square puzzle with some cells removed."""
         # Choose N within the allowed range (only odd or doubly even)
-        valid_ns = [n for n in range(self._min_n, self._max_n + 1) if n % 2 == 1 or n % 4 == 0]
+        valid_ns = [
+            n for n in range(self._min_n, self._max_n + 1) if n % 2 == 1 or n % 4 == 0
+        ]
         if not valid_ns:
-            raise ValueError(f"No valid N values between {self._min_n} and {self._max_n}")
+            raise ValueError(
+                f"No valid N values between {self._min_n} and {self._max_n}"
+            )
 
         N = int(self.np_random.choice(valid_ns))
         self._N = N
@@ -221,7 +231,7 @@ The grid is given as follows:
 
         # Store the reference answer
         self._reference_grid = [[int(cell) for cell in row] for row in grid]
-        self._reference_answer = "\n".join(
+        self._oracle_answer = "\n".join(
             " ".join(map(str, row)) for row in self._reference_grid
         )
 
@@ -285,8 +295,7 @@ The grid is given as follows:
         """Score the answer based on correctness."""
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         if self._grid is None or self._N is None:
             raise RuntimeError("No puzzle generated")
 
@@ -295,20 +304,14 @@ The grid is given as follows:
 
         # Check format
         if len(solution) != N or any(len(row) != N for row in solution):
-            return -1.0
-
-        # Check valid numbers (1 to N^2, each exactly once)
+            return 0.0
         flat_solution = [cell for row in solution for cell in row]
         if set(flat_solution) != set(range(1, N * N + 1)):
-            return -0.5
-
-        # Check pre-filled cells match
+            return 0.0
         for i in range(N):
             for j in range(N):
                 if self._grid[i][j] != 0 and solution[i][j] != self._grid[i][j]:
-                    return -0.5
-
-        # Count satisfied constraints (rows, columns, diagonals)
+                    return 0.0
         magic_constant = N * (N * N + 1) // 2
         satisfied = 0
 
@@ -405,7 +408,12 @@ The grid is given as follows:
             tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
             x = padding + N * cell_px + label_space // 2
             y = padding + r * cell_px + cell_px // 2
-            draw.text((x - tw // 2, y - th // 2), sum_text, fill=(30, 100, 220), font=small_font)
+            draw.text(
+                (x - tw // 2, y - th // 2),
+                sum_text,
+                fill=(30, 100, 220),
+                font=small_font,
+            )
 
         # Draw column sum labels (bottom, green)
         for c in range(N):
@@ -414,19 +422,37 @@ The grid is given as follows:
             tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
             x = padding + c * cell_px + cell_px // 2
             y = padding + N * cell_px + label_space // 2
-            draw.text((x - tw // 2, y - th // 2), sum_text, fill=(40, 160, 60), font=small_font)
+            draw.text(
+                (x - tw // 2, y - th // 2),
+                sum_text,
+                fill=(40, 160, 60),
+                font=small_font,
+            )
 
         # Draw diagonal indicators in corners (red)
         # Top-left corner for main diagonal
         diag_text = "\\"
         bbox = draw.textbbox((0, 0), diag_text, font=small_font)
         tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
-        draw.text((padding // 2 - tw // 2, padding // 2 - th // 2), diag_text, fill=(220, 50, 50), font=small_font)
+        draw.text(
+            (padding // 2 - tw // 2, padding // 2 - th // 2),
+            diag_text,
+            fill=(220, 50, 50),
+            font=small_font,
+        )
 
         # Top-right corner for anti-diagonal
         diag_text = "/"
         bbox = draw.textbbox((0, 0), diag_text, font=small_font)
         tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
-        draw.text((padding + N * cell_px + label_space // 2 - tw // 2, padding // 2 - th // 2), diag_text, fill=(220, 50, 50), font=small_font)
+        draw.text(
+            (
+                padding + N * cell_px + label_space // 2 - tw // 2,
+                padding // 2 - th // 2,
+            ),
+            diag_text,
+            fill=(220, 50, 50),
+            font=small_font,
+        )
 
         return img

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import math
 from importlib import resources
+import math
 from textwrap import dedent
 from typing import Any
 
@@ -56,7 +56,7 @@ Example: `0 1 3 4` (do **NOT** include the backticks or quotes); this means k = 
 
         self._N: int | None = None
         self._edges: list[tuple[int, int, int]] | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._gold_weight: int | None = None
         self._prompt: str | None = None
         self._last_image: Image.Image | None = None
@@ -81,6 +81,10 @@ Example: `0 1 3 4` (do **NOT** include the backticks or quotes); this means k = 
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -90,16 +94,16 @@ Example: `0 1 3 4` (do **NOT** include the backticks or quotes); this means k = 
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -119,16 +123,16 @@ Example: `0 1 3 4` (do **NOT** include the backticks or quotes); this means k = 
 
         reward = float(self._score_answer(action_str))
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
 
         terminated = True
@@ -165,7 +169,11 @@ Example: `0 1 3 4` (do **NOT** include the backticks or quotes); this means k = 
             len(all_pairs), size=num_edges, replace=False
         )
         edges = [
-            (all_pairs[idx][0], all_pairs[idx][1], int(self.np_random.integers(1, N + 1)))
+            (
+                all_pairs[idx][0],
+                all_pairs[idx][1],
+                int(self.np_random.integers(1, N + 1)),
+            )
             for idx in selected_indices
         ]
         self.np_random.shuffle(edges)
@@ -181,11 +189,11 @@ Example: `0 1 3 4` (do **NOT** include the backticks or quotes); this means k = 
 
         # Generate reference answer (empty string if no matching)
         if matching_list:
-            self._reference_answer = " ".join(f"{u} {v}" for u, v in matching_list)
+            self._oracle_answer = " ".join(f"{u} {v}" for u, v in matching_list)
         else:
             # Empty matching - represent as empty string
             # This can happen if graph has no edges
-            self._reference_answer = ""
+            self._oracle_answer = ""
 
         # Compute gold weight
         edge2weight = {(u, v): w for u, v, w in edges}
@@ -219,30 +227,25 @@ Example: `0 1 3 4` (do **NOT** include the backticks or quotes); this means k = 
         """Score answer - ported from RLVE."""
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         matches = processed_result
         N = self._N
 
         # Check if the number of integers is even
         if len(matches) % 2 != 0:
-            return -1.0
-
-        # Convert to list of edges
+            return 0.0
         matches = [(matches[i], matches[i + 1]) for i in range(0, len(matches), 2)]
 
         # Check if each vertex appears at most once (valid matching)
         all_vertices = [u for u, v in matches] + [v for u, v in matches]
         if len(set(all_vertices)) != len(all_vertices):
-            return -0.5
-
-        # Calculate matching weight
+            return 0.0
         edge2weight = {(u, v): w for u, v, w in self._edges}
         answer_weight = 0
         for u, v in matches:
             u, v = min(u, v), max(u, v)
             if (u, v) not in edge2weight:
-                return -0.5
+                return 0.0
             answer_weight += edge2weight[(u, v)]
 
         gold = self._gold_weight

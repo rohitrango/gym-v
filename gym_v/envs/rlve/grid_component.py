@@ -45,7 +45,7 @@ The grid is given as follows:
         self._n: int | None = None
         self._m: int | None = None
         self._prompt: str | None = None
-        self._reference_answer: int | None = None
+        self._oracle_answer: int | None = None
         self._component_labels: list[list[int]] | None = None
         self._last_image: Image.Image | None = None
 
@@ -73,6 +73,12 @@ The grid is given as follows:
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return text representation of the grid."""
+        if self._grid is None:
+            return ""
+        return "\n".join(self._grid)
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -82,16 +88,16 @@ The grid is given as follows:
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -109,16 +115,16 @@ The grid is given as follows:
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
 
         terminated = True
@@ -151,9 +157,7 @@ The grid is given as follows:
 
         one_probability = float(self.np_random.uniform(0.1, 0.9))
         grid = [
-            "".join(
-                "01"[self.np_random.random() < one_probability] for _ in range(M)
-            )
+            "".join("01"[self.np_random.random() < one_probability] for _ in range(M))
             for _ in range(N)
         ]
         self._grid = grid
@@ -186,7 +190,7 @@ The grid is given as follows:
                     counting[labels[x][y]] += 1
 
         self._component_labels = labels
-        self._reference_answer = max(counting)
+        self._oracle_answer = max(counting)
 
     def _prompt_generate(self) -> str:
         if self._grid is None:
@@ -213,12 +217,12 @@ The grid is given as follows:
         """Score the answer."""
         processed_result = self._process(answer)
         if processed_result is not None:
-            if processed_result == self._reference_answer:
+            if processed_result == self._oracle_answer:
                 return 1.0
             else:
                 return 0.0
         else:
-            return -1.0
+            return 0.0
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the grid with colored components."""

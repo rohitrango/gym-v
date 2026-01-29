@@ -53,7 +53,7 @@ Try your best to **minimize** dist(0, r) * C[0] + dist(1, r) * C[1] + ... + dist
         self._N: int | None = None
         self._C: list[int] | None = None
         self._edges: list[tuple[int, int, int]] | None = None
-        self._reference_answer: int | None = None
+        self._oracle_answer: int | None = None
         self._gold_answer: int | None = None
         self._prompt: str | None = None
         self._last_image: Image.Image | None = None
@@ -82,6 +82,10 @@ Try your best to **minimize** dist(0, r) * C[0] + dist(1, r) * C[1] + ... + dist
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -91,16 +95,16 @@ Try your best to **minimize** dist(0, r) * C[0] + dist(1, r) * C[1] + ... + dist
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -120,16 +124,16 @@ Try your best to **minimize** dist(0, r) * C[0] + dist(1, r) * C[1] + ... + dist
 
         reward = float(self._score_answer(action_str))
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
 
         terminated = True
@@ -181,7 +185,7 @@ Try your best to **minimize** dist(0, r) * C[0] + dist(1, r) * C[1] + ... + dist
             adjacent[v].append((u, w))
 
         # Compute optimal solution using tree DP
-        self._reference_answer = 0
+        self._oracle_answer = 0
         self._gold_answer = 0
         subtree_sumC = [0] * N
 
@@ -198,7 +202,7 @@ Try your best to **minimize** dist(0, r) * C[0] + dist(1, r) * C[1] + ... + dist
 
         def FindSolution(u: int, parent: int, now_answer: int) -> None:
             if now_answer < self._gold_answer:
-                self._reference_answer = u
+                self._oracle_answer = u
                 self._gold_answer = now_answer
             for v, w in adjacent[u]:
                 if v == parent:
@@ -236,13 +240,10 @@ Try your best to **minimize** dist(0, r) * C[0] + dist(1, r) * C[1] + ... + dist
     def _score_answer(self, answer: str) -> float:
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         root = processed_result
         if not (0 <= root < self._N):
-            return -1.0
-
-        # Build adjacency list
+            return 0.0
         adjacent = [[] for _ in range(self._N)]
         for u, v, w in self._edges:
             adjacent[u].append((v, w))
@@ -359,7 +360,7 @@ Try your best to **minimize** dist(0, r) * C[0] + dist(1, r) * C[1] + ... + dist
         # Draw nodes
         for i, (x, y) in enumerate(positions):
             # Check if this is the center node
-            is_center = i == self._reference_answer
+            is_center = i == self._oracle_answer
 
             # Draw node shadow
             shadow_offset = 4
@@ -421,7 +422,9 @@ Try your best to **minimize** dist(0, r) * C[0] + dist(1, r) * C[1] + ... + dist
             )
 
         # Add info text
-        info_text = f"Vertices: {N}  |  Edges: {len(edges)}  |  Center: {self._reference_answer}"
+        info_text = (
+            f"Vertices: {N}  |  Edges: {len(edges)}  |  Center: {self._oracle_answer}"
+        )
         bbox = draw.textbbox((0, 0), info_text, font=info_font)
         tw = bbox[2] - bbox[0]
         draw.text(

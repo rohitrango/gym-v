@@ -64,7 +64,7 @@ Your goal is to reach the following grid:
         self._zero_i: int = 0
         self._zero_j: int = 0
         self._prompt: str | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -89,6 +89,14 @@ Your goal is to reach the following grid:
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return text representation of the puzzle state."""
+        if self._start_grid is None or self._destination_grid is None:
+            return ""
+        start_str = "\n".join(" ".join(map(str, row)) for row in self._start_grid)
+        dest_str = "\n".join(" ".join(map(str, row)) for row in self._destination_grid)
+        return f"Start:\n{start_str}\n\nDestination:\n{dest_str}"
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -98,16 +106,16 @@ Your goal is to reach the following grid:
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -125,16 +133,16 @@ Your goal is to reach the following grid:
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -182,13 +190,11 @@ Your goal is to reach the following grid:
         zero_i, zero_j = self._zero_i, self._zero_j
 
         # Generate random action distribution
-        action_weights = [
-            int(self.np_random.integers(1, N * M + 1)) for _ in range(4)
-        ]
+        action_weights = [int(self.np_random.integers(1, N * M + 1)) for _ in range(4)]
         action_sum = sum(action_weights)
         action_distribution = [w / action_sum for w in action_weights]
 
-        self._reference_answer = ""
+        self._oracle_answer = ""
         for step in range(self._steps):
             while True:
                 # Choose random action based on distribution
@@ -200,11 +206,12 @@ Your goal is to reach the following grid:
 
                 # Check if move is valid
                 if 0 <= new_zero_i < N and 0 <= new_zero_j < M:
-                    self._reference_answer += action
+                    self._oracle_answer += action
                     # Swap 0 with the tile at new position
-                    self._destination_grid[zero_i][zero_j], self._destination_grid[
-                        new_zero_i
-                    ][new_zero_j] = (
+                    (
+                        self._destination_grid[zero_i][zero_j],
+                        self._destination_grid[new_zero_i][new_zero_j],
+                    ) = (
                         self._destination_grid[new_zero_i][new_zero_j],
                         self._destination_grid[zero_i][zero_j],
                     )
@@ -221,9 +228,7 @@ Your goal is to reach the following grid:
             N=N,
             M=M,
             NM_minus_1=N * M - 1,
-            start_grid="\n".join(
-                " ".join(map(str, row)) for row in self._start_grid
-            ),
+            start_grid="\n".join(" ".join(map(str, row)) for row in self._start_grid),
             destination_grid="\n".join(
                 " ".join(map(str, row)) for row in self._destination_grid
             ),
@@ -239,9 +244,7 @@ Your goal is to reach the following grid:
         """Score the submitted answer."""
         processed_result = self._process(answer)
         if processed_result is None or processed_result == "":
-            return -1.0
-
-        # Simulate the moves
+            return 0.0
         destination_grid = [row.copy() for row in self._start_grid]
         zero_i, zero_j = self._zero_i, self._zero_j
         N = len(self._start_grid)
@@ -250,31 +253,28 @@ Your goal is to reach the following grid:
         for action in processed_result:
             # Check if action is valid
             if action not in self.action2delta:
-                return -1.0
-
+                return 0.0
             new_zero_i = zero_i + self.action2delta[action][0]
             new_zero_j = zero_j + self.action2delta[action][1]
 
             # Check if move is within bounds
             if 0 <= new_zero_i < N and 0 <= new_zero_j < M:
                 # Swap 0 with the tile at new position
-                destination_grid[zero_i][zero_j], destination_grid[new_zero_i][
-                    new_zero_j
-                ] = (
+                (
+                    destination_grid[zero_i][zero_j],
+                    destination_grid[new_zero_i][new_zero_j],
+                ) = (
                     destination_grid[new_zero_i][new_zero_j],
                     destination_grid[zero_i][zero_j],
                 )
                 zero_i, zero_j = new_zero_i, new_zero_j
             else:
-                return -0.5
-
-        # Calculate reward based on how many cells match
+                return 0.0
         matches = sum(
-            sum(
-                int(a == b)
-                for a, b in zip(gold_row, answer_row)
+            sum(int(a == b) for a, b in zip(gold_row, answer_row, strict=False))
+            for gold_row, answer_row in zip(
+                self._destination_grid, destination_grid, strict=False
             )
-            for gold_row, answer_row in zip(self._destination_grid, destination_grid)
         )
         return (matches / (N * M)) ** 10
 

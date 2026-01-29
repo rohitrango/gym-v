@@ -63,7 +63,7 @@ Do **NOT** include backticks or quotes in your output. Output one action per lin
         self._start_grid: list[list[int]] | None = None
         self._destination_grid: list[list[int]] | None = None
         self._prompt: str | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -95,6 +95,10 @@ Do **NOT** include backticks or quotes in your output. Output one action per lin
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt or ""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -104,16 +108,14 @@ Do **NOT** include backticks or quotes in your output. Output one action per lin
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -131,16 +133,14 @@ Do **NOT** include backticks or quotes in your output. Output one action per lin
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -230,7 +230,7 @@ Do **NOT** include backticks or quotes in your output. Output one action per lin
             destination_grid = new_grid
 
         self._destination_grid = destination_grid
-        self._reference_answer = reference_answer.strip()
+        self._oracle_answer = reference_answer.strip()
 
     def _prompt_generate(self) -> str:
         """Generate prompt text."""
@@ -244,9 +244,7 @@ Do **NOT** include backticks or quotes in your output. Output one action per lin
             NM_minus_1=N * M - 1,
             row_K=self._row_k,
             col_K=self._col_k,
-            start_grid="\n".join(
-                " ".join(map(str, row)) for row in self._start_grid
-            ),
+            start_grid="\n".join(" ".join(map(str, row)) for row in self._start_grid),
             destination_grid="\n".join(
                 " ".join(map(str, row)) for row in self._destination_grid
             ),
@@ -279,8 +277,7 @@ Do **NOT** include backticks or quotes in your output. Output one action per lin
         """Score the answer (ported from RLVE)."""
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         destination_grid = [row.copy() for row in self._start_grid]
 
         for action in processed_result:
@@ -288,10 +285,10 @@ Do **NOT** include backticks or quotes in your output. Output one action per lin
             if action[0] == "row":
                 index = action[1]
                 if not (0 <= index < self._n):
-                    return -0.5
+                    return 0.0
                 shifts = action[2]
                 if not (-self._row_k <= shifts <= self._row_k):
-                    return -0.5
+                    return 0.0
                 for j in range(self._m):
                     new_grid[index][j] = destination_grid[index][
                         ((j - shifts) % self._m + self._m) % self._m
@@ -300,10 +297,10 @@ Do **NOT** include backticks or quotes in your output. Output one action per lin
                 assert action[0] == "column"
                 index = action[1]
                 if not (0 <= index < self._m):
-                    return -0.5
+                    return 0.0
                 shifts = action[2]
                 if not (-self._col_k <= shifts <= self._col_k):
-                    return -0.5
+                    return 0.0
                 for i in range(self._n):
                     new_grid[i][index] = destination_grid[
                         ((i - shifts) % self._n + self._n) % self._n
@@ -312,8 +309,10 @@ Do **NOT** include backticks or quotes in your output. Output one action per lin
 
         # Calculate reward using mean([gold=answer])^beta strategy
         matching_cells = sum(
-            sum(int(a == b) for a, b in zip(gold_row, answer_row))
-            for gold_row, answer_row in zip(self._destination_grid, destination_grid)
+            sum(int(a == b) for a, b in zip(gold_row, answer_row, strict=False))
+            for gold_row, answer_row in zip(
+                self._destination_grid, destination_grid, strict=False
+            )
         )
         total_cells = self._n * self._m
         return (matching_cells / total_cells) ** 10

@@ -55,7 +55,7 @@ The matrix is given in **row-major order**, with each row represented as a strin
         self._N: int | None = None
         self._M: int | None = None
         self._prompt: str | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -84,6 +84,12 @@ The matrix is given in **row-major order**, with each row represented as a strin
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return text representation of the binario grid."""
+        if self._matrix is None:
+            return ""
+        return "\n".join(self._matrix)
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -93,16 +99,16 @@ The matrix is given in **row-major order**, with each row represented as a strin
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -120,16 +126,16 @@ The matrix is given in **row-major order**, with each row represented as a strin
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -171,7 +177,7 @@ The matrix is given in **row-major order**, with each row represented as a strin
             [str((row_permutation[i] + col_permutation[j]) % 2) for j in range(2 * M)]
             for i in range(2 * N)
         ]
-        self._reference_answer = "\n".join("".join(row) for row in matrix)
+        self._oracle_answer = "\n".join("".join(row) for row in matrix)
 
         # Apply sparsity to create puzzle
         sparsity = self._sparsity
@@ -224,25 +230,20 @@ The matrix is given in **row-major order**, with each row represented as a strin
         """
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         N, M = self._N, self._M
         solution = processed_result
 
         # Check format
         if len(solution) != 2 * N or any(len(row) != 2 * M for row in solution):
-            return -1.0
+            return 0.0
         for row in solution:
             if not all(c in "01" for c in row):
-                return -1.0
-
-        # Check that pre-filled cells are not changed
-        for row, original_row in zip(solution, self._matrix):
-            for cell, original_cell in zip(row, original_row):
+                return 0.0
+        for row, original_row in zip(solution, self._matrix, strict=False):
+            for cell, original_cell in zip(row, original_row, strict=False):
                 if original_cell != "*" and cell != original_cell:
-                    return -0.5
-
-        # Check row constraints (equal 0s and 1s)
+                    return 0.0
         for i in range(2 * N):
             if solution[i].count("1") != solution[i].count("0"):
                 return 0.0

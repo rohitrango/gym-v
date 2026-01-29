@@ -50,7 +50,7 @@ Example: `0 2 1` (do **NOT** include the backticks or quotes); this means the pa
 
         self._N: int | None = None
         self._edges: list[tuple[int, int]] | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._prompt: str | None = None
         self._last_image: Image.Image | None = None
 
@@ -74,6 +74,16 @@ Example: `0 2 1` (do **NOT** include the backticks or quotes); this means the pa
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return a text representation of the current graph state."""
+        if self._N is None or self._edges is None:
+            return ""
+        lines = [f"Directed graph with {self._N} vertices (0 to {self._N - 1})."]
+        lines.append("Directed edges (from -> to):")
+        for s, t in self._edges:
+            lines.append(f"  ({s}, {t})")
+        return "\n".join(lines)
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -83,16 +93,16 @@ Example: `0 2 1` (do **NOT** include the backticks or quotes); this means the pa
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -112,16 +122,16 @@ Example: `0 2 1` (do **NOT** include the backticks or quotes); this means the pa
 
         reward = float(self._score_answer(action_str))
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -151,18 +161,17 @@ Example: `0 2 1` (do **NOT** include the backticks or quotes); this means the pa
         # Construct a valid Hamiltonian path
         constructed_path = list(range(N))
         self.np_random.shuffle(constructed_path)
-        self._reference_answer = " ".join(map(str, constructed_path))
+        self._oracle_answer = " ".join(map(str, constructed_path))
 
         # Add edges for the constructed path
-        for s, t in zip(constructed_path, constructed_path[1:]):
+        for s, t in zip(constructed_path, constructed_path[1:], strict=False):
             edges.append((s, t))
 
         # Add additional random edges to reach target density
         num_edges = int(self._edge_density * N * (N - 1))
         if len(edges) < num_edges:
             remaining_edges = list(
-                set((s, t) for s in range(N) for t in range(N) if s != t)
-                - set(edges)
+                set((s, t) for s in range(N) for t in range(N) if s != t) - set(edges)
             )
             additional_count = min(len(remaining_edges), num_edges - len(edges))
             additional_edges = list(
@@ -199,16 +208,18 @@ Example: `0 2 1` (do **NOT** include the backticks or quotes); this means the pa
         """Score answer using RLVE scoring logic."""
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0  # wrong_format
+            return 0.0
 
         path = processed_result
         if len(path) != self._N:
-            return -0.5  # invalid_solution
+            return 0.0
         if set(path) != set(range(self._N)):
-            return -0.5  # invalid_solution
+            return 0.0
 
         edges = set(map(tuple, self._edges))
-        existing = sum(int((s, t) in edges) for s, t in zip(path, path[1:]))
+        existing = sum(
+            int((s, t) in edges) for s, t in zip(path, path[1:], strict=False)
+        )
 
         # Using "(existing/all)^beta" strategy with beta=5.0
         return ((existing / (self._N - 1)) ** 5.0) if self._N > 1 else 1.0

@@ -66,7 +66,7 @@ Your goal is to transform it into the following grid:
         self._start_grid: list[list[int]] | None = None
         self._destination_grid: list[list[int]] | None = None
         self._prompt: str | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -93,6 +93,10 @@ Your goal is to transform it into the following grid:
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt or ""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -102,16 +106,16 @@ Your goal is to transform it into the following grid:
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -129,16 +133,16 @@ Your goal is to transform it into the following grid:
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -204,7 +208,7 @@ Your goal is to transform it into the following grid:
             destination_grid = new_grid
 
         self._destination_grid = destination_grid
-        self._reference_answer = "\n".join(reference_answer_lines)
+        self._oracle_answer = "\n".join(reference_answer_lines)
 
     def _prompt_generate(self) -> str:
         """Generate the prompt text for the puzzle."""
@@ -216,9 +220,7 @@ Your goal is to transform it into the following grid:
             M=M,
             NM_minus_1=N * M - 1,
             K=self._k,
-            start_grid="\n".join(
-                " ".join(map(str, row)) for row in self._start_grid
-            ),
+            start_grid="\n".join(" ".join(map(str, row)) for row in self._start_grid),
             destination_grid="\n".join(
                 " ".join(map(str, row)) for row in self._destination_grid
             ),
@@ -268,8 +270,7 @@ Your goal is to transform it into the following grid:
         """
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         N, M, K = self._n, self._m, self._k
         destination_grid = [row.copy() for row in self._start_grid]
 
@@ -277,9 +278,7 @@ Your goal is to transform it into the following grid:
         for i, j in processed_result:
             # Check if action is valid
             if not (0 <= i <= N - K and 0 <= j <= M - K):
-                return -0.5
-
-            # Apply 90-degree counterclockwise rotation
+                return 0.0
             new_grid = [row.copy() for row in destination_grid]
             for x in range(K):
                 for y in range(K):
@@ -302,7 +301,7 @@ Your goal is to transform it into the following grid:
         else:
             # Use the same scoring strategy as RLVE: (accuracy)^5
             # This ensures wrong answers get very low scores
-            return accuracy ** 5.0
+            return accuracy**5.0
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the puzzle as an image showing start and destination grids.
@@ -343,7 +342,11 @@ Your goal is to transform it into the following grid:
         # Draw both grids
         grids = [
             (self._start_grid, "START", padding),
-            (self._destination_grid, "GOAL", padding + single_grid_width + grid_spacing),
+            (
+                self._destination_grid,
+                "GOAL",
+                padding + single_grid_width + grid_spacing,
+            ),
         ]
 
         for grid, label, x_offset in grids:

@@ -57,7 +57,7 @@ Assuming both players play optimally, what is the **maximum total value** Alice 
         self._n: int | None = None
         self._coins: list[int] | None = None
         self._prompt: str | None = None
-        self._reference_answer: int | None = None
+        self._oracle_answer: int | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -91,6 +91,12 @@ Assuming both players play optimally, what is the **maximum total value** Alice 
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return text representation of the coins."""
+        if self._coins is None:
+            return ""
+        return f"Coins: {' '.join(map(str, self._coins))}"
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -100,16 +106,16 @@ Assuming both players play optimally, what is the **maximum total value** Alice 
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -127,16 +133,16 @@ Assuming both players play optimally, what is the **maximum total value** Alice 
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
 
         terminated = True
@@ -212,7 +218,7 @@ Assuming both players play optimally, what is the **maximum total value** Alice 
 
         self._n = N
         self._coins = C
-        self._reference_answer = dp_rows[N][1]
+        self._oracle_answer = dp_rows[N][1]
 
     def _prompt_generate(self) -> str:
         """Generate the prompt text for the problem."""
@@ -220,9 +226,7 @@ Assuming both players play optimally, what is the **maximum total value** Alice 
             raise RuntimeError("No problem generated")
         return self.prompt_template.format(
             N=self._n,
-            C=" ".join(
-                "C[{}]={}".format(i, Ci) for i, Ci in enumerate(self._coins, start=1)
-            ),
+            C=" ".join(f"C[{i}]={Ci}" for i, Ci in enumerate(self._coins, start=1)),
         )
 
     def _process(self, answer: str | None) -> int | None:
@@ -247,12 +251,12 @@ Assuming both players play optimally, what is the **maximum total value** Alice 
         """
         processed_result = self._process(answer)
         if processed_result is not None:
-            if processed_result == self._reference_answer:
+            if processed_result == self._oracle_answer:
                 return 1.0
             else:
                 return 0.0
         else:
-            return -1.0
+            return 0.0
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the coin square game as an image.
@@ -349,7 +353,10 @@ Assuming both players play optimally, what is the **maximum total value** Alice 
             text_color = (255, 255, 255) if normalized > 0.5 else (30, 30, 30)
 
             draw.text(
-                (cx - tw // 2, cy - th // 2), value_str, fill=text_color, font=font_large
+                (cx - tw // 2, cy - th // 2),
+                value_str,
+                fill=text_color,
+                font=font_large,
             )
 
             # Draw position label (1-indexed)
@@ -392,8 +399,6 @@ Assuming both players play optimally, what is the **maximum total value** Alice 
             outline=(30, 30, 30),
             width=1,
         )
-        draw.text(
-            (padding + 40, bob_y + 2), "Bob", fill=(30, 30, 30), font=font_tiny
-        )
+        draw.text((padding + 40, bob_y + 2), "Bob", fill=(30, 30, 30), font=font_tiny)
 
         return img

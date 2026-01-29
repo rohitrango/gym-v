@@ -48,7 +48,7 @@ The grid is given as follows:
         self._N: int = 0
         self._M: int = 0
         self._prompt: str | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -84,6 +84,12 @@ The grid is given as follows:
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return text representation of the input grid."""
+        if self._grid is None:
+            return ""
+        return "\n".join("".join(row) for row in self._grid)
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -93,16 +99,16 @@ The grid is given as follows:
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -120,16 +126,16 @@ The grid is given as follows:
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -193,9 +199,7 @@ The grid is given as follows:
 
         self._grid = grid
         self._distances = distances
-        self._reference_answer = "\n".join(
-            " ".join(map(str, row)) for row in distances
-        )
+        self._oracle_answer = "\n".join(" ".join(map(str, row)) for row in distances)
 
     def _prompt_generate(self) -> str:
         if self._grid is None:
@@ -223,18 +227,15 @@ The grid is given as follows:
     def _score_answer(self, answer: str) -> float:
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         distance = processed_result
         if len(distance) != self._N:
-            return -1.0
+            return 0.0
         if not all(len(row) == self._M for row in distance):
-            return -1.0
-
-        # Calculate score using mean([gold=answer])^beta strategy
+            return 0.0
         correct_cells = sum(
-            sum(ans == gold for ans, gold in zip(answer_row, gold_row))
-            for answer_row, gold_row in zip(distance, self._distances)
+            sum(ans == gold for ans, gold in zip(answer_row, gold_row, strict=False))
+            for answer_row, gold_row in zip(distance, self._distances, strict=False)
         )
         total_cells = self._N * self._M
         accuracy = correct_cells / total_cells
@@ -305,7 +306,7 @@ The grid is given as follows:
                         fill = (
                             int(200 + intensity * 55),
                             int(220 + intensity * 35),
-                            int(255),
+                            255,
                         )
                     else:
                         fill = (220, 235, 255)

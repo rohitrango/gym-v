@@ -55,7 +55,7 @@ Please compute the total probability that all the above T[u] < T[v] conditions h
 
         self._parameter: dict[str, Any] = {}
         self._prompt: str | None = None
-        self._reference_answer: int | None = None
+        self._oracle_answer: int | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -93,6 +93,10 @@ Please compute the total probability that all the above T[u] < T[v] conditions h
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt or ""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -102,16 +106,14 @@ Please compute the total probability that all the above T[u] < T[v] conditions h
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -129,16 +131,14 @@ Please compute the total probability that all the above T[u] < T[v] conditions h
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
 
         terminated = True
@@ -191,7 +191,7 @@ Please compute the total probability that all the above T[u] < T[v] conditions h
 
         # Compute reference answer using dynamic programming on tree
         S = []
-        for a1, a2, a3 in zip(A, B, C):
+        for a1, a2, a3 in zip(A, B, C, strict=False):
             total = a1 + a2 + a3
             S.append(pow(total, self.MOD - 2, self.MOD))
 
@@ -251,7 +251,7 @@ Please compute the total probability that all the above T[u] < T[v] conditions h
 
         # Run and collect answer
         dfs(0, -1)
-        self._reference_answer = sum(f[0][1 : 3 * size[0] + 1]) % self.MOD
+        self._oracle_answer = sum(f[0][1 : 3 * size[0] + 1]) % self.MOD
 
     def _prompt_generate(self) -> str:
         """Generate the prompt text for the problem."""
@@ -260,18 +260,18 @@ Please compute the total probability that all the above T[u] < T[v] conditions h
         return self.prompt_template.format(
             N=self._parameter["N"],
             A="\n".join(
-                "A[{}][1, 2, 3] = [{}, {}, {}]".format(i, a, b, c)
+                f"A[{i}][1, 2, 3] = [{a}, {b}, {c}]"
                 for i, (a, b, c) in enumerate(
                     zip(
                         self._parameter["A"],
                         self._parameter["B"],
                         self._parameter["C"],
+                        strict=False,
                     )
                 )
             ),
             T_inequalities="\n".join(
-                "T[{}] < T[{}]".format(u, v)
-                for u, v in self._parameter["T_inequalities"]
+                f"T[{u}] < T[{v}]" for u, v in self._parameter["T_inequalities"]
             ),
             MOD=self.MOD,
         )
@@ -300,13 +300,13 @@ Please compute the total probability that all the above T[u] < T[v] conditions h
         processed_result = self._process(answer)
         if processed_result is not None:
             if not (0 <= processed_result < self.MOD):
-                return -0.5
-            if processed_result == self._reference_answer:
+                return 0.0
+            if processed_result == self._oracle_answer:
                 return 1.0
             else:
-                return -0.1
+                return 0.0
         else:
-            return -1.0
+            return 0.0
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the money charging game visualization.
@@ -387,7 +387,9 @@ Please compute the total probability that all the above T[u] < T[v] conditions h
         for i in range(N):
             node_y = y_cursor + i * 35
             node_label = f"Node {i}:"
-            draw.text((padding + 10, node_y), node_label, fill=(60, 60, 60), font=font_small)
+            draw.text(
+                (padding + 10, node_y), node_label, fill=(60, 60, 60), font=font_small
+            )
 
             bar_x_start = padding + 100
 
@@ -396,7 +398,9 @@ Please compute the total probability that all the above T[u] < T[v] conditions h
             colors = [(100, 200, 100), (100, 150, 255), (255, 100, 100)]
             labels = ["A1", "A2", "A3"]
 
-            for j, (val, color, label) in enumerate(zip(values, colors, labels)):
+            for j, (val, color, label) in enumerate(
+                zip(values, colors, labels, strict=False)
+            ):
                 bar_x = bar_x_start + j * (bar_width + 10)
                 bar_height = 20
                 bar_length = int((val / max_val) * bar_width)
@@ -453,7 +457,9 @@ Please compute the total probability that all the above T[u] < T[v] conditions h
         node_positions = {}
         visited = [False] * N
 
-        def layout_tree(node: int, x: float, y: float, width: float, parent: int = -1) -> None:
+        def layout_tree(
+            node: int, x: float, y: float, width: float, parent: int = -1
+        ) -> None:
             visited[node] = True
             node_positions[node] = (x, y)
 

@@ -55,7 +55,7 @@ Please count the number of **distinct sequences** `H[p[0]], H[p[1]], ..., H[p[{N
         self._c_array: list[int] | None = None
         self._mod: int | None = None
         self._prompt: str | None = None
-        self._reference_answer: int | None = None
+        self._oracle_answer: int | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -96,6 +96,10 @@ Please count the number of **distinct sequences** `H[p[0]], H[p[1]], ..., H[p[{N
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -105,16 +109,14 @@ Please count the number of **distinct sequences** `H[p[0]], H[p[1]], ..., H[p[{N
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -132,16 +134,14 @@ Please count the number of **distinct sequences** `H[p[0]], H[p[1]], ..., H[p[{N
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
 
         terminated = True
@@ -230,12 +230,12 @@ Please count the number of **distinct sequences** `H[p[0]], H[p[1]], ..., H[p[{N
 
             # Sum valid configurations for last element
             last_key = A_sorted[end][1]
-            res = sum(dp[1:min(processed, last_key) + 1]) % MOD
+            res = sum(dp[1 : min(processed, last_key) + 1]) % MOD
             ans_heights = (ans_heights * res) % MOD
 
             start = end + 1  # Move to next block
 
-        self._reference_answer = ans_heights
+        self._oracle_answer = ans_heights
 
     def _prompt_generate(self) -> str:
         """Generate the prompt text for the problem."""
@@ -273,13 +273,13 @@ Please count the number of **distinct sequences** `H[p[0]], H[p[1]], ..., H[p[{N
         processed_result = self._process(answer)
         if processed_result is not None:
             if not (0 <= processed_result < self._mod):
-                return -0.5
-            if processed_result == self._reference_answer:
+                return 0.0
+            if processed_result == self._oracle_answer:
                 return 1.0
             else:
-                return -0.25
+                return 0.0
         else:
-            return -1.0
+            return 0.0
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the landform generation counting problem as an image.
@@ -379,7 +379,7 @@ Please count the number of **distinct sequences** `H[p[0]], H[p[1]], ..., H[p[{N
                 [x_left, y_top, x_right, baseline_y],
                 fill=color,
                 outline=(50, 50, 50),
-                width=2
+                width=2,
             )
 
             # Add subtle highlight
@@ -388,7 +388,7 @@ Please count the number of **distinct sequences** `H[p[0]], H[p[1]], ..., H[p[{N
             draw.rectangle(
                 [x_left + 2, y_top + 2, x_left + highlight_width, baseline_y - 2],
                 fill=highlight_color,
-                outline=None
+                outline=None,
             )
 
             # Draw height label on top of bar
@@ -405,13 +405,15 @@ Please count the number of **distinct sequences** `H[p[0]], H[p[1]], ..., H[p[{N
             bbox = draw.textbbox((0, 0), idx_text, font=font_small)
             tw = bbox[2] - bbox[0]
             text_x = x_left + (x_right - x_left) // 2 - tw // 2
-            draw.text((text_x, baseline_y + 4), idx_text, fill=(80, 80, 80), font=font_small)
+            draw.text(
+                (text_x, baseline_y + 4), idx_text, fill=(80, 80, 80), font=font_small
+            )
 
         # Draw baseline
         draw.line(
             (terrain_x, baseline_y, terrain_x + terrain_width, baseline_y),
             fill=(60, 60, 60),
-            width=2
+            width=2,
         )
 
         # Draw title
@@ -422,7 +424,7 @@ Please count the number of **distinct sequences** `H[p[0]], H[p[1]], ..., H[p[{N
             (width // 2 - tw // 2, terrain_y - 8),
             title,
             fill=(30, 30, 30),
-            font=font_large
+            font=font_large,
         )
 
         # Draw legend section
@@ -430,16 +432,22 @@ Please count the number of **distinct sequences** `H[p[0]], H[p[1]], ..., H[p[{N
 
         # Title
         legend_title = "Configuration Details:"
-        draw.text((padding, legend_y), legend_title, fill=(30, 30, 30), font=font_medium)
+        draw.text(
+            (padding, legend_y), legend_title, fill=(30, 30, 30), font=font_medium
+        )
         legend_y += 28
 
         # Heights
-        h_text = "Heights (H): " + ", ".join(f"[{i}]={h}" for i, h in enumerate(self._h_array))
+        h_text = "Heights (H): " + ", ".join(
+            f"[{i}]={h}" for i, h in enumerate(self._h_array)
+        )
         draw.text((padding + 10, legend_y), h_text, fill=(60, 60, 60), font=font_small)
         legend_y += 22
 
         # Capacities
-        c_text = "Capacities (C): " + ", ".join(f"[{i}]={c}" for i, c in enumerate(self._c_array))
+        c_text = "Capacities (C): " + ", ".join(
+            f"[{i}]={c}" for i, c in enumerate(self._c_array)
+        )
         draw.text((padding + 10, legend_y), c_text, fill=(60, 60, 60), font=font_small)
         legend_y += 28
 
@@ -466,17 +474,22 @@ Please count the number of **distinct sequences** `H[p[0]], H[p[1]], ..., H[p[{N
                     gradient_x + seg * seg_width,
                     gradient_y,
                     gradient_x + (seg + 1) * seg_width,
-                    gradient_y + gradient_height
+                    gradient_y + gradient_height,
                 ],
                 fill=color,
-                outline=None
+                outline=None,
             )
 
         # Gradient border
         draw.rectangle(
-            [gradient_x, gradient_y, gradient_x + gradient_width, gradient_y + gradient_height],
+            [
+                gradient_x,
+                gradient_y,
+                gradient_x + gradient_width,
+                gradient_y + gradient_height,
+            ],
             outline=(60, 60, 60),
-            width=2
+            width=2,
         )
 
         # Labels for gradient
@@ -484,7 +497,7 @@ Please count the number of **distinct sequences** `H[p[0]], H[p[1]], ..., H[p[{N
             (gradient_x, gradient_y + gradient_height + 4),
             "Low",
             fill=(80, 80, 80),
-            font=font_small
+            font=font_small,
         )
         bbox = draw.textbbox((0, 0), "High", font=font_small)
         tw = bbox[2] - bbox[0]
@@ -492,12 +505,14 @@ Please count the number of **distinct sequences** `H[p[0]], H[p[1]], ..., H[p[{N
             (gradient_x + gradient_width - tw, gradient_y + gradient_height + 4),
             "High",
             fill=(80, 80, 80),
-            font=font_small
+            font=font_small,
         )
 
         # Add constraint info
         legend_y += gradient_height + 26
         constraint_text = f"Task: Count distinct height sequences from valid permutations (mod {self._mod})"
-        draw.text((padding, legend_y), constraint_text, fill=(100, 100, 100), font=font_small)
+        draw.text(
+            (padding, legend_y), constraint_text, fill=(100, 100, 100), font=font_small
+        )
 
         return img

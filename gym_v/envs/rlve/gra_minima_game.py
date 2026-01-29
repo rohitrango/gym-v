@@ -48,7 +48,7 @@ Each player plays optimally to maximize **their score minus their opponent's sco
         self._n: int | None = None
         self._numbers: list[int] | None = None
         self._prompt: str | None = None
-        self._reference_answer: int | None = None
+        self._oracle_answer: int | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -85,6 +85,12 @@ Each player plays optimally to maximize **their score minus their opponent's sco
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return text representation of the numbers."""
+        if self._numbers is None:
+            return ""
+        return f"Numbers: {' '.join(map(str, self._numbers))}"
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -94,16 +100,16 @@ Each player plays optimally to maximize **their score minus their opponent's sco
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -121,16 +127,16 @@ Each player plays optimally to maximize **their score minus their opponent's sco
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
 
         terminated = True
@@ -171,7 +177,7 @@ Each player plays optimally to maximize **their score minus their opponent's sco
 
         self._n = N
         self._numbers = A
-        self._reference_answer = ans
+        self._oracle_answer = ans
 
     def _prompt_generate(self) -> str:
         """Generate the prompt text for the problem."""
@@ -204,12 +210,12 @@ Each player plays optimally to maximize **their score minus their opponent's sco
         """
         processed_result = self._process(answer)
         if processed_result is not None:
-            if processed_result == self._reference_answer:
+            if processed_result == self._oracle_answer:
                 return 1.0
             else:
                 return 0.0
         else:
-            return -1.0
+            return 0.0
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the Gra Minima Game as an image.
@@ -295,7 +301,7 @@ Each player plays optimally to maximize **their score minus their opponent's sco
                 t = (normalized - 0.5) * 2
                 r_val = 255
                 g_val = int(255 - t * 155)
-                b_val = int(0)
+                b_val = 0
 
             cell_color = (r_val, g_val, b_val)
 
@@ -326,7 +332,10 @@ Each player plays optimally to maximize **their score minus their opponent's sco
                     font=font_large,
                 )
             draw.text(
-                (cx - tw // 2, cy - th // 2), value_str, fill=text_color, font=font_large
+                (cx - tw // 2, cy - th // 2),
+                value_str,
+                fill=text_color,
+                font=font_large,
             )
 
         # Draw legend
@@ -334,7 +343,9 @@ Each player plays optimally to maximize **their score minus their opponent's sco
 
         # Visual legend - color gradient
         legend_title = "Color Legend:"
-        draw.text((padding, legend_y), legend_title, fill=(30, 30, 30), font=font_medium)
+        draw.text(
+            (padding, legend_y), legend_title, fill=(30, 30, 30), font=font_medium
+        )
         legend_y += 25
 
         # Show color gradient examples

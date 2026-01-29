@@ -55,9 +55,9 @@ Example: `{first_K_vertices}` (do **NOT** include the backticks or quotes)."""
         self._N: int | None = None
         self._K: int | None = None
         self._edges: list[tuple[int, int, int]] | None = None
-        self._reference_answer_distance: int | None = None
+        self._oracle_answer_distance: int | None = None
         self._prompt: str | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -84,6 +84,10 @@ Example: `{first_K_vertices}` (do **NOT** include the backticks or quotes)."""
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -93,16 +97,14 @@ Example: `{first_K_vertices}` (do **NOT** include the backticks or quotes)."""
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -122,16 +124,14 @@ Example: `{first_K_vertices}` (do **NOT** include the backticks or quotes)."""
 
         reward = float(self._score_answer(action_str))
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -188,8 +188,8 @@ Example: `{first_K_vertices}` (do **NOT** include the backticks or quotes)."""
                 best_distance = distance
                 best_colored = colored
 
-        self._reference_answer_distance = best_distance
-        self._reference_answer = " ".join(map(str, best_colored))
+        self._oracle_answer_distance = best_distance
+        self._oracle_answer = " ".join(map(str, best_colored))
 
     def _compute_distance(
         self,
@@ -248,25 +248,23 @@ Example: `{first_K_vertices}` (do **NOT** include the backticks or quotes)."""
     def _score_answer(self, answer: str) -> float:
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         colored_vertices = processed_result
         N = self._N
         K = self._K
         if len(colored_vertices) != K:
-            return -0.5
+            return 0.0
         if len(set(colored_vertices)) != K:
-            return -0.5
+            return 0.0
         if not all(0 <= vertex < N for vertex in colored_vertices):
-            return -0.5
-
+            return 0.0
         adjacency_list = [[] for _ in range(N)]
         for u, v, w in self._edges:
             adjacency_list[u].append((v, w))
             adjacency_list[v].append((u, w))
 
         answer_distance = self._compute_distance(colored_vertices, N, K, adjacency_list)
-        gold = self._reference_answer_distance
+        gold = self._oracle_answer_distance
 
         return (answer_distance / gold) ** 2
 

@@ -58,9 +58,7 @@ Please fill a jug (you pick the one) with exactly {target_volumn} liters of wate
                 "operation_probabilities should have exactly 3 elements for Fill, Empty, and Pour operations"
             )
         if sum(operation_probabilities) <= 0:
-            raise ValueError(
-                "operation_probabilities should sum to a positive value"
-            )
+            raise ValueError("operation_probabilities should sum to a positive value")
 
         self._operation_probabilities = operation_probabilities
         self._rewards = {
@@ -79,7 +77,7 @@ Please fill a jug (you pick the one) with exactly {target_volumn} liters of wate
         self._n: int | None = None
         self._jug_capacities: list[int] | None = None
         self._target_volumn: int | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._prompt: str | None = None
         self._last_image: Image.Image | None = None
 
@@ -121,6 +119,20 @@ Please fill a jug (you pick the one) with exactly {target_volumn} liters of wate
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the jug problem."""
+        if (
+            self._n is None
+            or self._jug_capacities is None
+            or self._target_volumn is None
+        ):
+            raise RuntimeError("No problem generated")
+
+        capacities_str = ", ".join(
+            f"Jug {i}: {cap}L" for i, cap in enumerate(self._jug_capacities)
+        )
+        return f"Jugs: [{capacities_str}], Target: {self._target_volumn}L"
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -141,16 +153,16 @@ Please fill a jug (you pick the one) with exactly {target_volumn} liters of wate
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -168,16 +180,16 @@ Please fill a jug (you pick the one) with exactly {target_volumn} liters of wate
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -275,7 +287,7 @@ Please fill a jug (you pick the one) with exactly {target_volumn} liters of wate
         self._n = N
         self._jug_capacities = capacities
         self._target_volumn = int(target_volumn)
-        self._reference_answer = reference_answer
+        self._oracle_answer = reference_answer
 
     def _prompt_generate(self) -> str:
         """Generate the prompt text for the problem."""
@@ -341,21 +353,19 @@ Please fill a jug (you pick the one) with exactly {target_volumn} liters of wate
                 if action[0] == "Fill":
                     jug = action[1]
                     if not (0 <= jug < self._n):
-                        return self._rewards["invalid_solution"]
+                        return 0.0
                     volumns[jug] = self._jug_capacities[jug]
                 elif action[0] == "Empty":
                     jug = action[1]
                     if not (0 <= jug < self._n):
-                        return self._rewards["invalid_solution"]
+                        return 0.0
                     volumns[jug] = 0
                 elif action[0] == "Pour":
                     jug_i, jug_j = action[1], action[2]
                     if not (
-                        0 <= jug_i < self._n
-                        and 0 <= jug_j < self._n
-                        and jug_i != jug_j
+                        0 <= jug_i < self._n and 0 <= jug_j < self._n and jug_i != jug_j
                     ):
-                        return self._rewards["invalid_solution"]
+                        return 0.0
                     pour_amount = min(
                         volumns[jug_i],
                         self._jug_capacities[jug_j] - volumns[jug_j],
@@ -370,7 +380,7 @@ Please fill a jug (you pick the one) with exactly {target_volumn} liters of wate
             else:
                 return self._rewards["wrong_solution"]
         else:
-            return self._rewards["wrong_format"]
+            return 0.0
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the jug puzzle as an image.
@@ -428,7 +438,9 @@ Please fill a jug (you pick the one) with exactly {target_volumn} liters of wate
         bbox = draw.textbbox((0, 0), subtitle, font=font_small)
         subtitle_width = bbox[2] - bbox[0]
         subtitle_x = (total_width - subtitle_width) // 2
-        draw.text((subtitle_x, padding + 35), subtitle, fill=(100, 100, 100), font=font_small)
+        draw.text(
+            (subtitle_x, padding + 35), subtitle, fill=(100, 100, 100), font=font_small
+        )
 
         # Draw each jug
         jug_y = padding * 2 + title_height

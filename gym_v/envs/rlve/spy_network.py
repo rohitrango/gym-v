@@ -78,7 +78,7 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
         self._edges: list[tuple[int, int]] | None = None
         self._costs: list[int] | None = None
         self._prompt: str | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._gold_answer: int | None = None
         self._last_image: Image.Image | None = None
 
@@ -114,6 +114,10 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt or ""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -123,16 +127,14 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -150,16 +152,14 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -196,9 +196,7 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
             if s != t and (dominated[s] is False or dominated[t] is True)
         ]
 
-        num_edges = min(
-            len(all_edges), int(self._edge_density * N * (N - 1))
-        )
+        num_edges = min(len(all_edges), int(self._edge_density * N * (N - 1)))
         edge_indices = self.np_random.choice(
             len(all_edges), size=num_edges, replace=False
         )
@@ -274,7 +272,7 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
         self._n = N
         self._edges = edges
         self._costs = costs
-        self._reference_answer = " ".join(map(str, reference_vertices))
+        self._oracle_answer = " ".join(map(str, reference_vertices))
         self._gold_answer = gold_answer
 
     def _prompt_generate(self) -> str:
@@ -332,17 +330,17 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
                     dfs(neighbor)
 
             if len(selected_vertices) != len(set(selected_vertices)):
-                return self._rewards["invalid_solution"]
+                return 0.0
 
             total_cost = 0
             for vertex in selected_vertices:
                 if not (0 <= vertex < self._n):
-                    return self._rewards["invalid_solution"]
+                    return 0.0
                 dfs(vertex)
                 total_cost += self._costs[vertex]
 
             if not all(visited):
-                return self._rewards["unsuccessful_solution"]
+                return 0.0
 
             gold = self._gold_answer
             assert gold <= total_cost
@@ -358,7 +356,7 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
                     f"Unknown rewarding strategy: {self._rewards['rewarding_strategy']}"
                 )
         else:
-            return self._rewards["wrong_format"]
+            return 0.0
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the spy network as a beautiful directed graph.
@@ -418,11 +416,15 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
         # Scale positions to fit in graph area
         scaled_pos = {}
         for node, (x, y) in pos.items():
-            scaled_x = padding + node_radius + (x - min_x) / (max_x - min_x) * (
-                graph_width - 2 * node_radius
+            scaled_x = (
+                padding
+                + node_radius
+                + (x - min_x) / (max_x - min_x) * (graph_width - 2 * node_radius)
             )
-            scaled_y = padding + node_radius + (y - min_y) / (max_y - min_y) * (
-                graph_height - 2 * node_radius
+            scaled_y = (
+                padding
+                + node_radius
+                + (y - min_y) / (max_y - min_y) * (graph_height - 2 * node_radius)
             )
             scaled_pos[node] = (int(scaled_x), int(scaled_y))
 
@@ -440,7 +442,7 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
             # Calculate direction
             dx = x2 - x1
             dy = y2 - y1
-            dist = (dx ** 2 + dy ** 2) ** 0.5
+            dist = (dx**2 + dy**2) ** 0.5
             if dist == 0:
                 continue
 
@@ -498,14 +500,21 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
             bbox = draw.textbbox((0, 0), text, font=font_large)
             tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
             text_color = (255, 255, 255) if intensity > 0.5 else (30, 30, 30)
-            draw.text((x - tw // 2, y - th // 2), text, fill=text_color, font=font_large)
+            draw.text(
+                (x - tw // 2, y - th // 2), text, fill=text_color, font=font_large
+            )
 
             # Draw cost below node
             cost_text = f"c={cost}"
             bbox = draw.textbbox((0, 0), cost_text, font=font_small)
             tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
             draw.rectangle(
-                [x - tw // 2 - 3, y + node_radius + 2, x + tw // 2 + 3, y + node_radius + th + 6],
+                [
+                    x - tw // 2 - 3,
+                    y + node_radius + 2,
+                    x + tw // 2 + 3,
+                    y + node_radius + th + 6,
+                ],
                 fill=(255, 255, 255),
                 outline=(30, 30, 30),
                 width=1,
@@ -565,13 +574,21 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
             blue = int(255 - intensity * 100)
             color = (red, green, blue)
             draw.line(
-                [(gradient_x + i, legend_y), (gradient_x + i, legend_y + gradient_height)],
+                [
+                    (gradient_x + i, legend_y),
+                    (gradient_x + i, legend_y + gradient_height),
+                ],
                 fill=color,
                 width=1,
             )
 
         draw.rectangle(
-            [gradient_x, legend_y, gradient_x + gradient_width, legend_y + gradient_height],
+            [
+                gradient_x,
+                legend_y,
+                gradient_x + gradient_width,
+                legend_y + gradient_height,
+            ],
             outline=(30, 30, 30),
             width=2,
         )

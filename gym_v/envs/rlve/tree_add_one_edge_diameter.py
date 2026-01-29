@@ -38,8 +38,6 @@ Let's add **exactly one undirected edge** with weight {L} to the tree. Our goal 
         image_width: int = 800,
         image_height: int = 700,
         num_players: int = 1,
-        wrong_format: float = -1.0,
-        invalid_solution: float = -0.5,
         rewarding_strategy: str = "(gold/answer)^beta",
         rewarding_weight: float = 1.0,
         rewarding_beta: float = 5.0,
@@ -54,8 +52,6 @@ Let's add **exactly one undirected edge** with weight {L} to the tree. Our goal 
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         self.rewards = {
-            "wrong_format": wrong_format,
-            "invalid_solution": invalid_solution,
             "rewarding_strategy": rewarding_strategy,
             "rewarding_weight": rewarding_weight,
             "rewarding_beta": rewarding_beta,
@@ -66,7 +62,7 @@ Let's add **exactly one undirected edge** with weight {L} to the tree. Our goal 
         self._edges: list[tuple[int, int, int]] | None = None
         self._gold_answer: int | None = None
         self._prompt: str | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -92,6 +88,10 @@ Let's add **exactly one undirected edge** with weight {L} to the tree. Our goal 
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -101,16 +101,14 @@ Let's add **exactly one undirected edge** with weight {L} to the tree. Our goal 
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -130,16 +128,14 @@ Let's add **exactly one undirected edge** with weight {L} to the tree. Our goal 
 
         reward = float(self._score_answer(action_str))
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -264,7 +260,9 @@ Let's add **exactly one undirected edge** with weight {L} to the tree. Our goal 
 
         # 6) Prepare sorted index lists for the two-pointer checks
         p1 = [0] + sorted(range(1, cnt + 1), key=lambda i: val[i] + pre[i])
-        p2 = [0] + sorted(range(1, cnt + 1), key=lambda i: val[i] - pre[i], reverse=True)
+        p2 = [0] + sorted(
+            range(1, cnt + 1), key=lambda i: val[i] - pre[i], reverse=True
+        )
 
         # 7) Feasibility check: can we achieve diameter <= x after adding the new edge?
         def check(x):
@@ -357,7 +355,11 @@ Let's add **exactly one undirected edge** with weight {L} to the tree. Our goal 
                 G.add_weighted_edges_from(edges)
                 G.add_edge(x, y, weight=L)
                 diameter = max(
-                    max(nx.single_source_dijkstra_path_length(G, u, weight="weight").values())
+                    max(
+                        nx.single_source_dijkstra_path_length(
+                            G, u, weight="weight"
+                        ).values()
+                    )
                     for u in G.nodes()
                 )
                 if diameter == ans:
@@ -366,7 +368,7 @@ Let's add **exactly one undirected edge** with weight {L} to the tree. Our goal 
             if best_edge != (1, 2) or (x == 1 and y == 2):
                 break
 
-        self._reference_answer = f"{best_edge[0]} {best_edge[1]}"
+        self._oracle_answer = f"{best_edge[0]} {best_edge[1]}"
 
     def _prompt_generate(self) -> str:
         """Generate text prompt - ported from RLVE."""
@@ -374,7 +376,7 @@ Let's add **exactly one undirected edge** with weight {L} to the tree. Our goal 
         return self.prompt_template.format(
             N=N,
             N_minus_1=N - 1,
-            edges="\n".join("({}, {}, {})".format(u, v, w) for u, v, w in self._edges),
+            edges="\n".join(f"({u}, {v}, {w})" for u, v, w in self._edges),
             L=self._L,
         )
 
@@ -395,22 +397,24 @@ Let's add **exactly one undirected edge** with weight {L} to the tree. Our goal 
         processed_result = self._process(answer)
         if processed_result is not None:
             x, y = processed_result
-            if not (
-                1 <= x <= self._N and 1 <= y <= self._N
-            ):
-                return self.rewards["invalid_solution"]
+            if not (1 <= x <= self._N and 1 <= y <= self._N):
+                return 0.0
 
             G = nx.MultiGraph()
             G.add_weighted_edges_from(self._edges)
             G.add_edge(x, y, weight=self._L)
             answer_diam = max(
-                max(nx.single_source_dijkstra_path_length(G, u, weight="weight").values())
+                max(
+                    nx.single_source_dijkstra_path_length(
+                        G, u, weight="weight"
+                    ).values()
+                )
                 for u in G.nodes()
             )
             gold = self._gold_answer
-            assert (
-                0 <= gold <= answer_diam
-            ), "The answer should be at least as large as the gold answer"
+            assert 0 <= gold <= answer_diam, (
+                "The answer should be at least as large as the gold answer"
+            )
             if self.rewards["rewarding_strategy"] == "(gold/answer)^beta":
                 if answer_diam == 0:
                     assert gold == 0, "gold should be zero if answer is zero"
@@ -427,7 +431,7 @@ Let's add **exactly one undirected edge** with weight {L} to the tree. Our goal 
                     )
                 )
         else:
-            return self.rewards["wrong_format"]
+            return 0.0
 
     def render(self) -> Image.Image:
         """Render tree with hierarchical layout."""
@@ -476,7 +480,9 @@ Let's add **exactly one undirected edge** with weight {L} to the tree. Our goal 
         # Try hierarchical layout using spring layout with tree structure
         # Use spring layout with a high k value for better tree-like spacing
         try:
-            pos = nx.spring_layout(G, k=2.0 / np.sqrt(len(G.nodes())), iterations=50, seed=42)
+            pos = nx.spring_layout(
+                G, k=2.0 / np.sqrt(len(G.nodes())), iterations=50, seed=42
+            )
         except Exception:
             # Fallback to circular layout
             pos = nx.circular_layout(G)

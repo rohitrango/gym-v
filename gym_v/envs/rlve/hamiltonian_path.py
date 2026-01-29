@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import heapq
-import math
 from importlib import resources
+import math
 from textwrap import dedent
 from typing import Any
 
@@ -56,8 +56,8 @@ Example: `0 1 0 2` (do **NOT** include the backticks or quotes); this means the 
 
         self._N: int | None = None
         self._edges: list[tuple[int, int, int]] | None = None
-        self._reference_answer: str | None = None
-        self._reference_answer_weight: int | None = None
+        self._oracle_answer: str | None = None
+        self._oracle_answer_weight: int | None = None
         self._prompt: str | None = None
         self._last_image: Image.Image | None = None
 
@@ -82,6 +82,15 @@ Example: `0 1 0 2` (do **NOT** include the backticks or quotes); this means the 
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return text representation of the graph."""
+        if self._N is None or self._edges is None:
+            return ""
+        lines = [f"N = {self._N} vertices", "", "Edges (s, t, w):"]
+        for s, t, w in self._edges:
+            lines.append(f"  ({s}, {t}, {w})")
+        return "\n".join(lines)
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -91,16 +100,16 @@ Example: `0 1 0 2` (do **NOT** include the backticks or quotes); this means the 
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -120,16 +129,16 @@ Example: `0 1 0 2` (do **NOT** include the backticks or quotes); this means the 
 
         reward = float(self._score_answer(action_str))
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -161,22 +170,20 @@ Example: `0 1 0 2` (do **NOT** include the backticks or quotes); this means the 
         self.np_random.shuffle(constructed_path)
 
         # Initialize reference answer with constructed path
-        self._reference_answer = " ".join(map(str, constructed_path))
-        self._reference_answer_weight = 0
+        self._oracle_answer = " ".join(map(str, constructed_path))
+        self._oracle_answer_weight = 0
 
-        for s, t in zip(constructed_path, constructed_path[1:]):
+        for s, t in zip(constructed_path, constructed_path[1:], strict=False):
             w = int(self.np_random.integers(1, N + 1))
             edges.append((s, t, w))
-            self._reference_answer_weight += w
+            self._oracle_answer_weight += w
 
         # Add additional edges based on edge density
         num_edges = int(self._edge_density * N * (N - 1))
         if len(edges) < num_edges:
             existing_pairs = {(s, t) for s, t, w in edges}
             all_pairs = [(s, t) for s in range(N) for t in range(N) if s != t]
-            remaining_edges = [
-                pair for pair in all_pairs if pair not in existing_pairs
-            ]
+            remaining_edges = [pair for pair in all_pairs if pair not in existing_pairs]
             num_to_add = min(len(remaining_edges), num_edges - len(edges))
             if num_to_add > 0:
                 selected_indices = self.np_random.choice(
@@ -184,7 +191,9 @@ Example: `0 1 0 2` (do **NOT** include the backticks or quotes); this means the 
                 )
                 for idx in selected_indices:
                     s, t = remaining_edges[idx]
-                    edges.append((s, t, int(self.np_random.integers(1, max(1, N // 2) + 1))))
+                    edges.append(
+                        (s, t, int(self.np_random.integers(1, max(1, N // 2) + 1)))
+                    )
 
         self.np_random.shuffle(edges)
         self._edges = edges
@@ -203,8 +212,8 @@ Example: `0 1 0 2` (do **NOT** include the backticks or quotes); this means the 
             current_dist, (visited, s) = heapq.heappop(priority_queue)
 
             if visited == (1 << N) - 1:
-                if current_dist < self._reference_answer_weight:
-                    self._reference_answer_weight = current_dist
+                if current_dist < self._oracle_answer_weight:
+                    self._oracle_answer_weight = current_dist
 
                     path = []
                     while True:
@@ -213,7 +222,7 @@ Example: `0 1 0 2` (do **NOT** include the backticks or quotes); this means the 
                         path.append(s)
                         visited, s = prev[(visited, s)]
                     path.reverse()
-                    self._reference_answer = " ".join(map(str, path))
+                    self._oracle_answer = " ".join(map(str, path))
                 break
 
             if (visited, s) in visited_states:
@@ -223,7 +232,7 @@ Example: `0 1 0 2` (do **NOT** include the backticks or quotes); this means the 
             for t, w in adjacent[s]:
                 new_visited = visited | (1 << t)
                 new_dist = current_dist + w
-                if dist.get((new_visited, t), self._reference_answer_weight) > new_dist:
+                if dist.get((new_visited, t), self._oracle_answer_weight) > new_dist:
                     dist[(new_visited, t)] = new_dist
                     prev[(new_visited, t)] = (visited, s)
                     heapq.heappush(priority_queue, (new_dist, (new_visited, t)))
@@ -252,30 +261,25 @@ Example: `0 1 0 2` (do **NOT** include the backticks or quotes); this means the 
         """Score answer."""
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         path = processed_result
         N = self._N
 
         # Check if all vertices are in range
         for vertex in path:
             if not (0 <= vertex < N):
-                return -0.5
-
-        # Check if all vertices are visited
+                return 0.0
         if len(set(path)) != N:
-            return -0.5
-
-        # Calculate path weight
+            return 0.0
         edge2weight = {(s, t): w for s, t, w in self._edges}
         answer_weight = 0
-        for s, t in zip(path, path[1:]):
+        for s, t in zip(path, path[1:], strict=False):
             if (s, t) not in edge2weight:
-                return -0.5
+                return 0.0
             answer_weight += edge2weight[(s, t)]
 
         # Return reward based on quality
-        return ((self._reference_answer_weight / answer_weight) ** 5)
+        return (self._oracle_answer_weight / answer_weight) ** 5
 
     def render(self) -> Image.Image:
         """Render directed graph with NetworkX-style layout."""

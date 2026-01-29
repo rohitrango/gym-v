@@ -6,7 +6,6 @@ from importlib import resources
 from textwrap import dedent
 from typing import Any
 
-import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation
@@ -184,7 +183,7 @@ The output is (do **NOT** include the backticks or quotes — use the format bel
         self._N: int | None = None
         self._grid: list[list[int]] | None = None
         self._prompt: str | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -216,6 +215,12 @@ The output is (do **NOT** include the backticks or quotes — use the format bel
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return text representation of the block grid."""
+        if self._grid is None:
+            return ""
+        return "\n".join(" ".join(map(str, row)) for row in self._grid)
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -225,16 +230,16 @@ The output is (do **NOT** include the backticks or quotes — use the format bel
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -252,16 +257,16 @@ The output is (do **NOT** include the backticks or quotes — use the format bel
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -344,7 +349,7 @@ The output is (do **NOT** include the backticks or quotes — use the format bel
         output_lines = []
         for row in range(height - 1, -1, -1):
             output_lines.append("".join(canvas[row]))
-        self._reference_answer = "\n".join(output_lines)
+        self._oracle_answer = "\n".join(output_lines)
 
     def _prompt_generate(self) -> str:
         """Generate the prompt text."""
@@ -372,23 +377,23 @@ The output is (do **NOT** include the backticks or quotes — use the format bel
         """Score the answer against the reference answer."""
         processed_result = self._process(answer)
         if processed_result is None:
-            return self._rewards["wrong_format"]
+            return 0.0
 
         image = processed_result
 
         if not image:
-            return self._rewards["wrong_format"]
+            return 0.0
 
         # Check that all rows have the same length
         for row in image:
             if len(row) != len(image[0]):
-                return self._rewards["wrong_format"]
+                return 0.0
             # Check valid characters
             if not all(ch in ".+-/| " for ch in row):
-                return self._rewards["invalid_answer"]
+                return 0.0
 
         # Check dimensions
-        gold_image = self._reference_answer.split("\n")
+        gold_image = self._oracle_answer.split("\n")
         if len(image) != len(gold_image):
             return self._rewards["wrong_size"]
         if len(image[0]) != len(gold_image[0]):
@@ -396,7 +401,7 @@ The output is (do **NOT** include the backticks or quotes — use the format bel
 
         # Calculate character-wise accuracy
         total_correct = 0
-        for gold_row, row in zip(gold_image, image):
+        for gold_row, row in zip(gold_image, image, strict=False):
             assert len(gold_row) == len(row)
             total_correct += sum(gold_row[i] == row[i] for i in range(len(gold_row)))
         total_cells = len(gold_image) * len(gold_image[0])
@@ -528,7 +533,10 @@ The output is (do **NOT** include the backticks or quotes — use the format bel
                     tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
 
                     draw.text(
-                        (label_pos[0] - tw / 2, label_pos[1] - th / 2 - cube_size * 0.3),
+                        (
+                            label_pos[0] - tw / 2,
+                            label_pos[1] - th / 2 - cube_size * 0.3,
+                        ),
                         label_text,
                         fill=(40, 40, 60),
                         font=font,

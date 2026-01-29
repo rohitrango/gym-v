@@ -53,7 +53,7 @@ We say a line is **visible** if any portion of it can be seen when viewed from y
         self._lines: list[tuple[int, int]] | None = None
         self._prompt: str | None = None
         self._gold_answer: list[int] | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -90,6 +90,10 @@ We say a line is **visible** if any portion of it can be seen when viewed from y
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt or ""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -99,16 +103,16 @@ We say a line is **visible** if any portion of it can be seen when viewed from y
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -126,16 +130,16 @@ We say a line is **visible** if any portion of it can be seen when viewed from y
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -209,7 +213,7 @@ We say a line is **visible** if any portion of it can be seen when viewed from y
 
         self._n = N
         self._gold_answer = [idx for A, B, idx in BIN]
-        self._reference_answer = " ".join(map(str, self._gold_answer))
+        self._oracle_answer = " ".join(map(str, self._gold_answer))
 
     def _prompt_generate(self) -> str:
         """Generate the prompt text for the problem."""
@@ -218,8 +222,7 @@ We say a line is **visible** if any portion of it can be seen when viewed from y
         return self.prompt_template.format(
             N=self._n,
             lines="\n".join(
-                "Line {}: y = {}x + {}".format(i, A, B)
-                for i, (A, B) in enumerate(self._lines)
+                f"Line {i}: y = {A}x + {B}" for i, (A, B) in enumerate(self._lines)
             ),
         )
 
@@ -247,7 +250,7 @@ We say a line is **visible** if any portion of it can be seen when viewed from y
         if processed_result is not None:
             answer_set = processed_result
             if not all(0 <= x < self._n for x in answer_set):
-                return -1.0
+                return 0.0
             gold = set(self._gold_answer)
 
             intersection = len(answer_set & gold)
@@ -256,7 +259,7 @@ We say a line is **visible** if any portion of it can be seen when viewed from y
                 return 1.0 if intersection == 0 else 0.0
             return (intersection / union) ** 5.0
         else:
-            return -1.0
+            return 0.0
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the visible line problem as a beautiful geometric visualization.

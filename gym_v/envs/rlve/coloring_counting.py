@@ -8,7 +8,6 @@ from textwrap import dedent
 from typing import Any
 
 import networkx as nx
-import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation
@@ -51,7 +50,6 @@ The **value** of a valid coloring is the number of **distinct colors used** (i.e
         rewarding_strategy: str = "(min/max)^beta",
         rewarding_weight: float = 1.0,
         rewarding_beta: float = 10.0,
-        wrong_format: float = -1.0,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
@@ -67,7 +65,6 @@ The **value** of a valid coloring is the number of **distinct colors used** (i.e
         self._rewarding_strategy = rewarding_strategy
         self._rewarding_weight = rewarding_weight
         self._rewarding_beta = rewarding_beta
-        self._wrong_format = wrong_format
 
         # Environment state
         self._N: int | None = None
@@ -75,7 +72,7 @@ The **value** of a valid coloring is the number of **distinct colors used** (i.e
         self._R: tuple[int, ...] | None = None
         self._graph: nx.Graph | None = None
         self._prompt: str | None = None
-        self._reference_answer: int | None = None
+        self._oracle_answer: int | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -102,6 +99,21 @@ The **value** of a valid coloring is the number of **distinct colors used** (i.e
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return text representation of the graph coloring problem."""
+        if self._N is None or self._edges is None or self._R is None:
+            return ""
+        lines = [
+            f"N = {self._N} vertices",
+            "",
+            "Edges:",
+        ]
+        for u, v in self._edges:
+            lines.append(f"  ({u}, {v})")
+        lines.append("")
+        lines.append(f"R (max colors): {' '.join(map(str, self._R))}")
+        return "\n".join(lines)
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -111,16 +123,16 @@ The **value** of a valid coloring is the number of **distinct colors used** (i.e
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -139,15 +151,15 @@ The **value** of a valid coloring is the number of **distinct colors used** (i.e
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
-        info = {"reference_answer": str(self._reference_answer)}
+        info = {"oracle_answer": str(self._oracle_answer)}
 
         terminated = True
         truncated = False
@@ -262,8 +274,8 @@ The **value** of a valid coloring is the number of **distinct colors used** (i.e
                         break
                     T = (T - 1) & W
 
-        self._reference_answer = sum(F[0][k] * k for k in range(1, N + 1))
-        assert self._reference_answer > 0
+        self._oracle_answer = sum(F[0][k] * k for k in range(1, N + 1))
+        assert self._oracle_answer > 0
 
     def _prompt_generate(self) -> str:
         """Generate text prompt."""
@@ -291,23 +303,23 @@ The **value** of a valid coloring is the number of **distinct colors used** (i.e
         processed_result = self._process(answer)
         if processed_result is not None:
             if processed_result <= 0:
-                return self._wrong_format
+                return 0.0
 
             if self._rewarding_strategy == "(min/max)^beta":
-                a, b = self._reference_answer, processed_result
+                a, b = self._oracle_answer, processed_result
                 return self._rewarding_weight * (
                     (min(a, b) / max(a, b)) ** self._rewarding_beta
                 )
             elif self._rewarding_strategy == "gold=answer":
                 return self._rewarding_weight * float(
-                    processed_result == self._reference_answer
+                    processed_result == self._oracle_answer
                 )
             else:
                 raise NotImplementedError(
                     f"Unknown rewarding strategy: {self._rewarding_strategy}"
                 )
         else:
-            return self._wrong_format
+            return 0.0
 
     def render(self) -> Image.Image:
         """Render graph with node labels showing max colors."""

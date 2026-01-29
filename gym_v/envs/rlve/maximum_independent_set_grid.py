@@ -48,7 +48,7 @@ class RLVEMaximumIndependentSetGridEnv(Env):
 
         self._matrix: list[list[int]] | None = None
         self._gold_answer: float | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._prompt: str | None = None
         self._last_image: Image.Image | None = None
 
@@ -78,6 +78,10 @@ class RLVEMaximumIndependentSetGridEnv(Env):
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt or ""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -87,18 +91,18 @@ class RLVEMaximumIndependentSetGridEnv(Env):
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
+                "text_prompt": f"{state_text}\n\n{self.description}",
                 "rlve_gold_answer": self._gold_answer,
-                "rlve_reference_answer": self._reference_answer,
             },
         )
         info = {
             "gold_answer": self._gold_answer,
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -116,18 +120,18 @@ class RLVEMaximumIndependentSetGridEnv(Env):
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
+                "text_prompt": f"{state_text}\n\n{self.description}",
                 "rlve_gold_answer": self._gold_answer,
-                "rlve_reference_answer": self._reference_answer,
             },
         )
         info = {
             "gold_answer": self._gold_answer,
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -175,7 +179,7 @@ class RLVEMaximumIndependentSetGridEnv(Env):
 
         # Build a directed graph for the min-cut formulation
         G = nx.DiGraph()
-        SOURCE, SINK = 's', 't'
+        SOURCE, SINK = "s", "t"
 
         # Add edges from SOURCE→odd‐parity cells and even‐parity cells→SINK
         # plus infinite‐capacity edges between adjacent cells
@@ -212,7 +216,7 @@ class RLVEMaximumIndependentSetGridEnv(Env):
         residual_G = nx.DiGraph()
         for u in G:
             for v in G[u]:
-                capacity = G[u][v]['capacity']
+                capacity = G[u][v]["capacity"]
                 flow = flow_dict[u].get(v, 0)
                 residual = capacity - flow
                 if residual > 0:
@@ -236,18 +240,18 @@ class RLVEMaximumIndependentSetGridEnv(Env):
                 if (i + j) % 2 == 1:
                     # Odd parity: in independent set if reachable from SOURCE
                     if cell in reachable:
-                        row.append('1')
+                        row.append("1")
                     else:
-                        row.append('0')
+                        row.append("0")
                 else:
                     # Even parity: in independent set if NOT reachable from SOURCE
                     if cell not in reachable:
-                        row.append('1')
+                        row.append("1")
                     else:
-                        row.append('0')
-            reference.append(''.join(row))
+                        row.append("0")
+            reference.append("".join(row))
 
-        self._reference_answer = '\n'.join(reference)
+        self._oracle_answer = "\n".join(reference)
 
     def _prompt_generate(self) -> str:
         if self._matrix is None:
@@ -279,31 +283,26 @@ class RLVEMaximumIndependentSetGridEnv(Env):
         """Score the answer based on the maximum independent set value."""
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         N = len(self._matrix)
         M = len(self._matrix[0])
         solution = processed_result
 
         # Check format
         if len(solution) != N or any(len(row) != M for row in solution):
-            return -1.0
-        if any(c not in '01' for row in solution for c in row):
-            return -1.0
-
-        # Calculate answer value and check validity
+            return 0.0
+        if any(c not in "01" for row in solution for c in row):
+            return 0.0
         answer_value = 0
         for i in range(N):
             for j in range(M):
-                if solution[i][j] == '1':
+                if solution[i][j] == "1":
                     answer_value += self._matrix[i][j]
                     # Check adjacency constraint
                     for di, dj in ((-1, 0), (+1, 0), (0, -1), (0, +1)):
                         ni, nj = i + di, j + dj
-                        if 0 <= ni < N and 0 <= nj < M and solution[ni][nj] == '1':
-                            return -0.5
-
-        # Answer should not exceed gold
+                        if 0 <= ni < N and 0 <= nj < M and solution[ni][nj] == "1":
+                            return 0.0
         if answer_value > self._gold_answer + 1e-9:
             raise AssertionError("Answer should not exceed the gold answer")
 
@@ -377,16 +376,12 @@ class RLVEMaximumIndependentSetGridEnv(Env):
         for r in range(rows + 1):
             y = padding + r * cell_px
             draw.line(
-                (padding, y, padding + cols * cell_px, y),
-                fill=(50, 60, 70),
-                width=2
+                (padding, y, padding + cols * cell_px, y), fill=(50, 60, 70), width=2
             )
         for c in range(cols + 1):
             x = padding + c * cell_px
             draw.line(
-                (x, padding, x, padding + rows * cell_px),
-                fill=(50, 60, 70),
-                width=2
+                (x, padding, x, padding + rows * cell_px), fill=(50, 60, 70), width=2
             )
 
         # Draw values in cells
@@ -403,13 +398,10 @@ class RLVEMaximumIndependentSetGridEnv(Env):
                     (cx - tw // 2 + 1, cy - th // 2 + 1),
                     val,
                     fill=(200, 200, 200),
-                    font=font
+                    font=font,
                 )
                 draw.text(
-                    (cx - tw // 2, cy - th // 2),
-                    val,
-                    fill=(20, 30, 40),
-                    font=font
+                    (cx - tw // 2, cy - th // 2), val, fill=(20, 30, 40), font=font
                 )
 
         return img

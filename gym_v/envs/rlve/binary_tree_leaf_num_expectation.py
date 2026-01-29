@@ -58,7 +58,7 @@ What is the expected number of **leaf** nodes (nodes whose left and right childr
         self._node_radius = node_radius
 
         self._N: int | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._gold_answer: tuple[int, int] | None = None
         self._prompt: str | None = None
         self._last_image: Image.Image | None = None
@@ -94,6 +94,12 @@ What is the expected number of **leaf** nodes (nodes whose left and right childr
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return text representation of the problem input."""
+        if self._N is None:
+            return ""
+        return f"N = {self._N}"
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -103,16 +109,16 @@ What is the expected number of **leaf** nodes (nodes whose left and right childr
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -131,15 +137,15 @@ What is the expected number of **leaf** nodes (nodes whose left and right childr
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
-        info = {"reference_answer": self._reference_answer}
+        info = {"oracle_answer": self._oracle_answer}
 
         terminated = True
         truncated = False
@@ -172,7 +178,7 @@ What is the expected number of **leaf** nodes (nodes whose left and right childr
         B //= gcd_AB
 
         self._gold_answer = (A, B)
-        self._reference_answer = f"{A}/{B}"
+        self._oracle_answer = f"{A}/{B}"
 
     def _prompt_generate(self) -> str:
         """Generate text prompt."""
@@ -183,7 +189,7 @@ What is the expected number of **leaf** nodes (nodes whose left and right childr
         if answer is not None:
             answer = answer.strip()
             try:
-                parts = answer.split('/')
+                parts = answer.split("/")
                 if len(parts) != 2:
                     return None
                 A, B = map(int, map(str.strip, parts))
@@ -197,12 +203,10 @@ What is the expected number of **leaf** nodes (nodes whose left and right childr
         """Score answer - must match gold answer in simplified form."""
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         A, B = processed_result
         if not (A > 0 and B > 0):
-            return -1.0
-
+            return 0.0
         gold_A, gold_B = self._gold_answer
         # Simplify the user's answer
         gcd_AB = math.gcd(A, B)
@@ -217,7 +221,9 @@ What is the expected number of **leaf** nodes (nodes whose left and right childr
     def render(self) -> Image.Image:
         """Render a sample binary tree with hierarchical layout."""
         if self._N is None:
-            return Image.new("RGB", (self._image_width, self._image_height), (255, 255, 255))
+            return Image.new(
+                "RGB", (self._image_width, self._image_height), (255, 255, 255)
+            )
 
         N = self._N
 
@@ -357,7 +363,9 @@ What is the expected number of **leaf** nodes (nodes whose left and right childr
 
         return img
 
-    def _generate_sample_binary_tree(self, n: int) -> dict[int, tuple[int | None, int | None]]:
+    def _generate_sample_binary_tree(
+        self, n: int
+    ) -> dict[int, tuple[int | None, int | None]]:
         """Generate a random binary tree structure for visualization.
 
         Returns a dictionary mapping node_id -> (left_child, right_child).
@@ -383,8 +391,11 @@ What is the expected number of **leaf** nodes (nodes whose left and right childr
             else:
                 # Parent already has two children, pick another parent
                 # Find a node with at least one empty child
-                candidates = [node for node in nodes
-                             if tree[node][0] is None or tree[node][1] is None]
+                candidates = [
+                    node
+                    for node in nodes
+                    if tree[node][0] is None or tree[node][1] is None
+                ]
                 if candidates:
                     parent = int(self.np_random.choice(candidates))
                     left_child, right_child = tree[parent]
@@ -459,6 +470,6 @@ What is the expected number of **leaf** nodes (nodes whose left and right childr
         # Determine which nodes are leaves
         is_leaf = {}
         for node, (left, right) in tree.items():
-            is_leaf[node] = (left is None and right is None)
+            is_leaf[node] = left is None and right is None
 
         return positions, is_leaf

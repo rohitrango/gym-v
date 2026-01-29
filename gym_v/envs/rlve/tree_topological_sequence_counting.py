@@ -47,7 +47,7 @@ You should output the number of valid permutations modulo {MOD}."""
         self._N: int | None = None
         self._MOD: int | None = None
         self._edges: list[tuple[int, str, int]] | None = None
-        self._reference_answer: int | None = None
+        self._oracle_answer: int | None = None
         self._prompt: str | None = None
         self._last_image: Image.Image | None = None
 
@@ -78,6 +78,10 @@ You should output the number of valid permutations modulo {MOD}."""
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt or ""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -87,16 +91,14 @@ You should output the number of valid permutations modulo {MOD}."""
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -116,16 +118,14 @@ You should output the number of valid permutations modulo {MOD}."""
 
         reward = float(self._score_answer(action_str))
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
 
         terminated = True
@@ -264,16 +264,14 @@ You should output the number of valid permutations modulo {MOD}."""
 
         f_root, _ = dfs(1, 0, h1, h2)
         # The answer is the number of ways to have all N nodes before root (i.e. full ordering)
-        self._reference_answer = f_root[N] % MOD
+        self._oracle_answer = f_root[N] % MOD
 
     def _prompt_generate(self) -> str:
         N = self._N
         return self.prompt_template.format(
             N=N,
             N_minus_1=N - 1,
-            constraints="; ".join(
-                "p[{}] {} p[{}]".format(u, w, v) for u, w, v in self._edges
-            ),
+            constraints="; ".join(f"p[{u}] {w} p[{v}]" for u, w, v in self._edges),
             MOD=self._MOD,
         )
 
@@ -292,13 +290,13 @@ You should output the number of valid permutations modulo {MOD}."""
         processed_result = self._process(answer)
         if processed_result is not None:
             if not (0 <= processed_result < self._MOD):
-                return -0.5
-            if processed_result == self._reference_answer:
+                return 0.0
+            if processed_result == self._oracle_answer:
                 return 1.0
             else:
-                return -0.1
+                return 0.0
         else:
-            return -1.0
+            return 0.0
 
     def render(self) -> Image.Image:
         if self._N is None:
@@ -400,7 +398,9 @@ You should output the number of valid permutations modulo {MOD}."""
             constraint_text = constraint
 
             # Use anchor='mm' for center alignment
-            bbox = draw.textbbox((mid_x, mid_y), constraint_text, font=constraint_font, anchor='mm')
+            bbox = draw.textbbox(
+                (mid_x, mid_y), constraint_text, font=constraint_font, anchor="mm"
+            )
             tw = bbox[2] - bbox[0]
             th = bbox[3] - bbox[1]
 
@@ -422,7 +422,7 @@ You should output the number of valid permutations modulo {MOD}."""
                 constraint_text,
                 fill=(200, 60, 40),
                 font=constraint_font,
-                anchor='mm',
+                anchor="mm",
             )
 
         # Draw nodes

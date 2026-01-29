@@ -61,7 +61,7 @@ class RLVEGridParityConstructionEnv(Env):
         self._m: int | None = None
         self._parity: list[list[int]] | None = None
         self._prompt: str | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -94,6 +94,12 @@ class RLVEGridParityConstructionEnv(Env):
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return text representation of the parity matrix."""
+        if self._parity is None:
+            return ""
+        return "\n".join("".join(str(cell) for cell in row) for row in self._parity)
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -103,16 +109,16 @@ class RLVEGridParityConstructionEnv(Env):
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -130,16 +136,16 @@ class RLVEGridParityConstructionEnv(Env):
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -174,14 +180,11 @@ class RLVEGridParityConstructionEnv(Env):
         # Generate random binary grid with random density
         one_probability = float(self.np_random.random())
         grid = [
-            [
-                1 if self.np_random.random() < one_probability else 0
-                for _ in range(M)
-            ]
+            [1 if self.np_random.random() < one_probability else 0 for _ in range(M)]
             for _ in range(N)
         ]
 
-        self._reference_answer = "\n".join(
+        self._oracle_answer = "\n".join(
             "".join(str(cell) for cell in row) for row in grid
         )
 
@@ -228,7 +231,7 @@ class RLVEGridParityConstructionEnv(Env):
         """Score the answer based on how well it matches the target parity."""
         processed_result = self._process(answer)
         if processed_result is None:
-            return self._rewards["wrong_format"]
+            return 0.0
 
         N = self._n
         M = self._m
@@ -236,10 +239,10 @@ class RLVEGridParityConstructionEnv(Env):
 
         # Check format
         if len(grid) != N or any(len(row) != M for row in grid):
-            return self._rewards["wrong_format"]
+            return 0.0
         for row in grid:
             if not all(c in "01" for c in row):
-                return self._rewards["wrong_format"]
+                return 0.0
 
         # Compute parity of the submitted grid
         parity = [[0] * M for _ in range(N)]
@@ -253,9 +256,7 @@ class RLVEGridParityConstructionEnv(Env):
 
         # Count satisfied cells
         satisfied = sum(
-            int(parity[i][j] == self._parity[i][j])
-            for i in range(N)
-            for j in range(M)
+            int(parity[i][j] == self._parity[i][j]) for i in range(N) for j in range(M)
         )
 
         # Compute reward based on strategy
@@ -339,8 +340,6 @@ class RLVEGridParityConstructionEnv(Env):
                 tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
                 cx = padding + c * cell_px + cell_px // 2
                 cy = padding + r * cell_px + cell_px // 2
-                draw.text(
-                    (cx - tw // 2, cy - th // 2), v, fill=(20, 20, 20), font=font
-                )
+                draw.text((cx - tw // 2, cy - th // 2), v, fill=(20, 20, 20), font=font)
 
         return img

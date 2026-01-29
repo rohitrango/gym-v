@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import math
 from importlib import resources
+import math
 from textwrap import dedent
 from typing import Any
 
@@ -61,7 +61,7 @@ Example: `0 1 0 2 2 3` (do **NOT** include the backticks or quotes); this means 
         self._N: int | None = None
         self._edges: list[tuple[int, int, int]] | None = None
         self._root: int | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._gold_answer: int | None = None
         self._prompt: str | None = None
         self._last_image: Image.Image | None = None
@@ -89,6 +89,10 @@ Example: `0 1 0 2 2 3` (do **NOT** include the backticks or quotes); this means 
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -98,16 +102,16 @@ Example: `0 1 0 2 2 3` (do **NOT** include the backticks or quotes); this means 
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -127,16 +131,16 @@ Example: `0 1 0 2 2 3` (do **NOT** include the backticks or quotes); this means 
 
         reward = float(self._score_answer(action_str))
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -235,7 +239,7 @@ Example: `0 1 0 2 2 3` (do **NOT** include the backticks or quotes); this means 
 
                 # Extract edges excluding the virtual root edge
                 msa_edges = [(s, t) for s, t in msa.edges() if (s, t) != (N, root)]
-                self._reference_answer = " ".join(f"{s} {t}" for s, t in msa_edges)
+                self._oracle_answer = " ".join(f"{s} {t}" for s, t in msa_edges)
 
                 # Calculate gold answer (minimum total weight)
                 self._gold_answer = sum(
@@ -274,34 +278,27 @@ Example: `0 1 0 2 2 3` (do **NOT** include the backticks or quotes); this means 
         """Score answer - ported from RLVE."""
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         msa = processed_result
         N = self._N
 
         # Check if answer has correct format (even number of integers)
         if len(msa) % 2 != 0:
-            return -1.0
-
-        # Convert to edge pairs
+            return 0.0
         msa_edges = [(msa[i], msa[i + 1]) for i in range(0, len(msa), 2)]
 
         # Check if we have exactly N-1 edges
         if len(msa_edges) != N - 1:
-            return -0.5
-
-        # Check if all vertices are covered
+            return 0.0
         vertices_in_msa = set(s for s, t in msa_edges) | set(t for s, t in msa_edges)
         if vertices_in_msa != set(range(N)):
-            return -0.5
-
-        # Build adjacency list and check for cycles using DFS
+            return 0.0
         adjacent_list = [[] for _ in range(N)]
         for s, t in msa_edges:
             if not (0 <= s < N and 0 <= t < N):
-                return -0.5
+                return 0.0
             if s == t:
-                return -0.5
+                return 0.0
             adjacent_list[s].append(t)
 
         # DFS to check if it's a valid tree from root
@@ -318,33 +315,25 @@ Example: `0 1 0 2 2 3` (do **NOT** include the backticks or quotes); this means 
 
         visited[self._root] = True
         if not dfs(self._root):
-            return -0.5
-
-        # Check if all vertices are reachable from root
+            return 0.0
         if not all(visited):
-            return -0.5
-
-        # Verify it's an arborescence using NetworkX
+            return 0.0
         G = nx.DiGraph()
         G.add_nodes_from(range(N + 1))
         G.add_edges_from(msa_edges + [(N, self._root)])
         if not nx.is_arborescence(G):
-            return -0.5
-
-        # Calculate answer weight
+            return 0.0
         edges_dict = {(s, t): w for s, t, w in self._edges}
         answer_weight = 0
         for s, t in msa_edges:
             if (s, t) not in edges_dict:
-                return -0.5  # Edge not in original graph
+                return 0.0
             answer_weight += edges_dict[(s, t)]
 
         # Verify answer weight is at least as good as gold
         if answer_weight < self._gold_answer:
             # This shouldn't happen, but handle gracefully
-            return -0.5
-
-        # Return reward: (gold/answer)^5
+            return 0.0
         return (self._gold_answer / answer_weight) ** 5
 
     def render(self) -> Image.Image:

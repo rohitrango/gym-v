@@ -8,7 +8,6 @@ from textwrap import dedent
 from typing import Any
 
 import networkx as nx
-import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation
@@ -56,7 +55,7 @@ Output a single line containing the sequence of vertex labels visited in order, 
         self._undirected_edges: list[tuple[int, int]] | None = None
         self._directed_edges: list[tuple[int, int]] | None = None
         self._prompt: str | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -82,6 +81,10 @@ Output a single line containing the sequence of vertex labels visited in order, 
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -91,16 +94,14 @@ Output a single line containing the sequence of vertex labels visited in order, 
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -120,16 +121,14 @@ Output a single line containing the sequence of vertex labels visited in order, 
 
         reward = float(self._score_answer(action_str))
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -174,29 +173,33 @@ Output a single line containing the sequence of vertex labels visited in order, 
                     edges.append((u, v))
                     degrees[u] += 1
                     degrees[v] += 1
-            assert all(
-                degree % 2 == 0 for degree in degrees
-            ), "All vertices should have even degree in undirected edges"
+            assert all(degree % 2 == 0 for degree in degrees), (
+                "All vertices should have even degree in undirected edges"
+            )
 
             self.np_random.shuffle(edges)
-            assert len(edges) == len(set(edges)), "There should be no repeated undirected edges"
+            assert len(edges) == len(set(edges)), (
+                "There should be no repeated undirected edges"
+            )
             for u, v in edges:
-                assert 0 <= u < v < N, "Undirected edges should be within the range of vertex labels"
+                assert 0 <= u < v < N, (
+                    "Undirected edges should be within the range of vertex labels"
+                )
 
             # Check if the undirected graph is connected
             undirected_graph = nx.Graph()
             undirected_graph.add_nodes_from(range(N))
             undirected_graph.add_edges_from(edges)
             if nx.is_connected(undirected_graph):
-                assert nx.is_eulerian(
-                    undirected_graph
-                ), "The undirected graph should be Eulerian"
+                assert nx.is_eulerian(undirected_graph), (
+                    "The undirected graph should be Eulerian"
+                )
                 break
 
         eulerian_circuit = list(nx.eulerian_circuit(undirected_graph))
-        assert len(eulerian_circuit) == len(
-            edges
-        ), "The Eulerian circuit should visit each edge exactly once"
+        assert len(eulerian_circuit) == len(edges), (
+            "The Eulerian circuit should visit each edge exactly once"
+        )
         directed_flags = [False] * len(eulerian_circuit)
         num_directed = int(
             self.np_random.integers(1, len(eulerian_circuit))
@@ -210,20 +213,22 @@ Output a single line containing the sequence of vertex labels visited in order, 
         undirected_edges = []
         directed_edges = []
         reference_answer = []
-        for (u, v), directed_flag in zip(eulerian_circuit, directed_flags):
+        for (u, v), directed_flag in zip(
+            eulerian_circuit, directed_flags, strict=False
+        ):
             reference_answer.append(u)
             if directed_flag:
                 directed_edges.append((u, v))
             else:
                 undirected_edges.append((min(u, v), max(u, v)))
         reference_answer.append(eulerian_circuit[-1][1])
-        assert (
-            reference_answer[0] == reference_answer[-1]
-        ), "The Eulerian circuit should start and end at the same vertex"
-        self._reference_answer = " ".join(map(str, reference_answer))
-        assert (
-            len(undirected_edges) > 0 and len(directed_edges) > 0
-        ), "There should be at least one undirected edge and one directed edge"
+        assert reference_answer[0] == reference_answer[-1], (
+            "The Eulerian circuit should start and end at the same vertex"
+        )
+        self._oracle_answer = " ".join(map(str, reference_answer))
+        assert len(undirected_edges) > 0 and len(directed_edges) > 0, (
+            "There should be at least one undirected edge and one directed edge"
+        )
         self.np_random.shuffle(undirected_edges)
         self.np_random.shuffle(directed_edges)
         self._undirected_edges = undirected_edges
@@ -235,9 +240,9 @@ Output a single line containing the sequence of vertex labels visited in order, 
             N=N,
             N_minus_1=N - 1,
             undirected_edges="\n".join(
-                "({}, {})".format(u, v) for u, v in self._undirected_edges
+                f"({u}, {v})" for u, v in self._undirected_edges
             ),
-            directed_edges="\n".join("<{}, {}>".format(u, v) for u, v in self._directed_edges),
+            directed_edges="\n".join(f"<{u}, {v}>" for u, v in self._directed_edges),
         )
 
     def _process(self, answer: str | None) -> list[int] | None:
@@ -254,18 +259,19 @@ Output a single line containing the sequence of vertex labels visited in order, 
     def _score_answer(self, answer: str) -> float:
         processed_result = self._process(answer)
         if processed_result is not None:
-            assert isinstance(processed_result, list), "processed_result should be a list"
+            assert isinstance(processed_result, list), (
+                "processed_result should be a list"
+            )
 
             if len(processed_result) == 0:
-                return -1.0
-
+                return 0.0
             if not all(0 <= u < self._N for u in processed_result):
-                return -0.5
+                return 0.0
             undirected_edges = {(u, v): 0 for u, v in self._undirected_edges}
             directed_edges = {(u, v): 0 for u, v in self._directed_edges}
             if processed_result[0] != processed_result[-1]:
-                return -0.5
-            for u, v in zip(processed_result, processed_result[1:]):
+                return 0.0
+            for u, v in zip(processed_result, processed_result[1:], strict=False):
                 directed = (u, v) in directed_edges
                 undirected = (min(u, v), max(u, v)) in undirected_edges
                 assert int(directed) + int(undirected) <= 1
@@ -274,8 +280,7 @@ Output a single line containing the sequence of vertex labels visited in order, 
                 elif undirected:
                     undirected_edges[(min(u, v), max(u, v))] += 1
                 else:
-                    return -0.5
-
+                    return 0.0
             satisfied = sum(count == 1 for count in directed_edges.values()) + sum(
                 count == 1 for count in undirected_edges.values()
             )
@@ -283,13 +288,17 @@ Output a single line containing the sequence of vertex labels visited in order, 
                 self._directed_edges
             ), "satisfied should be less than or equal to the total number of edges"
             # Default rewarding strategy: (satisfied/all)^beta with beta=10
-            return ((satisfied / (len(self._undirected_edges) + len(self._directed_edges))) ** 10)
+            return (
+                satisfied / (len(self._undirected_edges) + len(self._directed_edges))
+            ) ** 10
         else:
-            return -1.0
+            return 0.0
 
     def render(self) -> Image.Image:
         if self._N is None:
-            return Image.new("RGB", (self._image_size, self._image_size), (250, 250, 250))
+            return Image.new(
+                "RGB", (self._image_size, self._image_size), (250, 250, 250)
+            )
 
         N = self._N
         undirected_edges = self._undirected_edges
@@ -322,7 +331,9 @@ Output a single line containing the sequence of vertex labels visited in order, 
         # Calculate positions using circular layout
         center_x = self._image_size // 2
         center_y = self._image_size // 2
-        radius = min(self._image_size // 2 - self._padding, self._image_size // 2 - self._padding)
+        radius = min(
+            self._image_size // 2 - self._padding, self._image_size // 2 - self._padding
+        )
 
         positions = []
         for i in range(N):

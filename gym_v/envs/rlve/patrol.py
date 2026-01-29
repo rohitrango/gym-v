@@ -55,7 +55,7 @@ Please output the **minimum total number of edges traversed** (of course, edges 
         self._N: int | None = None
         self._K: int | None = None
         self._edges: list[tuple[int, int]] | None = None
-        self._reference_answer: int | None = None
+        self._oracle_answer: int | None = None
         self._prompt: str | None = None
         self._last_image: Image.Image | None = None
 
@@ -85,6 +85,10 @@ Please output the **minimum total number of edges traversed** (of course, edges 
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt or ""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -94,16 +98,16 @@ Please output the **minimum total number of edges traversed** (of course, edges 
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -123,16 +127,16 @@ Please output the **minimum total number of edges traversed** (of course, edges 
 
         reward = float(self._score_answer(action_str))
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
 
         terminated = True
@@ -214,7 +218,7 @@ Please output the **minimum total number of edges traversed** (of course, edges 
         # Case K = 1: formula is 2*(N-1) - L1 + 1
         if K == 1:
             result = 2 * (N - 1) - L1 + 1
-            self._reference_answer = result
+            self._oracle_answer = result
             return
 
         # For K = 2: mark the nodes on the diameter path
@@ -245,7 +249,7 @@ Please output the **minimum total number of edges traversed** (of course, edges 
 
         # Final answer for K = 2: 2*N - L1 - L2
         result = 2 * N - L1 - L2[0]
-        self._reference_answer = result
+        self._oracle_answer = result
 
     def _prompt_generate(self) -> str:
         N = self._N
@@ -278,12 +282,12 @@ Please output the **minimum total number of edges traversed** (of course, edges 
         """
         processed_result = self._process(answer)
         if processed_result is not None:
-            if processed_result == self._reference_answer:
+            if processed_result == self._oracle_answer:
                 return 1.0
             else:
                 return 0.0
         else:
-            return -1.0
+            return 0.0
 
     def render(self) -> Image.Image:
         """Render the patrol tree as an image with path visualization."""
@@ -424,9 +428,9 @@ Please output the **minimum total number of edges traversed** (of course, edges 
         legend_items = [
             f"• Tree with {N} vertices and {N - 1} edges",
             f"• Can add {self._K} arbitrary edge(s) to the tree",
-            f"• Must visit all original edges at least once",
-            f"• Must visit each added edge exactly once",
-            f"• Path starts and ends at vertex 1 (green)",
+            "• Must visit all original edges at least once",
+            "• Must visit each added edge exactly once",
+            "• Path starts and ends at vertex 1 (green)",
         ]
 
         y_offset = legend_y + 35
@@ -440,7 +444,7 @@ Please output the **minimum total number of edges traversed** (of course, edges 
             y_offset += 20
 
         # Add info text at top
-        info_text = f"N = {N}  |  K = {self._K}  |  Edges = {len(edges)}  |  Min Path Length = {self._reference_answer}"
+        info_text = f"N = {N}  |  K = {self._K}  |  Edges = {len(edges)}  |  Min Path Length = {self._oracle_answer}"
         bbox = draw.textbbox((0, 0), info_text, font=info_font)
         tw = bbox[2] - bbox[0]
         draw.text(

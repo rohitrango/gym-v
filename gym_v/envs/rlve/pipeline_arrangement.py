@@ -60,7 +60,7 @@ Try your best to **minimize the time** when the **last product finishes** on mac
         self._processing_a: list[int] | None = None
         self._processing_b: list[int] | None = None
         self._prompt: str | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._gold_answer: int | None = None
         self._last_image: Image.Image | None = None
 
@@ -98,6 +98,10 @@ Try your best to **minimize the time** when the **last product finishes** on mac
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt or ""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -107,16 +111,16 @@ Try your best to **minimize the time** when the **last product finishes** on mac
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -134,16 +138,16 @@ Try your best to **minimize the time** when the **last product finishes** on mac
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -195,7 +199,7 @@ Try your best to **minimize the time** when the **last product finishes** on mac
         self._n = N
         self._processing_a = A
         self._processing_b = B
-        self._reference_answer = " ".join(map(str, order))
+        self._oracle_answer = " ".join(map(str, order))
         self._gold_answer = self._get_finishing_time(order)
 
     def _prompt_generate(self) -> str:
@@ -206,9 +210,7 @@ Try your best to **minimize the time** when the **last product finishes** on mac
             N=self._n,
             N_minus_1=self._n - 1,
             A_and_B="\n".join(
-                "A[{}]={}, B[{}]={}".format(
-                    i, self._processing_a[i], i, self._processing_b[i]
-                )
+                f"A[{i}]={self._processing_a[i]}, B[{i}]={self._processing_b[i]}"
                 for i in range(self._n)
             ),
         )
@@ -246,12 +248,11 @@ Try your best to **minimize the time** when the **last product finishes** on mac
         processed_result = self._process(answer)
         if processed_result is not None:
             if len(processed_result) != self._n:
-                return -0.5
+                return 0.0
             if len(set(processed_result)) != self._n:
-                return -0.5
+                return 0.0
             if not all(0 <= i < self._n for i in processed_result):
-                return -0.5
-
+                return 0.0
             answer_time = self._get_finishing_time(processed_result)
             gold = self._gold_answer
 
@@ -259,7 +260,7 @@ Try your best to **minimize the time** when the **last product finishes** on mac
             rewarding_weight = 1.0
             return rewarding_weight * ((gold / answer_time) ** beta)
         else:
-            return -1.0
+            return 0.0
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the pipeline arrangement problem as a flow diagram.
@@ -336,7 +337,12 @@ Try your best to **minimize the time** when the **last product finishes** on mac
 
         # Machine A label
         draw.rectangle(
-            [label_x, machine_a_y, label_x + machine_label_width - 10, machine_a_y + cell_height],
+            [
+                label_x,
+                machine_a_y,
+                label_x + machine_label_width - 10,
+                machine_a_y + cell_height,
+            ],
             fill=(70, 130, 180),
             outline=(50, 100, 150),
             width=2,
@@ -370,7 +376,10 @@ Try your best to **minimize the time** when the **last product finishes** on mac
             # Product ID
             product_text = f"P{i}"
             product_bbox = draw.textbbox((0, 0), product_text, font=font_medium)
-            pw, ph = product_bbox[2] - product_bbox[0], product_bbox[3] - product_bbox[1]
+            pw, ph = (
+                product_bbox[2] - product_bbox[0],
+                product_bbox[3] - product_bbox[1],
+            )
             draw.text(
                 (x + (cell_width - 4 - pw) // 2, y + 8),
                 product_text,
@@ -399,9 +408,7 @@ Try your best to **minimize the time** when the **last product finishes** on mac
             y_end = machine_a_y + cell_height + arrow_space
 
             # Vertical arrow
-            draw.line(
-                [(x, y_start + 5), (x, y_end - 5)], fill=(120, 120, 120), width=2
-            )
+            draw.line([(x, y_start + 5), (x, y_end - 5)], fill=(120, 120, 120), width=2)
             # Arrow head
             draw.polygon(
                 [(x, y_end - 5), (x - 5, y_end - 12), (x + 5, y_end - 12)],
@@ -413,7 +420,12 @@ Try your best to **minimize the time** when the **last product finishes** on mac
 
         # Machine B label
         draw.rectangle(
-            [label_x, machine_b_y, label_x + machine_label_width - 10, machine_b_y + cell_height],
+            [
+                label_x,
+                machine_b_y,
+                label_x + machine_label_width - 10,
+                machine_b_y + cell_height,
+            ],
             fill=(230, 140, 70),
             outline=(200, 110, 50),
             width=2,
@@ -447,7 +459,10 @@ Try your best to **minimize the time** when the **last product finishes** on mac
             # Product ID
             product_text = f"P{i}"
             product_bbox = draw.textbbox((0, 0), product_text, font=font_medium)
-            pw, ph = product_bbox[2] - product_bbox[0], product_bbox[3] - product_bbox[1]
+            pw, ph = (
+                product_bbox[2] - product_bbox[0],
+                product_bbox[3] - product_bbox[1],
+            )
             draw.text(
                 (x + (cell_width - 4 - pw) // 2, y + 8),
                 product_text,
@@ -480,7 +495,10 @@ Try your best to **minimize the time** when the **last product finishes** on mac
         header_y = table_y
         draw.text((table_x, header_y), "Product", fill=(50, 50, 50), font=font_small)
         draw.text(
-            (table_x + col_width, header_y), "Machine A", fill=(50, 50, 50), font=font_small
+            (table_x + col_width, header_y),
+            "Machine A",
+            fill=(50, 50, 50),
+            font=font_small,
         )
         draw.text(
             (table_x + col_width * 2, header_y),

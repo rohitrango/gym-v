@@ -6,9 +6,9 @@ from importlib import resources
 from textwrap import dedent
 from typing import Any
 
+from matplotlib.patches import Polygon as MplPolygon
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.patches import Polygon as MplPolygon
 from PIL import Image
 
 from gym_v import Env, Observation
@@ -55,7 +55,7 @@ Your task is to find four **distinct** points such that they form a rectangle (N
         self._n: int | None = None
         self._points: list[tuple[int, int]] | None = None
         self._gold_answer: int | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._prompt: str | None = None
         self._last_image: Image.Image | None = None
 
@@ -88,6 +88,10 @@ Your task is to find four **distinct** points such that they form a rectangle (N
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -97,17 +101,17 @@ Your task is to find four **distinct** points such that they form a rectangle (N
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
                 "rlve_gold_area": self._gold_answer,
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
             "gold_area": self._gold_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
@@ -126,17 +130,17 @@ Your task is to find four **distinct** points such that they form a rectangle (N
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
                 "rlve_gold_area": self._gold_answer,
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
             "gold_area": self._gold_answer,
         }
 
@@ -220,7 +224,12 @@ Your task is to find four **distinct** points such that they form a rectangle (N
             s0, sx0, sy0, idx1, idx2 = lines[i]
             j = i + 1
             # For each other diagonal with same length and midpoint...
-            while j < M and lines[j][0] == s0 and lines[j][1] == sx0 and lines[j][2] == sy0:
+            while (
+                j < M
+                and lines[j][0] == s0
+                and lines[j][1] == sx0
+                and lines[j][2] == sy0
+            ):
                 _, _, _, idx3, idx4 = lines[j]
                 # Compute the rectangle area via the cross-product trick:
                 # area = |(C-A) × (B-A)|, with A=points[idx1], C=points[idx2], B=points[idx3]
@@ -237,7 +246,7 @@ Your task is to find four **distinct** points such that they form a rectangle (N
 
         assert ans > 0, "The maximum area should be greater than 0"
         self._gold_answer = ans
-        self._reference_answer = " ".join(map(str, best_indices))
+        self._oracle_answer = " ".join(map(str, best_indices))
 
     def _prompt_generate(self) -> str:
         if self._points is None:
@@ -266,24 +275,16 @@ Your task is to find four **distinct** points such that they form a rectangle (N
         """Score the answer based on rectangle area."""
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
-        # Check indices are valid
+            return 0.0
         if not all(0 <= idx < self._n for idx in processed_result):
-            return -0.5
-
-        # Check if indices are distinct
+            return 0.0
         if len(set(processed_result)) != 4:
-            return -0.5
-
-        # Compute rectangle area
+            return 0.0
         rect_area = self._rectangle_area(
             [self._points[idx] for idx in processed_result]
         )
         if rect_area is None:
-            return -0.5
-
-        # Score based on strategy
+            return 0.0
         gold = self._gold_answer
         assert rect_area <= gold, "Answer area should be <= gold area"
 
@@ -296,9 +297,7 @@ Your task is to find four **distinct** points such that they form a rectangle (N
                 f"Unknown rewarding strategy: {self._rewarding_strategy}"
             )
 
-    def _rectangle_area(
-        self, P: list[tuple[int, int]]
-    ) -> int | None:
+    def _rectangle_area(self, P: list[tuple[int, int]]) -> int | None:
         """Check if 4 points form a rectangle and return area."""
         A = P[0]
         others = P[1:]
@@ -343,7 +342,9 @@ Your task is to find four **distinct** points such that they form a rectangle (N
         ys = [p[1] for p in self._points]
 
         # Plot points
-        ax.scatter(xs, ys, c="steelblue", s=150, alpha=0.7, zorder=3, edgecolors="black")
+        ax.scatter(
+            xs, ys, c="steelblue", s=150, alpha=0.7, zorder=3, edgecolors="black"
+        )
 
         # Label points with indices
         for i, (x, y) in enumerate(self._points):
@@ -426,7 +427,12 @@ Your task is to find four **distinct** points such that they form a rectangle (N
         while i < M:
             s0, sx0, sy0, idx1, idx2 = lines[i]
             j = i + 1
-            while j < M and lines[j][0] == s0 and lines[j][1] == sx0 and lines[j][2] == sy0:
+            while (
+                j < M
+                and lines[j][0] == s0
+                and lines[j][1] == sx0
+                and lines[j][2] == sy0
+            ):
                 _, _, _, idx3, idx4 = lines[j]
                 x1, y1 = points[idx1]
                 x2, y2 = points[idx2]

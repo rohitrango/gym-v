@@ -43,7 +43,7 @@ Select a set of **distinct** cells S such that every cell is either in S or has 
         self._M: int | None = None
         self._F: list[list[int]] | None = None
         self._gold_answer: int | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._prompt: str | None = None
         self._last_image: Image.Image | None = None
 
@@ -72,6 +72,10 @@ Select a set of **distinct** cells S such that every cell is either in S or has 
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -81,18 +85,18 @@ Select a set of **distinct** cells S such that every cell is either in S or has 
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
+                "text_prompt": f"{state_text}\n\n{self.description}",
                 "rlve_gold_answer": self._gold_answer,
-                "rlve_reference_answer": self._reference_answer,
             },
         )
         info = {
             "gold_answer": self._gold_answer,
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -110,18 +114,18 @@ Select a set of **distinct** cells S such that every cell is either in S or has 
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
+                "text_prompt": f"{state_text}\n\n{self.description}",
                 "rlve_gold_answer": self._gold_answer,
-                "rlve_reference_answer": self._reference_answer,
             },
         )
         info = {
             "gold_answer": self._gold_answer,
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -268,7 +272,7 @@ Select a set of **distinct** cells S such that every cell is either in S or has 
 
         # Generate a reference solution using a greedy approach
         # Note: This may not be optimal, but it provides a valid solution for testing
-        self._reference_answer = self._generate_greedy_solution()
+        self._oracle_answer = self._generate_greedy_solution()
 
     def _generate_greedy_solution(self) -> str:
         """Generate a greedy dominating set solution.
@@ -313,7 +317,9 @@ Select a set of **distinct** cells S such that every cell is either in S or has 
                             cost = F[i][j]
                             ratio = coverage / cost
                             # Prefer higher coverage, then lower cost
-                            if ratio > best_ratio or (ratio == best_ratio and coverage > best_coverage):
+                            if ratio > best_ratio or (
+                                ratio == best_ratio and coverage > best_coverage
+                            ):
                                 best_ratio = ratio
                                 best_coverage = coverage
                                 best_cell = (i, j)
@@ -326,7 +332,7 @@ Select a set of **distinct** cells S such that every cell is either in S or has 
             mark_covered(best_cell[0], best_cell[1])
 
         # Format as 1-based output
-        return "\n".join(f"{i+1} {j+1}" for i, j in selected)
+        return "\n".join(f"{i + 1} {j + 1}" for i, j in selected)
 
     def _prompt_generate(self) -> str:
         """Generate the prompt text for the problem."""
@@ -336,10 +342,7 @@ Select a set of **distinct** cells S such that every cell is either in S or has 
             N=self._N,
             M=self._M,
             F="\n".join(
-                " ".join(
-                    f"F[{i}][{j}]={Fij}"
-                    for j, Fij in enumerate(Fi, start=1)
-                )
+                " ".join(f"F[{i}][{j}]={Fij}" for j, Fij in enumerate(Fi, start=1))
                 for i, Fi in enumerate(self._F, start=1)
             ),
         )
@@ -374,15 +377,13 @@ Select a set of **distinct** cells S such that every cell is either in S or has 
         """
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
-        # Check validity: bounds and no duplicates
+            return 0.0
         selected = [[False] * self._M for _ in range(self._N)]
         for i, j in processed_result:
             if not (1 <= i <= self._N and 1 <= j <= self._M):
-                return -0.5
+                return 0.0
             if selected[i - 1][j - 1]:
-                return -0.5
+                return 0.0
             selected[i - 1][j - 1] = True
 
         # Check coverage: every cell must be selected or adjacent to a selected cell
@@ -394,24 +395,24 @@ Select a set of **distinct** cells S such that every cell is either in S or has 
                     0 <= i + dx < self._N
                     and 0 <= j + dy < self._M
                     and selected[i + dx][j + dy]
-                    for dx, dy in zip(dxs, dys)
+                    for dx, dy in zip(dxs, dys, strict=False)
                 ):
-                    return -0.2
+                    return 0.0
 
         # Calculate cost
-        answer_cost = sum(
-            self._F[i - 1][j - 1] for i, j in processed_result
-        )
+        answer_cost = sum(self._F[i - 1][j - 1] for i, j in processed_result)
         gold = self._gold_answer
 
         if not (0 < gold <= answer_cost):
             # This should not happen with valid solutions
-            return -0.5
-
-        # Quality score: (gold/answer)^5
+            return 0.0
         return (gold / answer_cost) ** 5
 
-    def render(self, show_answer: bool = False, answer_cells: list[tuple[int, int]] | None = None) -> Image.Image | list[Image.Image] | None:
+    def render(
+        self,
+        show_answer: bool = False,
+        answer_cells: list[tuple[int, int]] | None = None,
+    ) -> Image.Image | list[Image.Image] | None:
         """Render the grid with costs and optionally show a solution.
 
         Args:
@@ -448,9 +449,9 @@ Select a set of **distinct** cells S such that every cell is either in S or has 
         # Parse answer cells if showing
         selected_cells = set()
         if show_answer or answer_cells is not None:
-            if answer_cells is None and self._reference_answer:
+            if answer_cells is None and self._oracle_answer:
                 # Parse reference answer
-                for line in self._reference_answer.strip().split('\n'):
+                for line in self._oracle_answer.strip().split("\n"):
                     if line.strip():
                         parts = line.strip().split()
                         if len(parts) == 2:
@@ -480,10 +481,14 @@ Select a set of **distinct** cells S such that every cell is either in S or has 
 
                 if (r, c) in selected_cells:
                     # Selected cells: green background
-                    draw.rectangle([x1 + 1, y1 + 1, x2 - 1, y2 - 1], fill=(180, 240, 180))
+                    draw.rectangle(
+                        [x1 + 1, y1 + 1, x2 - 1, y2 - 1], fill=(180, 240, 180)
+                    )
                 elif (r, c) in covered_cells:
                     # Covered (dominated) cells: light blue background
-                    draw.rectangle([x1 + 1, y1 + 1, x2 - 1, y2 - 1], fill=(220, 240, 255))
+                    draw.rectangle(
+                        [x1 + 1, y1 + 1, x2 - 1, y2 - 1], fill=(220, 240, 255)
+                    )
 
         # Draw grid lines
         for r in range(rows + 1):
@@ -521,7 +526,7 @@ Select a set of **distinct** cells S such that every cell is either in S or has 
                 )
 
                 # Draw cell label (i,j) in top-left corner of cell
-                label = f"({r+1},{c+1})"
+                label = f"({r + 1},{c + 1})"
                 bbox_label = draw.textbbox((0, 0), label, font=font_small)
                 label_x = padding + c * cell_px + 3
                 label_y = padding + r * cell_px + 3

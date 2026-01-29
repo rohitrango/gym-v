@@ -55,7 +55,7 @@ Your goal is:
         self._n: int | None = None
         self._array: list[int] | None = None
         self._prompt: str | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._gold_answer: dict[str, int] | None = None
         self._last_image: Image.Image | None = None
 
@@ -99,6 +99,12 @@ Your goal is:
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return text representation of the array."""
+        if self._array is None:
+            return ""
+        return f"Array: {' '.join(map(str, self._array))}"
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -108,16 +114,16 @@ Your goal is:
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -135,16 +141,16 @@ Your goal is:
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -194,7 +200,7 @@ Your goal is:
         # Greedy solution with K=1
         ansK = 1
         ansM = sum(A)
-        self._reference_answer = "\n".join(
+        self._oracle_answer = "\n".join(
             f"{i} {i}" for i, Ai in enumerate(A, start=1) if Ai
         )
 
@@ -229,7 +235,7 @@ Your goal is:
             if possible and m < ansM:
                 ansM = m
                 ansK = K
-                self._reference_answer = current_answer.strip()
+                self._oracle_answer = current_answer.strip()
 
         self._n = N
         self._array = A
@@ -272,30 +278,29 @@ Your goal is:
         """
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         A = self._array.copy()
 
         K = None
         for l, r in processed_result:
             if not (1 <= l <= r <= self._n):
-                return -0.5
+                return 0.0
             if K is None:
                 K = r - l + 1
             if K != r - l + 1:
-                return -0.5
+                return 0.0
             for i in range(l, r + 1):
                 A[i - 1] ^= 1
 
         if any(A):
-            return -0.2
+            return 0.0
 
         reward = 0.0
 
         answer_M, gold_M = len(processed_result), self._gold_answer["M"]
         if gold_M > answer_M:
             # This should not happen in valid solutions
-            return -0.2
+            return 0.0
 
         # Reward strategy for M: (gold/answer)^beta
         rewarding_weight_M = 0.5
@@ -307,7 +312,7 @@ Your goal is:
             answer_K, gold_K = K, self._gold_answer["K"]
             if gold_K > answer_K:
                 # This should not happen in valid solutions
-                return -0.2
+                return 0.0
 
             # Reward strategy for K: (gold/answer)^beta
             rewarding_weight_K = 0.5
@@ -445,9 +450,7 @@ Your goal is:
         legend_y = arrow_y + cell_px + 35
 
         # Legend title
-        draw.text(
-            (padding, legend_y), "Legend:", fill=(60, 60, 60), font=font_medium
-        )
+        draw.text((padding, legend_y), "Legend:", fill=(60, 60, 60), font=font_medium)
 
         legend_items_y = legend_y + 25
 

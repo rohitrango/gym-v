@@ -7,8 +7,8 @@ from textwrap import dedent
 from typing import Any
 
 import matplotlib
-import matplotlib.pyplot as plt
 from matplotlib.patches import Circle as MplCircle
+import matplotlib.pyplot as plt
 
 from gym_v import Env, Observation
 from gym_v.logger import get_logger
@@ -78,8 +78,6 @@ $x$ and $y$ represent the center of the circle, and $r$ represents the radius of
         self,
         n_points: int = 10,
         coord_range: int | None = None,
-        wrong_format: float = -1.0,
-        invalid_solution: float = 0.0,
         rewarding_strategy: str = "(gold/answer)^beta",
         rewarding_weight: float = 1.0,
         rewarding_beta: float = 10.0,
@@ -91,8 +89,6 @@ $x$ and $y$ represent the center of the circle, and $r$ represents the radius of
         Args:
             n_points: Number of points to generate.
             coord_range: Maximum coordinate value. If None, uses 2 * n_points.
-            wrong_format: Reward for invalid format output.
-            invalid_solution: Reward for solution that doesn't cover all points.
             rewarding_strategy: Reward calculation method.
             rewarding_weight: Multiplier for reward calculation.
             rewarding_beta: Power factor for reward calculation.
@@ -102,8 +98,6 @@ $x$ and $y$ represent the center of the circle, and $r$ represents the radius of
         super().__init__(**kwargs)
         self._n_points = n_points
         self._coord_range = coord_range if coord_range is not None else 2 * n_points
-        self._wrong_format = wrong_format
-        self._invalid_solution = invalid_solution
         self._rewarding_strategy = rewarding_strategy
         self._rewarding_weight = rewarding_weight
         self._rewarding_beta = rewarding_beta
@@ -113,7 +107,7 @@ $x$ and $y$ represent the center of the circle, and $r$ represents the radius of
         self._points: list[tuple[int, int]] | None = None
         self._optimal_center: tuple[float, float] | None = None
         self._optimal_radius: float | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._prompt: str | None = None
         self._last_image: Any = None
 
@@ -147,6 +141,10 @@ $x$ and $y$ represent the center of the circle, and $r$ represents the radius of
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt or ""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -156,16 +154,16 @@ $x$ and $y$ represent the center of the circle, and $r$ represents the radius of
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -183,16 +181,16 @@ $x$ and $y$ represent the center of the circle, and $r$ represents the radius of
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -293,7 +291,7 @@ $x$ and $y$ represent the center of the circle, and $r$ represents the radius of
 
         self._optimal_center = c
         self._optimal_radius = r
-        self._reference_answer = f"{c[0]} {c[1]} {r}"
+        self._oracle_answer = f"{c[0]} {c[1]} {r}"
 
     def _prompt_generate(self) -> str:
         """Generate the prompt text."""
@@ -322,20 +320,20 @@ $x$ and $y$ represent the center of the circle, and $r$ represents the radius of
         """Score the answer based on feasibility and optimality."""
         processed_result = self._process(answer)
         if processed_result is None:
-            return self._wrong_format
+            return 0.0
 
         x, y, r = processed_result
         if r <= 0:
-            return self._wrong_format
+            return 0.0
 
         # Check if all points are covered
         if any(distance((x, y), p) > r + self.epsilon for p in self._points):
-            return self._invalid_solution
+            return 0.0
 
         opt_r = self._optimal_radius
         # The radius should be at least as large as optimal (within tolerance)
         if r < opt_r - 2 * self.epsilon:
-            return self._invalid_solution
+            return 0.0
 
         if self._rewarding_strategy == "(gold/answer)^beta":
             return self._rewarding_weight * min(

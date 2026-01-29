@@ -58,7 +58,7 @@ Modify any number of cells so that the resulting grid satisfies the following co
         self._R: int | None = None
         self._C: int | None = None
         self._gold_answer: int | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._prompt: str | None = None
         self._last_image: Image.Image | None = None
 
@@ -84,6 +84,12 @@ Modify any number of cells so that the resulting grid satisfies the following co
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return text representation of the circulating grid."""
+        if self._grid is None:
+            return ""
+        return "\n".join("".join(row) for row in self._grid)
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -93,18 +99,18 @@ Modify any number of cells so that the resulting grid satisfies the following co
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
+                "text_prompt": f"{state_text}\n\n{self.description}",
                 "rlve_gold_answer": self._gold_answer,
-                "rlve_reference_answer": self._reference_answer,
             },
         )
         info = {
             "gold_answer": self._gold_answer,
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -122,18 +128,18 @@ Modify any number of cells so that the resulting grid satisfies the following co
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
+                "text_prompt": f"{state_text}\n\n{self.description}",
                 "rlve_gold_answer": self._gold_answer,
-                "rlve_reference_answer": self._reference_answer,
             },
         )
         info = {
             "gold_answer": self._gold_answer,
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -175,7 +181,8 @@ Modify any number of cells so that the resulting grid satisfies the following co
             row = []
             for _ in range(C):
                 choice = self.np_random.choice(
-                    ["L", "R", "U", "D"], p=[w / sum(lrud_distribution) for w in lrud_distribution]
+                    ["L", "R", "U", "D"],
+                    p=[w / sum(lrud_distribution) for w in lrud_distribution],
                 )
                 row.append(choice)
             grid.append(row)
@@ -187,7 +194,7 @@ Modify any number of cells so that the resulting grid satisfies the following co
         # Generate a simple valid reference answer (all R for horizontal cycles)
         # This is valid but may not be optimal - that's okay for optimization problems
         reference_grid = [["R"] * C for _ in range(R)]
-        self._reference_answer = "\n".join("".join(row) for row in reference_grid)
+        self._oracle_answer = "\n".join("".join(row) for row in reference_grid)
 
     def _compute_gold_answer(self, grid: list[list[str]], R: int, C: int) -> int:
         """Compute the minimum number of changes needed using min-cost max-flow."""
@@ -336,19 +343,16 @@ Modify any number of cells so that the resulting grid satisfies the following co
         """Score the answer based on validity and optimality."""
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         grid = processed_result
 
         # Check format
         if len(grid) != self._R:
-            return -1.0
+            return 0.0
         if not all(len(row) == self._C for row in grid):
-            return -1.0
+            return 0.0
         if not all(all(c in "LRUD" for c in row) for row in grid):
-            return -1.0
-
-        # Check circulation condition: each cell must have exactly one incoming arrow
+            return 0.0
         in_degree = [[0] * self._C for _ in range(self._R)]
         for i in range(self._R):
             for j in range(self._C):
@@ -365,9 +369,7 @@ Modify any number of cells so that the resulting grid satisfies the following co
         if not all(
             in_degree[i][j] == 1 for i in range(self._R) for j in range(self._C)
         ):
-            return -0.5
-
-        # Count changes
+            return 0.0
         answer_changes = sum(
             int(grid[i][j] != self._grid[i][j])
             for i in range(self._R)

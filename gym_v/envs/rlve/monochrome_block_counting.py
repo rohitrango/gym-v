@@ -55,7 +55,7 @@ Please compute the total number of distinct ways to build such a tower with the 
         self._a: int | None = None
         self._b: int | None = None
         self._prompt: str | None = None
-        self._reference_answer: int | None = None
+        self._oracle_answer: int | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -85,6 +85,10 @@ Please compute the total number of distinct ways to build such a tower with the 
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt or ""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -95,16 +99,14 @@ Please compute the total number of distinct ways to build such a tower with the 
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -123,16 +125,14 @@ Please compute the total number of distinct ways to build such a tower with the 
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
 
         terminated = True
@@ -193,7 +193,7 @@ Please compute the total number of distinct ways to build such a tower with the 
         min_black = max(total_blocks - B, 0)
         max_black = min(A, total_blocks)
 
-        self._reference_answer = sum(F[i] for i in range(min_black, max_black + 1))
+        self._oracle_answer = sum(F[i] for i in range(min_black, max_black + 1))
 
     def _prompt_generate(self) -> str:
         """Generate the prompt text for this problem instance."""
@@ -230,13 +230,10 @@ Please compute the total number of distinct ways to build such a tower with the 
         """
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         if processed_result <= 0:
-            return -1.0
-
-        # Use (min/max)^beta rewarding strategy
-        a = self._reference_answer
+            return 0.0
+        a = self._oracle_answer
         b = processed_result
         beta = 10.0
         return (min(a, b) / max(a, b)) ** beta

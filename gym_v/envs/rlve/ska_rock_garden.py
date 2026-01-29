@@ -59,7 +59,7 @@ X, Y, and M are given as follows:
         self._y: list[int] | None = None
         self._m: list[int] | None = None
         self._prompt: str | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._gold_answer_perimeter: int | None = None
         self._gold_answer_cost: int | None = None
         self._last_image: Image.Image | None = None
@@ -92,10 +92,14 @@ X, Y, and M are given as follows:
             - The green dashed rectangle shows the optimal bounding box after swaps
             - Grid lines help visualize spatial relationships
 
-            Output format: A string of {self._n if self._n else 'N'} characters, each '0' or '1',
+            Output format: A string of {self._n if self._n else "N"} characters, each '0' or '1',
             indicating whether to swap each point (e.g., "01001").
             """
         ).strip()
+
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
@@ -106,16 +110,16 @@ X, Y, and M are given as follows:
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -133,16 +137,16 @@ X, Y, and M are given as follows:
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -208,7 +212,9 @@ X, Y, and M are given as follows:
         best_weight = sum(M)  # Start with the worst case: swap all points
         best_assign = None
 
-        def try_bounds(lx0: int, rx0: int, ly0: int, ry0: int) -> tuple[int | None, list[int] | None]:
+        def try_bounds(
+            lx0: int, rx0: int, ly0: int, ry0: int
+        ) -> tuple[int | None, list[int] | None]:
             """Try using bounds [lx0,rx0] × [ly0,ry0], returning (weight, assignment)
             or (None, None) if impossible."""
             total = 0
@@ -228,7 +234,7 @@ X, Y, and M are given as follows:
             return total, assign
 
         # Try the 4 possible ways of interpreting the bounding box
-        for (a, b, c, d) in (
+        for a, b, c, d in (
             (lx, rx, ly, ry),
             (lx, ry, ly, rx),
             (ly, rx, lx, ry),
@@ -246,7 +252,7 @@ X, Y, and M are given as follows:
         self._m = M
         self._gold_answer_perimeter = fence_length
         self._gold_answer_cost = best_weight
-        self._reference_answer = "".join(map(str, best_assign))
+        self._oracle_answer = "".join(map(str, best_assign))
 
     def _prompt_generate(self) -> str:
         """Generate the prompt text for the problem."""
@@ -256,7 +262,9 @@ X, Y, and M are given as follows:
             N=self._n,
             X_Y_M="\n".join(
                 f"X[{i}]={Xi} Y[{i}]={Yi} M[{i}]={Mi}"
-                for i, (Xi, Yi, Mi) in enumerate(zip(self._x, self._y, self._m))
+                for i, (Xi, Yi, Mi) in enumerate(
+                    zip(self._x, self._y, self._m, strict=False)
+                )
             ),
         )
 
@@ -278,10 +286,9 @@ X, Y, and M are given as follows:
         processed_result = self._process(answer)
         if processed_result is not None:
             if len(processed_result) != self._n:
-                return -1.0
+                return 0.0
             if not all(c in "01" for c in processed_result):
-                return -1.0
-
+                return 0.0
             X, Y = self._x.copy(), self._y.copy()
             answer_cost = 0
             gold_cost = self._gold_answer_cost
@@ -300,33 +307,33 @@ X, Y, and M are given as follows:
             reward = 0.0
 
             # Perimeter reward (weight: 0.5, beta: 5.0)
-            assert (
-                gold_perimeter <= answer_perimeter
-            ), "answer_perimeter should be greater than or equal to gold_perimeter"
+            assert gold_perimeter <= answer_perimeter, (
+                "answer_perimeter should be greater than or equal to gold_perimeter"
+            )
             if answer_perimeter == 0:
-                assert (
-                    gold_perimeter == 0
-                ), "If answer_perimeter is zero, gold_perimeter should also be zero"
+                assert gold_perimeter == 0, (
+                    "If answer_perimeter is zero, gold_perimeter should also be zero"
+                )
                 reward += 0.5 * 1.0
             else:
                 reward += 0.5 * ((gold_perimeter / answer_perimeter) ** 5.0)
 
             # Cost reward (weight: 0.5, beta: 5.0) - only if perimeters match
             if gold_perimeter == answer_perimeter:
-                assert (
-                    gold_cost <= answer_cost
-                ), "answer_cost should be greater than or equal to gold_cost"
+                assert gold_cost <= answer_cost, (
+                    "answer_cost should be greater than or equal to gold_cost"
+                )
                 if answer_cost == 0:
-                    assert (
-                        gold_cost == 0
-                    ), "If answer_cost is zero, gold_cost should also be zero"
+                    assert gold_cost == 0, (
+                        "If answer_cost is zero, gold_cost should also be zero"
+                    )
                     reward += 0.5 * 1.0
                 else:
                     reward += 0.5 * ((gold_cost / answer_cost) ** 5.0)
 
             return reward
         else:
-            return -1.0
+            return 0.0
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the rock garden puzzle as an image.
@@ -416,7 +423,9 @@ X, Y, and M are given as follows:
         for i in range(num_grid_lines + 1):
             # Vertical grid lines
             x = plot_x + int(i / num_grid_lines * plot_width)
-            draw.line([(x, plot_y), (x, plot_y + plot_height)], fill=grid_color, width=1)
+            draw.line(
+                [(x, plot_y), (x, plot_y + plot_height)], fill=grid_color, width=1
+            )
 
             # Horizontal grid lines
             y = plot_y + int(i / num_grid_lines * plot_height)
@@ -432,7 +441,7 @@ X, Y, and M are given as follows:
         # Calculate optimal bounding box after swaps
         X_after_swap = self._x.copy()
         Y_after_swap = self._y.copy()
-        for i, swap in enumerate(self._reference_answer):
+        for i, swap in enumerate(self._oracle_answer):
             if swap == "1":
                 X_after_swap[i], Y_after_swap[i] = Y_after_swap[i], X_after_swap[i]
 
@@ -492,7 +501,7 @@ X, Y, and M are given as follows:
             px, py = coord_to_pixel(self._x[i], self._y[i])
 
             # Color based on whether to swap
-            if self._reference_answer[i] == "0":
+            if self._oracle_answer[i] == "0":
                 point_color = (70, 130, 220)  # Blue - don't swap
                 text_color = (70, 130, 220)
             else:
@@ -540,7 +549,9 @@ X, Y, and M are given as follows:
 
         # Title
         legend_title = "Legend:"
-        draw.text((padding, legend_y), legend_title, fill=(30, 30, 30), font=font_legend)
+        draw.text(
+            (padding, legend_y), legend_title, fill=(30, 30, 30), font=font_legend
+        )
         legend_y += 25
 
         # Blue circle legend

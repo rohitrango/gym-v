@@ -66,7 +66,7 @@ Your final answer should be a single line containing the color of each vertex in
         self._edges: list[tuple[int, int]] | None = None
         self._gold_answer: int | None = None
         self._prompt: str | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -95,6 +95,10 @@ Your final answer should be a single line containing the color of each vertex in
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -104,16 +108,16 @@ Your final answer should be a single line containing the color of each vertex in
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -133,16 +137,16 @@ Your final answer should be a single line containing the color of each vertex in
 
         reward = float(self._score_answer(action_str))
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -195,18 +199,23 @@ Your final answer should be a single line containing the color of each vertex in
                 return
 
             if u == N:
-                color_adjacent = [[False] * (max_color + 1) for _ in range(max_color + 1)]
+                color_adjacent = [
+                    [False] * (max_color + 1) for _ in range(max_color + 1)
+                ]
                 satisfied_color_pair_num = 0
                 for edge_u, edge_v in edges:
                     color_u = min(colors[edge_u], colors[edge_v])
                     color_v = max(colors[edge_u], colors[edge_v])
-                    assert color_u != color_v, "Adjacent vertices should have different colors"
+                    assert color_u != color_v, (
+                        "Adjacent vertices should have different colors"
+                    )
                     if not color_adjacent[color_u][color_v]:
                         color_adjacent[color_u][color_v] = True
                         satisfied_color_pair_num += 1
 
-                assert satisfied_color_pair_num <= (max_color + 1) * max_color // 2, \
+                assert satisfied_color_pair_num <= (max_color + 1) * max_color // 2, (
                     "The number of satisfied color pairs should not exceed the maximum possible pairs"
+                )
 
                 if satisfied_color_pair_num == (max_color + 1) * max_color // 2:
                     reference_answer = colors.copy()
@@ -223,7 +232,7 @@ Your final answer should be a single line containing the color of each vertex in
         DFS(0, -1)
 
         self._gold_answer = gold_answer
-        self._reference_answer = " ".join(map(str, reference_answer))
+        self._oracle_answer = " ".join(map(str, reference_answer))
 
     def _prompt_generate(self) -> str:
         """Generate text prompt - ported from RLVE."""
@@ -249,35 +258,42 @@ Your final answer should be a single line containing the color of each vertex in
         """Score answer - ported from RLVE."""
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         colors = processed_result
         if len(colors) != self._N:
-            return -0.5
-
+            return 0.0
         adjacent_color_pairs = set()
         for u, v in self._edges:
             if colors[u] == colors[v]:
-                return -0.5
-            adjacent_color_pairs.add((min(colors[u], colors[v]), max(colors[u], colors[v])))
+                return 0.0
+            adjacent_color_pairs.add(
+                (min(colors[u], colors[v]), max(colors[u], colors[v]))
+            )
 
-        assert len(adjacent_color_pairs) <= len(set(colors)) * (len(set(colors)) - 1) // 2, \
+        assert (
+            len(adjacent_color_pairs) <= len(set(colors)) * (len(set(colors)) - 1) // 2
+        ), (
             "The number of adjacent color pairs should not exceed the maximum possible pairs"
+        )
 
         if len(adjacent_color_pairs) < len(set(colors)) * (len(set(colors)) - 1) // 2:
-            return -0.5
-
+            return 0.0
         gold = self._gold_answer
         answer_num_colors = len(set(colors))
-        assert answer_num_colors <= gold, \
+        assert answer_num_colors <= gold, (
             "The number of distinct colors used should not exceed the gold answer"
+        )
 
         if self._rewarding_strategy == "(answer/gold)^beta":
-            return self._rewarding_weight * ((answer_num_colors / gold) ** self._rewarding_beta)
+            return self._rewarding_weight * (
+                (answer_num_colors / gold) ** self._rewarding_beta
+            )
         elif self._rewarding_strategy == "gold=answer":
             return self._rewarding_weight * (answer_num_colors == gold)
         else:
-            raise NotImplementedError(f"Unknown rewarding strategy: {self._rewarding_strategy}")
+            raise NotImplementedError(
+                f"Unknown rewarding strategy: {self._rewarding_strategy}"
+            )
 
     def render(self) -> Image.Image:
         """Render undirected graph with circular layout."""

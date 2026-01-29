@@ -52,7 +52,7 @@ The matrix is given in **row-major order**, with each row represented as a strin
         self._row_counts: list[int] | None = None
         self._col_counts: list[int] | None = None
         self._prompt: str | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -79,6 +79,12 @@ The matrix is given in **row-major order**, with each row represented as a strin
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return text representation of the campsite grid."""
+        if self._matrix is None:
+            return ""
+        return "\n".join(self._matrix)
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -88,16 +94,16 @@ The matrix is given in **row-major order**, with each row represented as a strin
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -115,16 +121,16 @@ The matrix is given in **row-major order**, with each row represented as a strin
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -197,7 +203,7 @@ The matrix is given in **row-major order**, with each row represented as a strin
             return grid  # type: ignore
 
         matrix = generate_matrix(N, M)
-        self._reference_answer = "\n".join("".join(row) for row in matrix)
+        self._oracle_answer = "\n".join("".join(row) for row in matrix)
 
         self._row_counts = [sum(int(cell == "1") for cell in row) for row in matrix]
         self._col_counts = [
@@ -243,26 +249,21 @@ The matrix is given in **row-major order**, with each row represented as a strin
     def _score_answer(self, answer: str) -> float:
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         N = self._n
         M = self._m
         solution = processed_result
 
         # Check format
         if len(solution) != N or any(len(row) != M for row in solution):
-            return -1.0
+            return 0.0
         for row in solution:
             if not all(c in "01" for c in row):
-                return -1.0
-
-        # Check that pre-filled cells are not changed
-        for row, original_row in zip(solution, self._matrix):
-            for cell, original_cell in zip(row, original_row):
+                return 0.0
+        for row, original_row in zip(solution, self._matrix, strict=False):
+            for cell, original_cell in zip(row, original_row, strict=False):
                 if original_cell != "*" and cell != original_cell:
-                    return -0.5
-
-        # Check adjacency constraint (no adjacent 1s)
+                    return 0.0
         delta = [
             (+1, 0),
             (-1, 0),
@@ -278,9 +279,7 @@ The matrix is given in **row-major order**, with each row represented as a strin
                         and 0 <= nj < M
                         and solution[i][j] == solution[ni][nj] == "1"
                     ):
-                        return -0.5
-
-        # Count 1s in rows and columns
+                        return 0.0
         row_counts = [sum(int(cell == "1") for cell in row) for row in solution]
         col_counts = [
             sum(int(solution[i][j] == "1") for i in range(N)) for j in range(M)
@@ -288,9 +287,10 @@ The matrix is given in **row-major order**, with each row represented as a strin
 
         satisfied = sum(
             int(answer == gold)
-            for answer, gold in zip(row_counts, self._row_counts)
+            for answer, gold in zip(row_counts, self._row_counts, strict=False)
         ) + sum(
-            int(answer == gold) for answer, gold in zip(col_counts, self._col_counts)
+            int(answer == gold)
+            for answer, gold in zip(col_counts, self._col_counts, strict=False)
         )
 
         return (satisfied / (N + M)) ** 10
@@ -341,13 +341,19 @@ The matrix is given in **row-major order**, with each row represented as a strin
                 # Fill cell with color
                 if cell_value == "0":
                     # White for 0
-                    draw.rectangle([x0 + 2, y0 + 2, x1 - 2, y1 - 2], fill=(255, 255, 255))
+                    draw.rectangle(
+                        [x0 + 2, y0 + 2, x1 - 2, y1 - 2], fill=(255, 255, 255)
+                    )
                 elif cell_value == "1":
                     # Gray for 1
-                    draw.rectangle([x0 + 2, y0 + 2, x1 - 2, y1 - 2], fill=(180, 180, 180))
+                    draw.rectangle(
+                        [x0 + 2, y0 + 2, x1 - 2, y1 - 2], fill=(180, 180, 180)
+                    )
                 else:  # "*" - empty cell
                     # Light blue for empty
-                    draw.rectangle([x0 + 2, y0 + 2, x1 - 2, y1 - 2], fill=(220, 240, 255))
+                    draw.rectangle(
+                        [x0 + 2, y0 + 2, x1 - 2, y1 - 2], fill=(220, 240, 255)
+                    )
 
                 # Draw text
                 if cell_value == "*":

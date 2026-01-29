@@ -42,8 +42,6 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
         image_size: int = 700,
         padding: int = 60,
         num_players: int = 1,
-        wrong_format: float = -1.0,
-        invalid_solution: float = -0.5,
         rewarding_strategy: str = "(answer/gold)^beta",
         rewarding_weight: float = 1.0,
         rewarding_beta: float = 3.0,
@@ -58,8 +56,6 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         self.rewards = {
-            "wrong_format": wrong_format,
-            "invalid_solution": invalid_solution,
             "rewarding_strategy": rewarding_strategy,
             "rewarding_weight": rewarding_weight,
             "rewarding_beta": rewarding_beta,
@@ -70,7 +66,7 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
         self._R: list[int] | None = None
         self._reference_weight: int | None = None
         self._prompt: str | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -96,6 +92,10 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -105,16 +105,16 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -134,16 +134,16 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
 
         reward = float(self._score_answer(action_str))
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -218,7 +218,7 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
 
         Pick(root, dpF[root][0] < dpF[root][1])
 
-        self._reference_answer = " ".join(map(str, picked))
+        self._oracle_answer = " ".join(map(str, picked))
 
     def _prompt_generate(self) -> str:
         N = self._N
@@ -245,29 +245,31 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
         """Score answer based on the weight of the independent set found."""
         processed_result = self._process(answer)
         if processed_result is None:
-            return self.rewards["wrong_format"]
+            return 0.0
 
         picked = processed_result
         N = self._N
 
         # Check for validity
         if len(set(picked)) != len(picked):
-            return self.rewards["invalid_solution"]
+            return 0.0
         if not all(0 <= vertex < N for vertex in picked):
-            return self.rewards["invalid_solution"]
+            return 0.0
 
         # Check that no two picked vertices are adjacent
         picked_set = set(picked)
         for u, v in self._edges:
             if u in picked_set and v in picked_set:
-                return self.rewards["invalid_solution"]
+                return 0.0
 
         # Calculate weight
         answer_weight = sum(self._R[u] for u in picked)
         gold = self._reference_weight
 
         # Should never exceed gold
-        assert answer_weight <= gold, f"Answer weight {answer_weight} exceeds gold {gold}"
+        assert answer_weight <= gold, (
+            f"Answer weight {answer_weight} exceeds gold {gold}"
+        )
 
         if self.rewards["rewarding_strategy"] == "(answer/gold)^beta":
             return self.rewards["rewarding_weight"] * (

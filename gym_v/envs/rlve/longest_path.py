@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import math
 from importlib import resources
+import math
 from textwrap import dedent
 from typing import Any
 
@@ -54,7 +54,7 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
 
         self._N: int | None = None
         self._edges: list[tuple[int, int, int]] | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._gold_weight: int | None = None
         self._prompt: str | None = None
         self._last_image: Image.Image | None = None
@@ -79,6 +79,10 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -88,16 +92,14 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -117,16 +119,14 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
 
         reward = float(self._score_answer(action_str))
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
 
         terminated = True
@@ -158,7 +158,11 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
             len(all_pairs), size=min(num_edges, len(all_pairs)), replace=False
         )
         edges = [
-            (all_pairs[idx][0], all_pairs[idx][1], int(self.np_random.integers(1, N + 1)))
+            (
+                all_pairs[idx][0],
+                all_pairs[idx][1],
+                int(self.np_random.integers(1, N + 1)),
+            )
             for idx in selected_indices
         ]
         self.np_random.shuffle(edges)
@@ -207,10 +211,10 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
         while (current, visited) in parent:
             next_node = parent[(current, visited)]
             path.append(next_node)
-            visited |= (1 << next_node)
+            visited |= 1 << next_node
             current = next_node
 
-        self._reference_answer = " ".join(map(str, path))
+        self._oracle_answer = " ".join(map(str, path))
 
     def _prompt_generate(self) -> str:
         """Generate text prompt."""
@@ -238,25 +242,20 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
         """Score answer - ported from RLVE."""
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         path = processed_result
         N = self._N
 
         # Check if all vertices are in range
         if not all(0 <= vertex < N for vertex in path):
-            return -0.5
-
-        # Check if path is simple (no vertex appears more than once)
+            return 0.0
         if len(path) != len(set(path)):
-            return -0.5
-
-        # Calculate path weight
+            return 0.0
         edge2weight = {(s, t): w for s, t, w in self._edges}
         answer_weight = 0
-        for s, t in zip(path, path[1:]):
+        for s, t in zip(path, path[1:], strict=False):
             if (s, t) not in edge2weight:
-                return -0.5
+                return 0.0
             answer_weight += edge2weight[(s, t)]
 
         gold = self._gold_weight

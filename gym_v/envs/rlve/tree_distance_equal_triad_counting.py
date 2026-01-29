@@ -50,7 +50,7 @@ Please compute the number of three-vertex sets (a triad of vertices A, B, and C 
 
         self._N: int | None = None
         self._edges: list[tuple[int, int]] | None = None
-        self._reference_answer: int | None = None
+        self._oracle_answer: int | None = None
         self._prompt: str | None = None
         self._last_image: Image.Image | None = None
 
@@ -77,6 +77,10 @@ Please compute the number of three-vertex sets (a triad of vertices A, B, and C 
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -86,16 +90,16 @@ Please compute the number of three-vertex sets (a triad of vertices A, B, and C 
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -115,16 +119,16 @@ Please compute the number of three-vertex sets (a triad of vertices A, B, and C 
 
         reward = float(self._score_answer(action_str))
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
 
         terminated = True
@@ -231,14 +235,14 @@ Please compute the number of three-vertex sets (a triad of vertices A, B, and C 
                 e3 = (S1 * S1 * S1 - 3 * S1 * S2 + 2 * S3) // 6
                 ans += e3
 
-        self._reference_answer = ans
+        self._oracle_answer = ans
 
     def _prompt_generate(self) -> str:
         N = self._N
         return self.prompt_template.format(
             N=N,
             N_minus_1=N - 1,
-            edges="\n".join("{} {}".format(u, v) for u, v in self._edges),
+            edges="\n".join(f"{u} {v}" for u, v in self._edges),
         )
 
     def _process(self, answer: str | None) -> int | None:
@@ -263,14 +267,13 @@ Please compute the number of three-vertex sets (a triad of vertices A, B, and C 
         processed_result = self._process(output)
         if processed_result is not None:
             if processed_result < 0:
-                return -1.0
-
-            if processed_result == self._reference_answer:
+                return 0.0
+            if processed_result == self._oracle_answer:
                 return 1.0
             else:
                 return 0.0
         else:
-            return -1.0
+            return 0.0
 
     def render(self) -> Image.Image:
         """Render the tree with a circular layout."""
@@ -368,7 +371,9 @@ Please compute the number of three-vertex sets (a triad of vertices A, B, and C 
             )
 
         # Add info text
-        info_text = f"Vertices: {N}  |  Edges: {len(edges)}  |  Count equal-distance triads"
+        info_text = (
+            f"Vertices: {N}  |  Edges: {len(edges)}  |  Count equal-distance triads"
+        )
         bbox = draw.textbbox((0, 0), info_text, font=info_font)
         tw = bbox[2] - bbox[0]
         draw.text(

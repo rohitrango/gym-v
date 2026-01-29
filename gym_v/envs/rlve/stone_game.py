@@ -59,7 +59,7 @@ If both players always play optimally, who will win — Stan or Ollie?
         self._f: int | None = None
         self._stones: list[int] | None = None
         self._prompt: str | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -95,6 +95,10 @@ If both players always play optimally, who will win — Stan or Ollie?
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt or ""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -104,16 +108,16 @@ If both players always play optimally, who will win — Stan or Ollie?
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -131,16 +135,16 @@ If both players always play optimally, who will win — Stan or Ollie?
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -169,7 +173,7 @@ If both players always play optimally, who will win — Stan or Ollie?
         if MAX_SUM < 2:
             raise ValueError("MAX_SUM should be >= 2")
 
-        self._reference_answer = "Stan" if self.np_random.random() < 0.5 else "Ollie"
+        self._oracle_answer = "Stan" if self.np_random.random() < 0.5 else "Ollie"
 
         while True:
             SUM = int(self.np_random.integers(2, MAX_SUM + 1))
@@ -177,8 +181,14 @@ If both players always play optimally, who will win — Stan or Ollie?
             if N == 1:
                 Stones = [SUM]
             else:
-                cuts = sorted(self.np_random.choice(range(1, SUM), N - 1, replace=False))
-                Stones = [cuts[0]] + [cuts[i] - cuts[i - 1] for i in range(1, N - 1)] + [SUM - cuts[-1]]
+                cuts = sorted(
+                    self.np_random.choice(range(1, SUM), N - 1, replace=False)
+                )
+                Stones = (
+                    [cuts[0]]
+                    + [cuts[i] - cuts[i - 1] for i in range(1, N - 1)]
+                    + [SUM - cuts[-1]]
+                )
             F = int(self.np_random.integers(1, max(Stones) + 2))
 
             def check(n: int, f: int, stones: list[int]) -> bool:
@@ -213,7 +223,7 @@ If both players always play optimally, who will win — Stan or Ollie?
                     nim_sum ^= get_sg(pile_size)
                 return nim_sum != 0
 
-            if ("Stan" if check(N, F, Stones) else "Ollie") == self._reference_answer:
+            if ("Stan" if check(N, F, Stones) else "Ollie") == self._oracle_answer:
                 self._n = N
                 self._f = F
                 self._stones = Stones
@@ -248,13 +258,13 @@ If both players always play optimally, who will win — Stan or Ollie?
         processed_result = self._process(answer)
         if processed_result is not None:
             if processed_result not in ("Stan", "Ollie"):
-                return -0.5
-            if processed_result == self._reference_answer:
+                return 0.0
+            if processed_result == self._oracle_answer:
                 return 1.0
             else:
                 return 0.0
         else:
-            return -1.0
+            return 0.0
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the stone game as an image.
@@ -321,7 +331,9 @@ If both players always play optimally, who will win — Stan or Ollie?
 
         # Draw rules summary
         rules_y = padding + 80
-        rules_text = "Rule: Split heaps with ≥F stones into M parts (M≥2). Cannot move = lose."
+        rules_text = (
+            "Rule: Split heaps with ≥F stones into M parts (M≥2). Cannot move = lose."
+        )
         bbox = draw.textbbox((0, 0), rules_text, font=font_small)
         rules_width = bbox[2] - bbox[0]
         rules_x = (width - rules_width) // 2
@@ -393,7 +405,12 @@ If both players always play optimally, who will win — Stan or Ollie?
             if stone_count >= self._f:
                 text_color = (255, 255, 255)
                 # Add shadow for better readability
-                draw.text((text_x + 1, text_y + 1), count_text, fill=(0, 0, 0), font=font_large)
+                draw.text(
+                    (text_x + 1, text_y + 1),
+                    count_text,
+                    fill=(0, 0, 0),
+                    font=font_large,
+                )
             else:
                 text_color = (60, 60, 60)
 
@@ -405,7 +422,9 @@ If both players always play optimally, who will win — Stan or Ollie?
             label_width = bbox[2] - bbox[0]
             label_x = pile_x + (pile_width - label_width) // 2
             label_y = piles_y_base + 10
-            draw.text((label_x, label_y), heap_label, fill=(100, 100, 100), font=font_small)
+            draw.text(
+                (label_x, label_y), heap_label, fill=(100, 100, 100), font=font_small
+            )
 
         # Draw ground line
         ground_y = piles_y_base + 2

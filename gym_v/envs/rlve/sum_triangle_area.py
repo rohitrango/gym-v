@@ -42,7 +42,7 @@ Please compute the **sum of the areas of all triangles** that can be formed by a
 
         self._n: int | None = None
         self._points: list[tuple[int, int]] | None = None
-        self._reference_answer: int | None = None
+        self._oracle_answer: int | None = None
         self._prompt: str | None = None
         self._last_image: Image.Image | None = None
 
@@ -72,6 +72,10 @@ Please compute the **sum of the areas of all triangles** that can be formed by a
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt or ""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -81,16 +85,16 @@ Please compute the **sum of the areas of all triangles** that can be formed by a
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -108,16 +112,16 @@ Please compute the **sum of the areas of all triangles** that can be formed by a
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
 
         terminated = True
@@ -183,7 +187,7 @@ Please compute the **sum of the areas of all triangles** that can be formed by a
                 # Accumulate cross-products to sum triangle areas (twice the area)
                 ans += s[j][0] * sy[j + 1] - s[j][1] * sx[j + 1]
 
-        self._reference_answer = ans
+        self._oracle_answer = ans
 
     def _prompt_generate(self) -> str:
         """Generate the prompt from the current points."""
@@ -209,17 +213,14 @@ Please compute the **sum of the areas of all triangles** that can be formed by a
         """Score the answer using the (min/max)^beta strategy."""
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         if processed_result < 0:
-            return -1.0
-
-        # Use (min/max)^beta rewarding strategy with beta=10
+            return 0.0
         if processed_result == 0:
-            return 1.0 if self._reference_answer == 0 else 0.0
+            return 1.0 if self._oracle_answer == 0 else 0.0
 
-        a, b = self._reference_answer, processed_result
-        return ((min(a, b) / max(a, b))) ** 10
+        a, b = self._oracle_answer, processed_result
+        return (min(a, b) / max(a, b)) ** 10
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the 2D points with example triangles.

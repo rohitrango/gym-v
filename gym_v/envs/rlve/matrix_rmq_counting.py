@@ -50,7 +50,7 @@ Output a single integer — the number of such matrices modulo {MOD}."""
         self._MOD: int = 0
         self._constraints: list[tuple[int, int, int, int, int]] = []
         self._prompt: str | None = None
-        self._reference_answer: int | None = None
+        self._oracle_answer: int | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -75,6 +75,10 @@ Output a single integer — the number of such matrices modulo {MOD}."""
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt or ""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -90,16 +94,14 @@ Output a single integer — the number of such matrices modulo {MOD}."""
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -117,16 +119,14 @@ Output a single integer — the number of such matrices modulo {MOD}."""
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
 
         terminated = True
@@ -161,7 +161,9 @@ Output a single integer — the number of such matrices modulo {MOD}."""
         self._M = M
 
         # Generate a sample matrix to derive constraints
-        A = [[int(self.np_random.integers(1, M + 1)) for _ in range(W)] for _ in range(H)]
+        A = [
+            [int(self.np_random.integers(1, M + 1)) for _ in range(W)] for _ in range(H)
+        ]
 
         constraints = []
         for _ in range(N):
@@ -170,14 +172,16 @@ Output a single integer — the number of such matrices modulo {MOD}."""
             x1 = int(self.np_random.integers(1, H - row_length + 2))
             y1 = int(self.np_random.integers(1, W - col_length + 2))
             x2, y2 = x1 + row_length - 1, y1 + col_length - 1
-            v = max(A[i - 1][j - 1] for i in range(x1, x2 + 1) for j in range(y1, y2 + 1))
+            v = max(
+                A[i - 1][j - 1] for i in range(x1, x2 + 1) for j in range(y1, y2 + 1)
+            )
             constraints.append((x1, y1, x2, y2, v))
 
         self._constraints = constraints
         self._MOD = int(self.np_random.integers(2, self._max_MOD + 1))
 
         # Compute reference answer
-        self._reference_answer = self._compute_answer()
+        self._oracle_answer = self._compute_answer()
 
     def _compute_answer(self) -> int:
         """Compute the number of valid matrices using inclusion-exclusion."""
@@ -252,7 +256,7 @@ Output a single integer — the number of such matrices modulo {MOD}."""
                     break
 
             # Inclusion-exclusion sign
-            if bin(mask).count('1') & 1:
+            if bin(mask).count("1") & 1:
                 ans = (ans - tmp) % MOD
             else:
                 ans = (ans + tmp) % MOD
@@ -267,7 +271,7 @@ Output a single integer — the number of such matrices modulo {MOD}."""
             M=self._M,
             N=self._N,
             constraints="\n".join(
-                "max(A[{} : {} + 1, {} : {} + 1]) = {}".format(x1, x2, y1, y2, v)
+                f"max(A[{x1} : {x2} + 1, {y1} : {y2} + 1]) = {v}"
                 for x1, y1, x2, y2, v in self._constraints
             ),
             MOD=self._MOD,
@@ -288,12 +292,10 @@ Output a single integer — the number of such matrices modulo {MOD}."""
         """Score the answer."""
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         if not (0 <= processed_result < self._MOD):
-            return -0.5
-
-        if processed_result == self._reference_answer:
+            return 0.0
+        if processed_result == self._oracle_answer:
             return 1.0
         else:
             return 0.0
@@ -346,16 +348,18 @@ Output a single integer — the number of such matrices modulo {MOD}."""
                 blue = int(230 - intensity * 150)
 
                 fill_color = (red, green, blue)
-                draw.rectangle([x0, y0, x1, y1], fill=fill_color, outline=(200, 200, 200), width=1)
+                draw.rectangle(
+                    [x0, y0, x1, y1], fill=fill_color, outline=(200, 200, 200), width=1
+                )
 
         # Draw constraint regions with colored borders
         colors = [
-            (255, 0, 0),      # Red
-            (0, 150, 255),    # Blue
-            (0, 200, 0),      # Green
-            (255, 140, 0),    # Orange
-            (200, 0, 200),    # Purple
-            (0, 200, 200),    # Cyan
+            (255, 0, 0),  # Red
+            (0, 150, 255),  # Blue
+            (0, 200, 0),  # Green
+            (255, 140, 0),  # Orange
+            (200, 0, 200),  # Purple
+            (0, 200, 200),  # Cyan
         ]
 
         for idx, (x1, y1, x2, y2, v) in enumerate(self._constraints):
@@ -373,9 +377,7 @@ Output a single integer — the number of such matrices modulo {MOD}."""
 
             # Draw thick colored border
             draw.rectangle(
-                [border_x0, border_y0, border_x1, border_y1],
-                outline=color,
-                width=4
+                [border_x0, border_y0, border_x1, border_y1], outline=color, width=4
             )
 
             # Draw label with max value
@@ -394,7 +396,7 @@ Output a single integer — the number of such matrices modulo {MOD}."""
                 [label_x - 2, label_y - 2, label_x + tw + 2, label_y + th + 2],
                 fill=(255, 255, 255),
                 outline=color,
-                width=1
+                width=1,
             )
             draw.text((label_x, label_y), label, fill=color, font=font_small)
 
@@ -402,16 +404,12 @@ Output a single integer — the number of such matrices modulo {MOD}."""
         for r in range(H + 1):
             y = padding + r * cell_px
             draw.line(
-                (padding, y, padding + W * cell_px, y),
-                fill=(100, 100, 100),
-                width=1
+                (padding, y, padding + W * cell_px, y), fill=(100, 100, 100), width=1
             )
         for c in range(W + 1):
             x = padding + c * cell_px
             draw.line(
-                (x, padding, x, padding + H * cell_px),
-                fill=(100, 100, 100),
-                width=1
+                (x, padding, x, padding + H * cell_px), fill=(100, 100, 100), width=1
             )
 
         # Draw axis labels

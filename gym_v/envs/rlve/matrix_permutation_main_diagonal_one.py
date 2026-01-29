@@ -51,7 +51,7 @@ Matrix A is given as follows:
 
         self._matrix: list[list[int]] | None = None
         self._prompt: str | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -81,6 +81,10 @@ Matrix A is given as follows:
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt if self._prompt else ""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -90,16 +94,14 @@ Matrix A is given as follows:
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -117,16 +119,14 @@ Matrix A is given as follows:
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -170,7 +170,7 @@ Matrix A is given as follows:
             A[row_permutation[i]][column_permutation[i]] = 1
 
         self._matrix = A
-        self._reference_answer = (
+        self._oracle_answer = (
             " ".join(map(str, row_permutation))
             + "\n"
             + " ".join(map(str, column_permutation))
@@ -209,22 +209,17 @@ Matrix A is given as follows:
         """Score the answer using (satisfied/all)^beta strategy."""
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         row_permutation, column_permutation = processed_result
         N = len(self._matrix)
 
         # Validate permutations
-        if not (
-            len(row_permutation) == N and set(row_permutation) == set(range(N))
-        ):
-            return -0.5
+        if not (len(row_permutation) == N and set(row_permutation) == set(range(N))):
+            return 0.0
         if not (
             len(column_permutation) == N and set(column_permutation) == set(range(N))
         ):
-            return -0.5
-
-        # Apply permutations and check diagonal
+            return 0.0
         B = [
             [self._matrix[row_permutation[i]][column_permutation[j]] for j in range(N)]
             for i in range(N)
@@ -235,7 +230,7 @@ Matrix A is given as follows:
 
         # Use (satisfied/all)^beta strategy
         beta = 5.0
-        return ((satisfied / N) ** beta)
+        return (satisfied / N) ** beta
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the binary matrix with main diagonal highlighted."""

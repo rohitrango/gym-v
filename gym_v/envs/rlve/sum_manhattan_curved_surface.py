@@ -45,7 +45,7 @@ class RLVESumManhattanCurvedSurfaceEnv(Env):
         self._a: int | None = None
         self._b: int | None = None
         self._prompt: str | None = None
-        self._reference_answer: int | None = None
+        self._oracle_answer: int | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -83,6 +83,12 @@ class RLVESumManhattanCurvedSurfaceEnv(Env):
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        if self._prompt is None:
+            raise RuntimeError("No prompt generated")
+        return self._prompt
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -92,16 +98,16 @@ class RLVESumManhattanCurvedSurfaceEnv(Env):
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -119,16 +125,16 @@ class RLVESumManhattanCurvedSurfaceEnv(Env):
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
 
         terminated = True
@@ -213,7 +219,11 @@ class RLVESumManhattanCurvedSurfaceEnv(Env):
                 cnt = right_idx - left_idx + 1
 
                 a1, a2, a3 = work2(d)
-                ans += funb(left_idx, right_idx) * a1 + funa(left_idx, right_idx) * 2 * a2 + cnt * a3
+                ans += (
+                    funb(left_idx, right_idx) * a1
+                    + funa(left_idx, right_idx) * 2 * a2
+                    + cnt * a3
+                )
 
                 left_idx = right_idx + 1
 
@@ -223,7 +233,7 @@ class RLVESumManhattanCurvedSurfaceEnv(Env):
         result = result * 4
         if result <= 0:
             result = 1  # Ensure positive result
-        self._reference_answer = result
+        self._oracle_answer = result
 
     def _prompt_generate(self) -> str:
         """Generate the prompt string."""
@@ -246,13 +256,10 @@ class RLVESumManhattanCurvedSurfaceEnv(Env):
         """Score the answer using (min/max)^beta strategy."""
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         if processed_result < 0:
-            return -1.0
-
-        # Use (min/max)^beta strategy
-        a, b = self._reference_answer, processed_result
+            return 0.0
+        a, b = self._oracle_answer, processed_result
         beta = 10.0
         return (min(a, b) / max(a, b)) ** beta
 
@@ -288,9 +295,7 @@ class RLVESumManhattanCurvedSurfaceEnv(Env):
             min_p = min(p_values)
             max_p = max(p_values)
             if max_p > min_p:
-                normalized_p = [
-                    (p - min_p) / (max_p - min_p) for p in p_values
-                ]
+                normalized_p = [(p - min_p) / (max_p - min_p) for p in p_values]
             else:
                 normalized_p = [0.5] * len(p_values)
         else:
@@ -392,7 +397,9 @@ class RLVESumManhattanCurvedSurfaceEnv(Env):
                 fill=shadow_color,
                 font=font_small,
             )
-            draw.text((cx - k_w // 2, cy - k_h // 2), k_str, fill=text_color, font=font_small)
+            draw.text(
+                (cx - k_w // 2, cy - k_h // 2), k_str, fill=text_color, font=font_small
+            )
 
         # Draw color scale legend
         legend_y = padding * 2 + rows * cell_px + padding

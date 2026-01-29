@@ -55,7 +55,7 @@ You will start at cell (0, 0) and move to cell ({N_minus_1}, {N_minus_1}) exactl
         self._k: int | None = None
         self._grid: list[list[int]] | None = None
         self._prompt: str | None = None
-        self._reference_answer: int | None = None
+        self._oracle_answer: int | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -92,6 +92,10 @@ You will start at cell (0, 0) and move to cell ({N_minus_1}, {N_minus_1}) exactl
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt or ""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -101,16 +105,16 @@ You will start at cell (0, 0) and move to cell ({N_minus_1}, {N_minus_1}) exactl
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -128,16 +132,16 @@ You will start at cell (0, 0) and move to cell ({N_minus_1}, {N_minus_1}) exactl
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
 
         terminated = True
@@ -168,7 +172,9 @@ You will start at cell (0, 0) and move to cell ({N_minus_1}, {N_minus_1}) exactl
 
         K = int(self.np_random.integers(1, N // 2 + 1))
 
-        A = [[int(self.np_random.integers(0, N + 1)) for _ in range(N)] for _ in range(N)]
+        A = [
+            [int(self.np_random.integers(0, N + 1)) for _ in range(N)] for _ in range(N)
+        ]
 
         def max_cost_flow(N: int, K: int, A: list[list[int]]) -> int:
             """Compute maximum cost flow for the grid path problem."""
@@ -220,7 +226,7 @@ You will start at cell (0, 0) and move to cell ({N_minus_1}, {N_minus_1}) exactl
 
             # Successive SPFA for maximum-cost flow
             while True:
-                DIST = [float('-inf')] * total_nodes
+                DIST = [float("-inf")] * total_nodes
                 FLOW = [0] * total_nodes
                 INQUEUE = [False] * total_nodes
                 PREV_NODE = [None] * total_nodes
@@ -247,7 +253,7 @@ You will start at cell (0, 0) and move to cell ({N_minus_1}, {N_minus_1}) exactl
                                 INQUEUE[v] = True
 
                 # If there's no augmenting path, we're done
-                if DIST[t] == float('-inf'):
+                if DIST[t] == float("-inf"):
                     break
 
                 # Augment along the path
@@ -267,7 +273,7 @@ You will start at cell (0, 0) and move to cell ({N_minus_1}, {N_minus_1}) exactl
         self._n = N
         self._k = K
         self._grid = A
-        self._reference_answer = max_cost_flow(N, K, A)
+        self._oracle_answer = max_cost_flow(N, K, A)
 
     def _prompt_generate(self) -> str:
         """Generate the prompt text for the problem."""
@@ -302,12 +308,12 @@ You will start at cell (0, 0) and move to cell ({N_minus_1}, {N_minus_1}) exactl
         """
         processed_result = self._process(answer)
         if processed_result is not None:
-            if processed_result == self._reference_answer:
+            if processed_result == self._oracle_answer:
                 return 1.0
             else:
                 return 0.0
         else:
-            return -1.0
+            return 0.0
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the grid with path visualization.
@@ -386,12 +392,12 @@ You will start at cell (0, 0) and move to cell ({N_minus_1}, {N_minus_1}) exactl
                 # Gradient: white -> light yellow -> orange -> red
                 if intensity_ratio < 0.33:
                     t = intensity_ratio / 0.33
-                    red = int(255)
-                    green = int(255)
+                    red = 255
+                    green = 255
                     blue = int(255 - t * 100)
                 elif intensity_ratio < 0.66:
                     t = (intensity_ratio - 0.33) / 0.33
-                    red = int(255)
+                    red = 255
                     green = int(255 - t * 90)
                     blue = int(155 - t * 55)
                 else:
@@ -428,11 +434,11 @@ You will start at cell (0, 0) and move to cell ({N_minus_1}, {N_minus_1}) exactl
         # Draw sample paths (illustrative, not the actual optimal paths)
         # Show K different colored paths as examples
         path_colors = [
-            (70, 130, 180),   # Steel blue
+            (70, 130, 180),  # Steel blue
             (218, 112, 214),  # Orchid
-            (255, 165, 0),    # Orange
-            (46, 139, 87),    # Sea green
-            (220, 20, 60),    # Crimson
+            (255, 165, 0),  # Orange
+            (46, 139, 87),  # Sea green
+            (220, 20, 60),  # Crimson
         ]
 
         # Generate K simple paths for visualization
@@ -505,14 +511,10 @@ You will start at cell (0, 0) and move to cell ({N_minus_1}, {N_minus_1}) exactl
         # Draw grid lines
         for r in range(n + 1):
             y = grid_y + r * cell_px
-            draw.line(
-                (grid_x, y, grid_x + grid_width, y), fill=(80, 80, 80), width=2
-            )
+            draw.line((grid_x, y, grid_x + grid_width, y), fill=(80, 80, 80), width=2)
         for c in range(n + 1):
             x = grid_x + c * cell_px
-            draw.line(
-                (x, grid_y, x, grid_y + grid_height), fill=(80, 80, 80), width=2
-            )
+            draw.line((x, grid_y, x, grid_y + grid_height), fill=(80, 80, 80), width=2)
 
         # Draw cell values
         for r in range(n):
@@ -538,7 +540,7 @@ You will start at cell (0, 0) and move to cell ({N_minus_1}, {N_minus_1}) exactl
         # Start and End indicators
         legend_items = [
             ("START (0, 0)", (50, 200, 50)),
-            ("END ({}, {})".format(n - 1, n - 1), (200, 50, 50)),
+            (f"END ({n - 1}, {n - 1})", (200, 50, 50)),
         ]
 
         legend_x = padding

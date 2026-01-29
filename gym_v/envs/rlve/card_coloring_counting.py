@@ -60,7 +60,7 @@ Determine how many distinct coloring schemes exist, where two colorings are cons
         self._b: int | None = None
         self._shuffling_methods: list[tuple[int, ...]] | None = None
         self._prompt: str | None = None
-        self._reference_answer: int | None = None
+        self._oracle_answer: int | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -90,6 +90,19 @@ Determine how many distinct coloring schemes exist, where two colorings are cons
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return text representation of the card coloring problem."""
+        if self._n is None or self._shuffling_methods is None:
+            return ""
+        lines = [
+            f"N = {self._n} cards",
+            f"Colors: {self._r} Red, {self._g} Green, {self._b} Blue",
+            "Shuffling methods:",
+        ]
+        for i, perm in enumerate(self._shuffling_methods):
+            lines.append(f"  Method {i + 1}: " + " ".join(map(str, perm)))
+        return "\n".join(lines)
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -99,16 +112,16 @@ Determine how many distinct coloring schemes exist, where two colorings are cons
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -126,16 +139,16 @@ Determine how many distinct coloring schemes exist, where two colorings are cons
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
 
         terminated = True
@@ -217,7 +230,10 @@ Determine how many distinct coloring schemes exist, where two colorings are cons
 
             # dp table dimensions dynamically based on R, G, B counts
             # dp[r][b][g] stores the number of ways to arrange r red, b blue, g green items
-            dp = [[[0 for _ in range(green + 1)] for _ in range(blue + 1)] for _ in range(red + 1)]
+            dp = [
+                [[0 for _ in range(green + 1)] for _ in range(blue + 1)]
+                for _ in range(red + 1)
+            ]
 
             num_cycles = 0
             cycle_sizes = [0] * (n + 1)  # Stores the length of each cycle found
@@ -257,14 +273,18 @@ Determine how many distinct coloring schemes exist, where two colorings are cons
 
             return dp[red][blue][green]
 
-        def work(N: int, R: int, G: int, B: int, subgroup_perms: list[list[int]]) -> int:
+        def work(
+            N: int, R: int, G: int, B: int, subgroup_perms: list[list[int]]
+        ) -> int:
             total_ans = 0
             num_of_perms = len(subgroup_perms)
             for perm_list in subgroup_perms:
                 # Create a 1-indexed permutation list 'v_current' from the input 'perm_list'
                 v_current = [0] * (N + 1)
                 for idx in range(N):
-                    v_current[idx + 1] = perm_list[idx]  # Adjusting for 1-based indexing
+                    v_current[idx + 1] = perm_list[
+                        idx
+                    ]  # Adjusting for 1-based indexing
 
                 total_ans += solve(N, R, B, G, v_current)
 
@@ -288,7 +308,7 @@ Determine how many distinct coloring schemes exist, where two colorings are cons
         self._g = G
         self._b = B
         self._shuffling_methods = selected_perms
-        self._reference_answer = reference_answer
+        self._oracle_answer = reference_answer
 
     def _prompt_generate(self) -> str:
         """Generate the prompt text for the problem."""
@@ -327,13 +347,11 @@ Determine how many distinct coloring schemes exist, where two colorings are cons
         processed_result = self._process(answer)
         if processed_result is not None:
             if processed_result <= 0:
-                return -1.0
-
-            # (min/max)^beta strategy with beta=10
-            a, b = self._reference_answer, processed_result
-            return ((min(a, b) / max(a, b))) ** 10.0
+                return 0.0
+            a, b = self._oracle_answer, processed_result
+            return (min(a, b) / max(a, b)) ** 10.0
         else:
-            return -1.0
+            return 0.0
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the card coloring counting problem as a beautiful image.
@@ -373,7 +391,10 @@ Determine how many distinct coloring schemes exist, where two colorings are cons
         y_cards = 70
         card_width = 40
         card_height = 60
-        card_spacing = max(10, (width - 80 - self._n * card_width) // (self._n - 1) if self._n > 1 else 10)
+        card_spacing = max(
+            10,
+            (width - 80 - self._n * card_width) // (self._n - 1) if self._n > 1 else 10,
+        )
         start_x = (width - (self._n * card_width + (self._n - 1) * card_spacing)) // 2
 
         for i in range(self._n):
@@ -391,7 +412,10 @@ Determine how many distinct coloring schemes exist, where two colorings are cons
             label_w = bbox[2] - bbox[0]
             label_h = bbox[3] - bbox[1]
             draw.text(
-                (x + card_width // 2 - label_w // 2, y_cards + card_height // 2 - label_h // 2),
+                (
+                    x + card_width // 2 - label_w // 2,
+                    y_cards + card_height // 2 - label_h // 2,
+                ),
                 label,
                 fill=(30, 30, 30),
                 font=font_medium,
@@ -399,10 +423,17 @@ Determine how many distinct coloring schemes exist, where two colorings are cons
 
         # Draw color requirements
         y_colors = y_cards + card_height + 30
-        colors_text = f"Color Requirements: {self._r} Red, {self._g} Green, {self._b} Blue"
+        colors_text = (
+            f"Color Requirements: {self._r} Red, {self._g} Green, {self._b} Blue"
+        )
         bbox = draw.textbbox((0, 0), colors_text, font=font_medium)
         tw = bbox[2] - bbox[0]
-        draw.text((width // 2 - tw // 2, y_colors), colors_text, fill=(30, 30, 30), font=font_medium)
+        draw.text(
+            (width // 2 - tw // 2, y_colors),
+            colors_text,
+            fill=(30, 30, 30),
+            font=font_medium,
+        )
 
         # Draw color boxes
         y_boxes = y_colors + 30

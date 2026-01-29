@@ -61,7 +61,7 @@ Example: `0 1 0 2` (do **NOT** include the backticks or quotes); this means vert
         self._edges: list[tuple[int, int]] | None = None
         self._gold_answer: int | None = None
         self._prompt: str | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -86,6 +86,10 @@ Example: `0 1 0 2` (do **NOT** include the backticks or quotes); this means vert
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -95,16 +99,16 @@ Example: `0 1 0 2` (do **NOT** include the backticks or quotes); this means vert
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -124,16 +128,16 @@ Example: `0 1 0 2` (do **NOT** include the backticks or quotes); this means vert
 
         reward = float(self._score_answer(action_str))
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -197,7 +201,7 @@ Example: `0 1 0 2` (do **NOT** include the backticks or quotes); this means vert
         DFS(0, -1)
 
         self._gold_answer = gold_answer
-        self._reference_answer = " ".join(map(str, reference_answer))
+        self._oracle_answer = " ".join(map(str, reference_answer))
 
     def _prompt_generate(self) -> str:
         N = self._N
@@ -222,21 +226,16 @@ Example: `0 1 0 2` (do **NOT** include the backticks or quotes); this means vert
         """Score the answer using RLVE's scoring logic."""
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         colors = processed_result
         N = self._N
 
         # Check if answer has correct length
         if len(colors) != N:
-            return -0.5
-
-        # Check if coloring is valid (no adjacent vertices have same color)
+            return 0.0
         for u, v in self._edges:
             if colors[u] == colors[v]:
-                return -0.5
-
-        # Calculate reward based on number of colors used
+                return 0.0
         gold = self._gold_answer
         answer_num_colors = len(set(colors))
 

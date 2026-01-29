@@ -27,8 +27,7 @@ class RLVEWeightedBinarytreeEnv(Env):
 
     assets_dir = resources.files("gym_v.envs") / "assets"
 
-    prompt_template = (
-        r"""You are given a binary tree with {N} nodes, labeled from 0 to {N_minus_1}.
+    prompt_template = r"""You are given a binary tree with {N} nodes, labeled from 0 to {N_minus_1}.
 The **in-order traversal** of the tree is: `0, 1, ..., {N_minus_1}` — that is, the in-order sequence is fixed in increasing order of node labels.
 
 Each node `i` has an associated score `d_i` (where `0 ≤ i < {N}`), given as:
@@ -44,7 +43,6 @@ Your task is to construct the binary tree that satisfies the above rules and has
 Output Format:
 Your final answer should be a single line containing the node labels in **pre-order traversal**, separated by **spaces**.
 Example: `{all_node_sequence}` (do **NOT** include the backticks or quotes)."""
-    )
 
     def __init__(
         self,
@@ -54,9 +52,6 @@ Example: `{all_node_sequence}` (do **NOT** include the backticks or quotes)."""
         image_height: int = 600,
         node_radius: int = 25,
         num_players: int = 1,
-        wrong_format: float = -1.0,
-        not_permutation: float = -0.5,
-        invalid_solution: float = 0.0,
         rewarding_strategy: str = "(answer/gold)^beta",
         rewarding_weight: float = 1.0,
         rewarding_beta: float = 5.0,
@@ -72,9 +67,6 @@ Example: `{all_node_sequence}` (do **NOT** include the backticks or quotes)."""
         self._node_radius = node_radius
 
         self.rewards = {
-            "wrong_format": wrong_format,
-            "not_permutation": not_permutation,
-            "invalid_solution": invalid_solution,
             "rewarding_strategy": rewarding_strategy,
             "rewarding_weight": rewarding_weight,
             "rewarding_beta": rewarding_beta,
@@ -83,7 +75,7 @@ Example: `{all_node_sequence}` (do **NOT** include the backticks or quotes)."""
         self._N: int | None = None
         self._scores: list[int] | None = None
         self._gold: int | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._prompt: str | None = None
         self._last_image: Image.Image | None = None
 
@@ -118,6 +110,10 @@ Example: `{all_node_sequence}` (do **NOT** include the backticks or quotes)."""
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -127,16 +123,14 @@ Example: `{all_node_sequence}` (do **NOT** include the backticks or quotes)."""
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -155,15 +149,13 @@ Example: `{all_node_sequence}` (do **NOT** include the backticks or quotes)."""
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
-        info = {"reference_answer": self._reference_answer}
+        info = {"oracle_answer": self._oracle_answer}
 
         terminated = True
         truncated = False
@@ -226,13 +218,11 @@ Example: `{all_node_sequence}` (do **NOT** include the backticks or quotes)."""
             root = roots[i][j]
             return [root] + preorder(i, root - 1) + preorder(root + 1, j)
 
-        self._reference_answer = " ".join(map(str, preorder(0, N - 1)))
+        self._oracle_answer = " ".join(map(str, preorder(0, N - 1)))
 
     def _prompt_generate(self) -> str:
         """Generate text prompt."""
-        scores_str = "\n".join(
-            f"d_{i}={score}" for i, score in enumerate(self._scores)
-        )
+        scores_str = "\n".join(f"d_{i}={score}" for i, score in enumerate(self._scores))
         return self.prompt_template.format(
             N=self._N,
             N_minus_1=self._N - 1,
@@ -256,19 +246,21 @@ Example: `{all_node_sequence}` (do **NOT** include the backticks or quotes)."""
         """Score answer - ported from RLVE."""
         processed_result = self._process(answer)
         if processed_result is None:
-            return self.rewards["wrong_format"]
+            return 0.0
 
         # Check if it's a valid permutation
         if len(processed_result) != self._N:
-            return self.rewards["not_permutation"]
+            return 0.0
         if len(set(processed_result)) != self._N:
-            return self.rewards["not_permutation"]
+            return 0.0
         for i in processed_result:
             if not (0 <= i < self._N):
-                return self.rewards["not_permutation"]
+                return 0.0
 
         # Compute the score of the tree represented by this pre-order traversal
-        def get_score(inorder_l: int, inorder_r: int, preorder: list[int]) -> int | None:
+        def get_score(
+            inorder_l: int, inorder_r: int, preorder: list[int]
+        ) -> int | None:
             """Compute score for tree with given in-order and pre-order traversals."""
             if len(preorder) != inorder_r - inorder_l + 1:
                 return None
@@ -303,12 +295,12 @@ Example: `{all_node_sequence}` (do **NOT** include the backticks or quotes)."""
 
         answer_score = get_score(0, self._N - 1, processed_result)
         if answer_score is None:
-            return self.rewards["invalid_solution"]
+            return 0.0
 
         # Ensure answer doesn't exceed gold (shouldn't happen, but safety check)
-        assert (
-            answer_score <= self._gold
-        ), f"Answer score {answer_score} exceeds gold {self._gold}"
+        assert answer_score <= self._gold, (
+            f"Answer score {answer_score} exceeds gold {self._gold}"
+        )
 
         # Compute reward based on strategy
         if self.rewards["rewarding_strategy"] == "(answer/gold)^beta":

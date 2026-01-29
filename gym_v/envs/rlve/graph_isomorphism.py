@@ -56,7 +56,7 @@ Your task is to find a **bijection** (i.e., a permutation) `p` from the vertices
         self._G2_edges: list[tuple[int, int]] | None = None
         self._mapping: list[int] | None = None
         self._prompt: str | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -80,6 +80,23 @@ Your task is to find a **bijection** (i.e., a permutation) `p` from the vertices
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return text representation of the two graphs."""
+        if self._N is None or self._G1_edges is None or self._G2_edges is None:
+            return ""
+        lines = [
+            f"N = {self._N} vertices",
+            "",
+            "Graph G1 edges:",
+        ]
+        for u, v in self._G1_edges:
+            lines.append(f"  ({u}, {v})")
+        lines.append("")
+        lines.append("Graph G2 edges:")
+        for u, v in self._G2_edges:
+            lines.append(f"  ({u}, {v})")
+        return "\n".join(lines)
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -89,16 +106,16 @@ Your task is to find a **bijection** (i.e., a permutation) `p` from the vertices
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -118,16 +135,16 @@ Your task is to find a **bijection** (i.e., a permutation) `p` from the vertices
 
         reward = float(self._score_answer(action_str))
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -173,7 +190,7 @@ Your task is to find a **bijection** (i.e., a permutation) `p` from the vertices
         self.np_random.shuffle(G2_edges)
         self._G2_edges = G2_edges
 
-        self._reference_answer = " ".join(map(str, mapping))
+        self._oracle_answer = " ".join(map(str, mapping))
 
     def _prompt_generate(self) -> str:
         N = self._N
@@ -201,17 +218,15 @@ Your task is to find a **bijection** (i.e., a permutation) `p` from the vertices
     def _score_answer(self, answer: str) -> float:
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         permutation = processed_result
         N = self._N
         if len(permutation) != N:
-            return -0.5
+            return 0.0
         if len(set(permutation)) != N:
-            return -0.5
+            return 0.0
         if not all(0 <= i < N for i in permutation):
-            return -0.5
-
+            return 0.0
         new_G2_edges = set()
         for u, v in self._G1_edges:
             u2, v2 = permutation[u], permutation[v]

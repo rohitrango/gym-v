@@ -56,7 +56,7 @@ Please maximize the length of the longest contiguous subarray where each item is
         self._A: list[int] | None = None
         self._K: int | None = None
         self._prompt: str | None = None
-        self._reference_answer: int | None = None
+        self._oracle_answer: int | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -90,6 +90,16 @@ Please maximize the length of the longest contiguous subarray where each item is
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        if self._A is None or self._K is None:
+            raise RuntimeError("No problem generated")
+        return self.prompt_template.format(
+            N=len(self._A),
+            A=" ".join(map(str, self._A)),
+            K=self._K,
+        )
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -99,16 +109,16 @@ Please maximize the length of the longest contiguous subarray where each item is
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -126,16 +136,16 @@ Please maximize the length of the longest contiguous subarray where each item is
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -197,7 +207,7 @@ Please maximize the length of the longest contiguous subarray where each item is
             if ans != 1 and ans != N:
                 self._A = A
                 self._K = K
-                self._reference_answer = ans
+                self._oracle_answer = ans
                 break
 
     def _prompt_generate(self) -> str:
@@ -237,12 +247,12 @@ Please maximize the length of the longest contiguous subarray where each item is
         """
         processed_result = self._process(answer)
         if processed_result is not None:
-            if processed_result == self._reference_answer:
+            if processed_result == self._oracle_answer:
                 return 1.0
             else:
                 return 0.0
         else:
-            return -1.0
+            return 0.0
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the block array as an image.
@@ -298,7 +308,9 @@ Please maximize the length of the longest contiguous subarray where each item is
 
             # Calculate block height based on value
             # Normalize to fit within the available space
-            normalized_height = ((val - min_val) / value_range) * (block_height - 2 * padding)
+            normalized_height = ((val - min_val) / value_range) * (
+                block_height - 2 * padding
+            )
             if value_range == 1:
                 normalized_height = block_height // 2
 
@@ -354,9 +366,13 @@ Please maximize the length of the longest contiguous subarray where each item is
         bbox = draw.textbbox((0, 0), k_label, font=font_small)
         tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
         draw.rectangle(
-            [padding + N * cell_px + 15 - 3, k_y - th // 2 - 3,
-             padding + N * cell_px + 15 + tw + 3, k_y + th // 2 + 3],
-            fill=(245, 245, 250)
+            [
+                padding + N * cell_px + 15 - 3,
+                k_y - th // 2 - 3,
+                padding + N * cell_px + 15 + tw + 3,
+                k_y + th // 2 + 3,
+            ],
+            fill=(245, 245, 250),
         )
         draw.text(
             (padding + N * cell_px + 15, k_y - th // 2),

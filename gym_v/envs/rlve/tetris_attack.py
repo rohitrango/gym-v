@@ -52,7 +52,7 @@ Once the array becomes stable (i.e., no adjacent equal pairs remain), you may pe
         self._n: int | None = None
         self._array: list[int] | None = None
         self._prompt: str | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._gold_answer: int | None = None
         self._last_image: Image.Image | None = None
 
@@ -88,6 +88,10 @@ Once the array becomes stable (i.e., no adjacent equal pairs remain), you may pe
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -97,16 +101,14 @@ Once the array becomes stable (i.e., no adjacent equal pairs remain), you may pe
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -124,16 +126,14 @@ Once the array becomes stable (i.e., no adjacent equal pairs remain), you may pe
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -163,17 +163,17 @@ Once the array becomes stable (i.e., no adjacent equal pairs remain), you may pe
         A = list(range(N)) + list(range(N))
         while True:
             self.np_random.shuffle(A)
-            if all(a != b for a, b in zip(A, A[1:])):
+            if all(a != b for a, b in zip(A, A[1:], strict=False)):
                 break
 
         vis = [False] * N
         st = []
-        Ans = []
+        swaps = []
         for x in A:
             if vis[x]:
                 tax = []
                 while st[-1] != x:
-                    Ans.append(len(st) - 1)
+                    swaps.append(len(st) - 1)
                     tax.append(st.pop())
                 # remove the matching element
                 st.pop()
@@ -184,14 +184,14 @@ Once the array becomes stable (i.e., no adjacent equal pairs remain), you may pe
                 st.append(x)
                 vis[x] = True
 
-        if not Ans:
+        if not swaps:
             # If no swaps needed, regenerate
             return self._generate()
 
         self._n = N
         self._array = A
-        self._gold_answer = len(Ans)
-        self._reference_answer = " ".join(map(str, Ans))
+        self._gold_answer = len(swaps)
+        self._oracle_answer = " ".join(map(str, swaps))
 
     def _prompt_generate(self) -> str:
         """Generate the prompt text for the problem."""
@@ -200,7 +200,7 @@ Once the array becomes stable (i.e., no adjacent equal pairs remain), you may pe
         return self.prompt_template.format(
             N=self._n,
             N_minus_1=self._n - 1,
-            A=" ".join("A[{}]={}".format(i, Ai) for i, Ai in enumerate(self._array)),
+            A=" ".join(f"A[{i}]={Ai}" for i, Ai in enumerate(self._array)),
         )
 
     def _process(self, answer: str | None) -> list[int] | None:
@@ -229,8 +229,7 @@ Once the array becomes stable (i.e., no adjacent equal pairs remain), you may pe
         processed_result = self._process(answer)
         if processed_result is not None:
             if not isinstance(processed_result, list):
-                return -1.0
-
+                return 0.0
             A = self._array.copy()
 
             def removal() -> bool:
@@ -249,29 +248,25 @@ Once the array becomes stable (i.e., no adjacent equal pairs remain), you may pe
 
             # Check that initial array doesn't have adjacent pairs
             if removal():
-                return -1.0
-
+                return 0.0
             for i in processed_result:
                 if not (0 <= i < len(A) - 1):
-                    return -0.5
+                    return 0.0
                 A[i], A[i + 1] = A[i + 1], A[i]
                 removal()
                 # After removal, should be stable again
                 if removal():
-                    return -1.0
-
+                    return 0.0
             if A:
-                return -0.2
+                return 0.0
 
             gold, answer_len = self._gold_answer, len(processed_result)
             if not (0 < gold <= answer_len):
-                return -1.0
-
-            # Use (gold/answer)^beta scoring strategy
+                return 0.0
             beta = 5.0
             return (gold / answer_len) ** beta
         else:
-            return -1.0
+            return 0.0
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the Tetris Attack array as an image.
@@ -421,6 +416,8 @@ Once the array becomes stable (i.e., no adjacent equal pairs remain), you may pe
 
             # Label
             label = f"= {value}"
-            draw.text((x + legend_cell + 8, y + 6), label, fill=(30, 30, 30), font=font_small)
+            draw.text(
+                (x + legend_cell + 8, y + 6), label, fill=(30, 30, 30), font=font_small
+            )
 
         return img

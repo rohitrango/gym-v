@@ -47,7 +47,7 @@ The matrix is given as follows:
 
         self._matrix: list[list[int]] | None = None
         self._prompt: str | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -74,6 +74,12 @@ The matrix is given as follows:
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return text representation of the numbrix grid."""
+        if self._matrix is None:
+            return ""
+        return "\n".join(" ".join(str(cell) for cell in row) for row in self._matrix)
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -83,16 +89,16 @@ The matrix is given as follows:
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -110,16 +116,16 @@ The matrix is given as follows:
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -179,7 +185,11 @@ The matrix is given as follows:
                 x, y = stack.pop()
                 for dx, dy in dirs:
                     xx, yy = x + dx, y + dy
-                    if is_inside(xx, yy) and not visited[xx][yy] and (xx, yy) not in seen:
+                    if (
+                        is_inside(xx, yy)
+                        and not visited[xx][yy]
+                        and (xx, yy) not in seen
+                    ):
                         seen.add((xx, yy))
                         stack.append((xx, yy))
                         count += 1
@@ -241,7 +251,7 @@ The matrix is given as follows:
                     return order
 
         matrix = generate_random_hamiltonian_path()
-        self._reference_answer = "\n".join(" ".join(map(str, row)) for row in matrix)
+        self._oracle_answer = "\n".join(" ".join(map(str, row)) for row in matrix)
 
         # Make a copy for the puzzle (with some cells empty)
         sparsity = self._sparsity
@@ -249,9 +259,7 @@ The matrix is given as follows:
             raise ValueError("sparsity must be between 0 and 1")
 
         empty_cells = self.np_random.choice(
-            N * M,
-            size=max(1, int(N * M * sparsity)),
-            replace=False
+            N * M, size=max(1, int(N * M * sparsity)), replace=False
         )
 
         puzzle_matrix = [row[:] for row in matrix]
@@ -291,30 +299,28 @@ The matrix is given as follows:
         """Score the answer following RLVE's exact logic."""
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         N = len(self._matrix)
         M = len(self._matrix[0])
         solution = processed_result
 
         # Check format
         if len(solution) != N or any(len(row) != M for row in solution):
-            return -1.0
-
+            return 0.0
         location: list[tuple[int, int] | None] = [None] * (N * M)
         i = 0
-        for original_row, solution_row in zip(self._matrix, solution):
+        for original_row, solution_row in zip(self._matrix, solution, strict=False):
             j = 0
-            for original_value, solution_value in zip(original_row, solution_row):
+            for original_value, solution_value in zip(
+                original_row, solution_row, strict=False
+            ):
                 # Check that pre-filled cells match
                 if original_value != -1 and original_value != solution_value:
-                    return -0.5
-                # Check value range
+                    return 0.0
                 if not (0 <= solution_value < N * M):
-                    return -0.5
-                # Check for duplicates
+                    return 0.0
                 if location[solution_value] is not None:
-                    return -0.5
+                    return 0.0
                 location[solution_value] = (i, j)
                 j += 1
             i += 1
@@ -323,7 +329,7 @@ The matrix is given as follows:
         path = 1
         for value in range(N * M - 1):
             if location[value] is None or location[value + 1] is None:
-                return -0.5
+                return 0.0
             x1, y1 = location[value]
             x2, y2 = location[value + 1]
             # If not adjacent (Manhattan distance != 1), it's a break

@@ -45,7 +45,7 @@ Assuming both players play optimally to maximize their own total number of colle
         self._n: int | None = None
         self._a: list[int] | None = None
         self._prompt: str | None = None
-        self._reference_answer: int | None = None
+        self._oracle_answer: int | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -83,6 +83,10 @@ Assuming both players play optimally to maximize their own total number of colle
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt or ""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -92,16 +96,14 @@ Assuming both players play optimally to maximize their own total number of colle
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -119,16 +121,14 @@ Assuming both players play optimally to maximize their own total number of colle
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
 
         terminated = True
@@ -240,7 +240,7 @@ Assuming both players play optimally to maximize their own total number of colle
         # 5) Recover each player's total
         self._n = N
         self._a = A
-        self._reference_answer = (SumVal + score) // 2
+        self._oracle_answer = (SumVal + score) // 2
 
     def _prompt_generate(self) -> str:
         """Generate the prompt text for the problem."""
@@ -248,7 +248,7 @@ Assuming both players play optimally to maximize their own total number of colle
             raise RuntimeError("No problem generated")
         return self.prompt_template.format(
             N=self._n,
-            A=" ".join("A[{}]={}".format(i, Ai) for i, Ai in enumerate(self._a)),
+            A=" ".join(f"A[{i}]={Ai}" for i, Ai in enumerate(self._a)),
         )
 
     def _process(self, answer: str | None) -> int | None:
@@ -273,12 +273,12 @@ Assuming both players play optimally to maximize their own total number of colle
         """
         processed_result = self._process(answer)
         if processed_result is not None:
-            if processed_result == self._reference_answer:
+            if processed_result == self._oracle_answer:
                 return 1.0
             else:
                 return 0.0
         else:
-            return -1.0
+            return 0.0
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the stone intervals game as a beautiful visualization.
@@ -353,7 +353,9 @@ Assuming both players play optimally to maximize their own total number of colle
         line_end_x = line_start_x + (self._n - 1) * pile_spacing
 
         # Draw horizontal line
-        draw.line((line_start_x, line_y, line_end_x, line_y), fill=(80, 80, 80), width=3)
+        draw.line(
+            (line_start_x, line_y, line_end_x, line_y), fill=(80, 80, 80), width=3
+        )
 
         # Draw piles as bars
         bar_width = 50
@@ -438,9 +440,9 @@ Assuming both players play optimally to maximize their own total number of colle
 
         # Draw simple footer
         legend_y = legend_start_y
-        footer_text = f"Green bars = valid moves | Red circles = empty piles | Blue bars = blocked"
-        draw.text(
-            (padding, legend_y), footer_text, fill=(80, 80, 80), font=font_small
+        footer_text = (
+            "Green bars = valid moves | Red circles = empty piles | Blue bars = blocked"
         )
+        draw.text((padding, legend_y), footer_text, fill=(80, 80, 80), font=font_small)
 
         return img

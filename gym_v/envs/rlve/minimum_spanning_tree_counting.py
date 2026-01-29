@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import math
 from importlib import resources
+import math
 from textwrap import dedent
 from typing import Any
 
-import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation
@@ -57,7 +56,7 @@ Please compute **the number of such minimum spanning trees** modulo {MOD}."""
         self._N: int | None = None
         self._edges: list[tuple[int, int, int]] | None = None
         self._MOD: int | None = None
-        self._reference_answer: int | None = None
+        self._oracle_answer: int | None = None
         self._prompt: str | None = None
         self._last_image: Image.Image | None = None
 
@@ -84,6 +83,10 @@ Please compute **the number of such minimum spanning trees** modulo {MOD}."""
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -93,16 +96,14 @@ Please compute **the number of such minimum spanning trees** modulo {MOD}."""
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -122,16 +123,14 @@ Please compute **the number of such minimum spanning trees** modulo {MOD}."""
 
         reward = float(self._score_answer(action_str))
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
 
         terminated = True
@@ -156,7 +155,9 @@ Please compute **the number of such minimum spanning trees** modulo {MOD}."""
         N = int(self.np_random.integers(3, self._max_n + 1))
         self._N = N
 
-        weight_range = max(1, int(self._edge_ratio * N / self._weight_range_divisor)) + 1
+        weight_range = (
+            max(1, int(self._edge_ratio * N / self._weight_range_divisor)) + 1
+        )
 
         edges = []
 
@@ -184,7 +185,9 @@ Please compute **the number of such minimum spanning trees** modulo {MOD}."""
                 )
                 for idx in selected:
                     u, v = remaining_edges[idx]
-                    edges.append((u, v, int(self.np_random.integers(1, weight_range + 1))))
+                    edges.append(
+                        (u, v, int(self.np_random.integers(1, weight_range + 1)))
+                    )
 
         self.np_random.shuffle(edges)
         self._edges = edges
@@ -192,7 +195,7 @@ Please compute **the number of such minimum spanning trees** modulo {MOD}."""
         self._MOD = int(self.np_random.integers(2, self._max_mod + 1))
 
         # Count MSTs using matrix-tree theorem for each weight class
-        self._reference_answer = self._count_mst()
+        self._oracle_answer = self._count_mst()
 
     def _count_mst(self) -> int:
         """Count minimum spanning trees using matrix-tree theorem."""
@@ -342,12 +345,10 @@ Please compute **the number of such minimum spanning trees** modulo {MOD}."""
         """Score answer - ported from RLVE."""
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         if not (0 <= processed_result < self._MOD):
-            return -0.5
-
-        if processed_result == self._reference_answer:
+            return 0.0
+        if processed_result == self._oracle_answer:
             return 1.0
         else:
             return 0.0

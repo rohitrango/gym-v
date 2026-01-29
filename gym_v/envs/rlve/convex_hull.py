@@ -41,7 +41,7 @@ Your task is to find the **convex hull** of these points, which is the smallest 
 
         self._points: list[tuple[int, int]] | None = None
         self._prompt: str | None = None
-        self._reference_answer: int | None = None
+        self._oracle_answer: int | None = None
         self._convex_hull_indices: list[int] | None = None
         self._last_image: Image.Image | None = None
 
@@ -71,6 +71,12 @@ Your task is to find the **convex hull** of these points, which is the smallest 
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return text representation of the points."""
+        if self._points is None:
+            return ""
+        return "\n".join(f"({x}, {y})" for x, y in self._points)
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -80,16 +86,16 @@ Your task is to find the **convex hull** of these points, which is the smallest 
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -107,16 +113,16 @@ Your task is to find the **convex hull** of these points, which is the smallest 
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
 
         terminated = True
@@ -192,7 +198,7 @@ Your task is to find the **convex hull** of these points, which is the smallest 
         # Calculate convex hull using Andrew's algorithm
         sorted_point_indices = sorted(
             range(len(self._points)),
-            key=lambda i: (self._points[i][0], self._points[i][1])
+            key=lambda i: (self._points[i][0], self._points[i][1]),
         )
 
         def cross_product(o, a, b):
@@ -200,17 +206,25 @@ Your task is to find the **convex hull** of these points, which is the smallest 
 
         lower = []
         for i in sorted_point_indices:
-            while len(lower) >= 2 and cross_product(
-                self._points[lower[-2]], self._points[lower[-1]], self._points[i]
-            ) <= 0:
+            while (
+                len(lower) >= 2
+                and cross_product(
+                    self._points[lower[-2]], self._points[lower[-1]], self._points[i]
+                )
+                <= 0
+            ):
                 lower.pop()
             lower.append(i)
 
         upper = []
         for i in reversed(sorted_point_indices):
-            while len(upper) >= 2 and cross_product(
-                self._points[upper[-2]], self._points[upper[-1]], self._points[i]
-            ) <= 0:
+            while (
+                len(upper) >= 2
+                and cross_product(
+                    self._points[upper[-2]], self._points[upper[-1]], self._points[i]
+                )
+                <= 0
+            ):
                 upper.pop()
             upper.append(i)
 
@@ -224,7 +238,7 @@ Your task is to find the **convex hull** of these points, which is the smallest 
             x2, y2 = self._points[self._convex_hull_indices[j]]
             area += x1 * y2 - x2 * y1
 
-        self._reference_answer = abs(area)
+        self._oracle_answer = abs(area)
 
     def _prompt_generate(self) -> str:
         if self._points is None:
@@ -250,14 +264,11 @@ Your task is to find the **convex hull** of these points, which is the smallest 
         """Score the answer using (min/max)^5 strategy."""
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         if processed_result <= 0:
-            return -1.0
-
-        # Use (min/max)^beta rewarding strategy
-        a, b = self._reference_answer, processed_result
-        return ((min(a, b) / max(a, b))) ** 5
+            return 0.0
+        a, b = self._oracle_answer, processed_result
+        return (min(a, b) / max(a, b)) ** 5
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the convex hull visualization."""
@@ -298,26 +309,31 @@ Your task is to find the **convex hull** of these points, which is the smallest 
 
         # X-axis
         if min_y <= 0 <= max_y:
-            draw.line([(margin, origin_y), (img_width - margin, origin_y)],
-                     fill=(200, 200, 200), width=1)
+            draw.line(
+                [(margin, origin_y), (img_width - margin, origin_y)],
+                fill=(200, 200, 200),
+                width=1,
+            )
 
         # Y-axis
         if min_x <= 0 <= max_x:
-            draw.line([(origin_x, margin), (origin_x, img_height - margin)],
-                     fill=(200, 200, 200), width=1)
+            draw.line(
+                [(origin_x, margin), (origin_x, img_height - margin)],
+                fill=(200, 200, 200),
+                width=1,
+            )
 
         # Draw convex hull polygon
-        hull_points = [
-            to_pixel(*self._points[i]) for i in self._convex_hull_indices
-        ]
+        hull_points = [to_pixel(*self._points[i]) for i in self._convex_hull_indices]
         if len(hull_points) >= 3:
             # Fill polygon with light blue
             draw.polygon(hull_points, fill=(220, 235, 255), outline=None)
             # Draw outline
             for i in range(len(hull_points)):
                 j = (i + 1) % len(hull_points)
-                draw.line([hull_points[i], hull_points[j]],
-                         fill=(70, 130, 220), width=3)
+                draw.line(
+                    [hull_points[i], hull_points[j]], fill=(70, 130, 220), width=3
+                )
 
         # Draw all points
         point_radius = 6
@@ -327,22 +343,35 @@ Your task is to find the **convex hull** of these points, which is the smallest 
             if i in self._convex_hull_indices:
                 # Hull vertices - larger and highlighted
                 draw.ellipse(
-                    [px - point_radius - 2, py - point_radius - 2,
-                     px + point_radius + 2, py + point_radius + 2],
-                    fill=(220, 50, 50), outline=(150, 30, 30), width=2
+                    [
+                        px - point_radius - 2,
+                        py - point_radius - 2,
+                        px + point_radius + 2,
+                        py + point_radius + 2,
+                    ],
+                    fill=(220, 50, 50),
+                    outline=(150, 30, 30),
+                    width=2,
                 )
             else:
                 # Interior points - smaller and gray
                 draw.ellipse(
-                    [px - point_radius, py - point_radius,
-                     px + point_radius, py + point_radius],
-                    fill=(100, 100, 100), outline=(50, 50, 50), width=1
+                    [
+                        px - point_radius,
+                        py - point_radius,
+                        px + point_radius,
+                        py + point_radius,
+                    ],
+                    fill=(100, 100, 100),
+                    outline=(50, 50, 50),
+                    width=1,
                 )
 
         # Draw border
         draw.rectangle(
             [margin, margin, img_width - margin, img_height - margin],
-            outline=(100, 100, 100), width=2
+            outline=(100, 100, 100),
+            width=2,
         )
 
         return img

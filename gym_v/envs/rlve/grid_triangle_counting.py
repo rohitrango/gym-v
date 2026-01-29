@@ -45,7 +45,7 @@ class RLVEGridTriangleCountingEnv(Env):
         self._n: int | None = None
         self._m: int | None = None
         self._prompt: str | None = None
-        self._reference_answer: int | None = None
+        self._oracle_answer: int | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -76,6 +76,12 @@ class RLVEGridTriangleCountingEnv(Env):
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return a text representation of the current grid state."""
+        if self._n is None or self._m is None:
+            return ""
+        return self._prompt or ""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -85,16 +91,16 @@ class RLVEGridTriangleCountingEnv(Env):
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -112,16 +118,16 @@ class RLVEGridTriangleCountingEnv(Env):
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
 
         terminated = True
@@ -202,7 +208,7 @@ class RLVEGridTriangleCountingEnv(Env):
 
         self._n = N
         self._m = M
-        self._reference_answer = answer
+        self._oracle_answer = answer
 
     def _prompt_generate(self) -> str:
         """Generate the prompt text for the problem."""
@@ -233,14 +239,13 @@ class RLVEGridTriangleCountingEnv(Env):
         processed_result = self._process(answer)
         if processed_result is not None:
             if processed_result <= 0:
-                return -1.0
-
-            if processed_result == self._reference_answer:
+                return 0.0
+            if processed_result == self._oracle_answer:
                 return 1.0
             else:
                 return 0.0
         else:
-            return -1.0
+            return 0.0
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the grid triangle counting problem as an image.
@@ -290,10 +295,7 @@ class RLVEGridTriangleCountingEnv(Env):
         bbox = draw.textbbox((0, 0), title, font=font_large)
         tw = bbox[2] - bbox[0]
         draw.text(
-            (width // 2 - tw // 2, padding),
-            title,
-            fill=(30, 30, 30),
-            font=font_large
+            (width // 2 - tw // 2, padding), title, fill=(30, 30, 30), font=font_large
         )
 
         # Grid origin
@@ -304,28 +306,22 @@ class RLVEGridTriangleCountingEnv(Env):
         for i in range(self._n + 1):
             x = grid_x + i * cell_px
             draw.line(
-                (x, grid_y, x, grid_y + grid_height),
-                fill=(200, 200, 200),
-                width=1
+                (x, grid_y, x, grid_y + grid_height), fill=(200, 200, 200), width=1
             )
         for j in range(self._m + 1):
             y = grid_y + j * cell_px
             draw.line(
-                (grid_x, y, grid_x + grid_width, y),
-                fill=(200, 200, 200),
-                width=1
+                (grid_x, y, grid_x + grid_width, y), fill=(200, 200, 200), width=1
             )
 
         # Draw axes (darker)
         draw.line(
             (grid_x, grid_y + grid_height, grid_x + grid_width, grid_y + grid_height),
             fill=(80, 80, 80),
-            width=2
+            width=2,
         )
         draw.line(
-            (grid_x, grid_y, grid_x, grid_y + grid_height),
-            fill=(80, 80, 80),
-            width=2
+            (grid_x, grid_y, grid_x, grid_y + grid_height), fill=(80, 80, 80), width=2
         )
 
         # Draw lattice points
@@ -335,24 +331,29 @@ class RLVEGridTriangleCountingEnv(Env):
                 x = grid_x + i * cell_px
                 y = grid_y + (self._m - j) * cell_px  # Flip y for standard coords
                 draw.ellipse(
-                    [x - point_radius, y - point_radius,
-                     x + point_radius, y + point_radius],
+                    [
+                        x - point_radius,
+                        y - point_radius,
+                        x + point_radius,
+                        y + point_radius,
+                    ],
                     fill=(50, 100, 200),
                     outline=(30, 60, 120),
-                    width=1
+                    width=1,
                 )
 
         # Draw example triangles if grid is large enough
         if self._n >= 2 and self._m >= 2:
             # Example triangle 1: Simple right triangle
-            t1_points = [
-                (0, 0),
-                (min(2, self._n), 0),
-                (0, min(1, self._m))
-            ]
+            t1_points = [(0, 0), (min(2, self._n), 0), (0, min(1, self._m))]
             self._draw_triangle(
-                draw, grid_x, grid_y, grid_height, cell_px,
-                t1_points, (255, 100, 100, 80)
+                draw,
+                grid_x,
+                grid_y,
+                grid_height,
+                cell_px,
+                t1_points,
+                (255, 100, 100, 80),
             )
 
             # Example triangle 2: Different shape
@@ -360,11 +361,16 @@ class RLVEGridTriangleCountingEnv(Env):
                 t2_points = [
                     (min(1, self._n), min(1, self._m)),
                     (min(2, self._n), min(2, self._m)),
-                    (min(2, self._n), min(1, self._m))
+                    (min(2, self._n), min(1, self._m)),
                 ]
                 self._draw_triangle(
-                    draw, grid_x, grid_y, grid_height, cell_px,
-                    t2_points, (100, 200, 100, 80)
+                    draw,
+                    grid_x,
+                    grid_y,
+                    grid_height,
+                    cell_px,
+                    t2_points,
+                    (100, 200, 100, 80),
                 )
 
         # Draw axis labels
@@ -391,14 +397,9 @@ class RLVEGridTriangleCountingEnv(Env):
             (grid_x + grid_width + 10, grid_y + grid_height - 10),
             "x",
             fill=(80, 80, 80),
-            font=font_medium
+            font=font_medium,
         )
-        draw.text(
-            (grid_x + 5, grid_y - 20),
-            "y",
-            fill=(80, 80, 80),
-            font=font_medium
-        )
+        draw.text((grid_x + 5, grid_y - 20), "y", fill=(80, 80, 80), font=font_medium)
 
         # Draw footer information
         footer_y = grid_y + grid_height + 35
@@ -421,7 +422,7 @@ class RLVEGridTriangleCountingEnv(Env):
         grid_height: int,
         cell_px: int,
         points: list[tuple[int, int]],
-        color: tuple[int, int, int, int]
+        color: tuple[int, int, int, int],
     ) -> None:
         """Draw a semi-transparent triangle on the grid.
 
@@ -446,8 +447,4 @@ class RLVEGridTriangleCountingEnv(Env):
 
         # Draw the triangle with semi-transparent fill
         # Note: PIL doesn't support alpha for fill in RGB mode, so we draw outline only
-        draw.polygon(
-            pixel_points,
-            outline=(color[0], color[1], color[2]),
-            width=2
-        )
+        draw.polygon(pixel_points, outline=(color[0], color[1], color[2]), width=2)

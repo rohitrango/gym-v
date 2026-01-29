@@ -44,7 +44,7 @@ A cell is considered a local minimum if its value is strictly less than all of i
         self._n: int = 0
         self._m: int = 0
         self._prompt: str | None = None
-        self._reference_answer: int | None = None
+        self._oracle_answer: int | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -72,6 +72,12 @@ A cell is considered a local minimum if its value is strictly less than all of i
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the grid."""
+        if self._grid is None:
+            return ""
+        return "\n".join("".join(row) for row in self._grid)
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -81,16 +87,14 @@ A cell is considered a local minimum if its value is strictly less than all of i
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
             text=self._prompt,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
-            },
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -108,16 +112,14 @@ A cell is considered a local minimum if its value is strictly less than all of i
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
-            },
+            text=self._prompt,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
 
         terminated = True
@@ -178,7 +180,7 @@ A cell is considered a local minimum if its value is strictly less than all of i
                     grid[i][j] = "X"
 
         self._grid = grid
-        self._reference_answer = self._compute_answer(grid, N, M)
+        self._oracle_answer = self._compute_answer(grid, N, M)
 
     def _compute_answer(self, raw: list[list[str]], N: int, M: int) -> int:
         """Compute the number of valid labelings using inclusion-exclusion DP."""
@@ -301,15 +303,12 @@ A cell is considered a local minimum if its value is strictly less than all of i
         """Score the answer using (min/max)^beta strategy."""
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         if processed_result < 0:
-            return -1.0
-
-        # Use (min/max)^beta strategy
-        a, b = self._reference_answer, processed_result
+            return 0.0
+        a, b = self._oracle_answer, processed_result
         beta = 10.0
-        return ((min(a, b) / max(a, b))) ** beta
+        return (min(a, b) / max(a, b)) ** beta
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the grid with gradient colors showing local minima."""
@@ -398,10 +397,14 @@ A cell is considered a local minimum if its value is strictly less than all of i
                         fill=(0, 0, 0),
                         font=font,
                     )
-                    draw.text((cx - tw // 2, cy - th // 2), v, fill=text_color, font=font)
+                    draw.text(
+                        (cx - tw // 2, cy - th // 2), v, fill=text_color, font=font
+                    )
                 else:
                     # Lighter dot for non-minima
                     text_color = (100, 100, 100)
-                    draw.text((cx - tw // 2, cy - th // 2), v, fill=text_color, font=font)
+                    draw.text(
+                        (cx - tw // 2, cy - th // 2), v, fill=text_color, font=font
+                    )
 
         return img

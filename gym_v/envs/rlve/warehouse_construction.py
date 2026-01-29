@@ -64,7 +64,7 @@ You can choose to build warehouses at any subset of factories.
         self._costs: list[int] | None = None
         self._prompt: str | None = None
         self._gold_answer: int | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -102,6 +102,10 @@ You can choose to build warehouses at any subset of factories.
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt or ""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -111,18 +115,18 @@ You can choose to build warehouses at any subset of factories.
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
+                "text_prompt": f"{state_text}\n\n{self.description}",
                 "rlve_gold_answer": self._gold_answer,
-                "rlve_reference_answer": self._reference_answer,
             },
         )
         info = {
             "gold_answer": self._gold_answer,
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -140,18 +144,18 @@ You can choose to build warehouses at any subset of factories.
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
+                "text_prompt": f"{state_text}\n\n{self.description}",
                 "rlve_gold_answer": self._gold_answer,
-                "rlve_reference_answer": self._reference_answer,
             },
         )
         info = {
             "gold_answer": self._gold_answer,
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -233,9 +237,9 @@ You can choose to build warehouses at any subset of factories.
             # Pop from right while new line i makes it obsolete
             while len(dq) >= 2:
                 u1, u2 = dq[-1], dq[-2]
-                if (decy(u1) - decy(u2)) * (decx(i) - decx(u1)) >= (decy(i) - decy(u1)) * (
-                    decx(u1) - decx(u2)
-                ):
+                if (decy(u1) - decy(u2)) * (decx(i) - decx(u1)) >= (
+                    decy(i) - decy(u1)
+                ) * (decx(u1) - decx(u2)):
                     dq.pop()
                 else:
                     break
@@ -275,9 +279,9 @@ You can choose to build warehouses at any subset of factories.
             parent[i] = u
             while len(dq2) >= 2:
                 u1, u2 = dq2[-1], dq2[-2]
-                if (decy(u1) - decy(u2)) * (decx(i) - decx(u1)) >= (decy(i) - decy(u1)) * (
-                    decx(u1) - decx(u2)
-                ):
+                if (decy(u1) - decy(u2)) * (decx(i) - decx(u1)) >= (
+                    decy(i) - decy(u1)
+                ) * (decx(u1) - decx(u2)):
                     dq2.pop()
                 else:
                     break
@@ -291,7 +295,7 @@ You can choose to build warehouses at any subset of factories.
             curr = parent[curr]
         warehouses.reverse()
 
-        self._reference_answer = " ".join(map(str, warehouses))
+        self._oracle_answer = " ".join(map(str, warehouses))
 
     def _prompt_generate(self) -> str:
         """Generate the prompt text for the problem."""
@@ -328,8 +332,7 @@ You can choose to build warehouses at any subset of factories.
         """
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         N = self._n
         D = self._distances
         P = self._products
@@ -344,16 +347,14 @@ You can choose to build warehouses at any subset of factories.
                 built[idx] = True
                 answer_cost += C[idx]
             else:
-                return -0.5
-
-        # Compute transportation cost
+                return 0.0
         nearest_warehouse = None
         for i in range(N - 1, -1, -1):
             if built[i]:
                 nearest_warehouse = i
             if P[i]:
                 if nearest_warehouse is None:
-                    return -0.5
+                    return 0.0
                 answer_cost += P[i] * (D[nearest_warehouse] - D[i])
 
         gold = self._gold_answer
@@ -361,9 +362,7 @@ You can choose to build warehouses at any subset of factories.
             if gold == 0:
                 return 1.0
             else:
-                return -0.5
-
-        # Use (gold/answer)^beta strategy
+                return 0.0
         beta = 5.0
         return (gold / answer_cost) ** beta
 
@@ -470,7 +469,12 @@ You can choose to build warehouses at any subset of factories.
             box_y0 = y + 10
             box_x1 = cx + cell_w
             box_y1 = y + cell_h - 10
-            draw.rectangle([box_x0, box_y0, box_x1, box_y1], fill=box_color, outline=(50, 50, 50), width=2)
+            draw.rectangle(
+                [box_x0, box_y0, box_x1, box_y1],
+                fill=box_color,
+                outline=(50, 50, 50),
+                width=2,
+            )
 
             # Draw connecting line from mountain to factory
             connect_x = mountain_x + mountain_width - 10
@@ -478,9 +482,17 @@ You can choose to build warehouses at any subset of factories.
             # Downhill arrow
             if i < N - 1:
                 arrow_y = cy + cell_h // 2
-                draw.line((connect_x + 5, cy, connect_x + 5, arrow_y), fill=(150, 150, 150), width=1)
+                draw.line(
+                    (connect_x + 5, cy, connect_x + 5, arrow_y),
+                    fill=(150, 150, 150),
+                    width=1,
+                )
                 draw.polygon(
-                    [(connect_x + 5, arrow_y), (connect_x, arrow_y - 5), (connect_x + 10, arrow_y - 5)],
+                    [
+                        (connect_x + 5, arrow_y),
+                        (connect_x, arrow_y - 5),
+                        (connect_x + 10, arrow_y - 5),
+                    ],
                     fill=(150, 150, 150),
                 )
 
@@ -491,7 +503,12 @@ You can choose to build warehouses at any subset of factories.
             label = f"Factory {i}"
             label_bbox = draw.textbbox((0, 0), label, font=font_large)
             label_w = label_bbox[2] - label_bbox[0]
-            draw.text((cx + (cell_w - label_w) // 2, y + 15), label, fill=text_color, font=font_large)
+            draw.text(
+                (cx + (cell_w - label_w) // 2, y + 15),
+                label,
+                fill=text_color,
+                font=font_large,
+            )
 
             # Distance
             dist_text = f"D={self._distances[i]}"
@@ -503,7 +520,9 @@ You can choose to build warehouses at any subset of factories.
 
             # Warehouse cost
             cost_text = f"C={self._costs[i]}"
-            draw.text((cx + cell_w - 50, y + 54), cost_text, fill=text_color, font=font_medium)
+            draw.text(
+                (cx + cell_w - 50, y + 54), cost_text, fill=text_color, font=font_medium
+            )
 
         # Draw legend
         legend_y = start_y + N * cell_h + 20

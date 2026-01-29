@@ -42,12 +42,6 @@ Example: `{N_plus_1} {EXAMPLE_1}` (do **NOT** include the backticks or quotes); 
         self,
         min_n: int = 3,
         max_n: int = 10,
-        wrong_format: float = -1.0,
-        invalid_answer: float = -0.5,
-        wrong_N: float = 0.0,
-        rewarding_strategy: str = "mean([gold=answer])^beta",
-        rewarding_weight: float = 1.0,
-        rewarding_beta: float = 3.0,
         num_players: int = 1,
         **kwargs: Any,
     ):
@@ -57,20 +51,11 @@ Example: `{N_plus_1} {EXAMPLE_1}` (do **NOT** include the backticks or quotes); 
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
-        self.rewards = {
-            "wrong_format": wrong_format,
-            "invalid_answer": invalid_answer,
-            "wrong_N": wrong_N,
-            "rewarding_strategy": rewarding_strategy,
-            "rewarding_weight": rewarding_weight,
-            "rewarding_beta": rewarding_beta,
-        }
-
         self._N: int | None = None
         self._digit2letter: list[str] | None = None
         self._letter2digit: dict[str, int] | None = None
         self._prompt: str | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -101,6 +86,29 @@ Example: `{N_plus_1} {EXAMPLE_1}` (do **NOT** include the backticks or quotes); 
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return text representation of the addition table image."""
+        if self._N is None or self._digit2letter is None or self._letter2digit is None:
+            return ""
+        N = self._N
+        letters = [chr(97 + i) for i in range(N)]
+
+        # Header row
+        rows = ["+ " + " ".join(letters)]
+
+        # Data rows
+        for r in range(N):
+            row_letter = letters[r]
+            cells = [row_letter]
+            for c in range(N):
+                sum_val = (
+                    self._letter2digit[letters[r]] + self._letter2digit[letters[c]]
+                )
+                cells.append(self._convert_to_expression(sum_val))
+            rows.append(" ".join(cells))
+
+        return "\n".join(rows)
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -116,16 +124,16 @@ Example: `{N_plus_1} {EXAMPLE_1}` (do **NOT** include the backticks or quotes); 
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -143,16 +151,17 @@ Example: `{N_plus_1} {EXAMPLE_1}` (do **NOT** include the backticks or quotes); 
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -184,8 +193,10 @@ Example: `{N_plus_1} {EXAMPLE_1}` (do **NOT** include the backticks or quotes); 
         self.np_random.shuffle(digit_indices)
         self._digit2letter = [self._digit2letter[i] for i in digit_indices]
 
-        self._letter2digit = {letter: digit for digit, letter in enumerate(self._digit2letter)}
-        self._reference_answer = "{} {}".format(
+        self._letter2digit = {
+            letter: digit for digit, letter in enumerate(self._digit2letter)
+        }
+        self._oracle_answer = "{} {}".format(
             N, " ".join([str(self._letter2digit[chr(i)]) for i in range(97, 97 + N)])
         )
 
@@ -218,9 +229,7 @@ Example: `{N_plus_1} {EXAMPLE_1}` (do **NOT** include the backticks or quotes); 
                 a = chr(a_ascii)
                 b = chr(b_ascii)
                 EQUATIONS.append(
-                    "{} + {} = {}".format(
-                        a, b, self._convert_to_expression(self._letter2digit[a] + self._letter2digit[b])
-                    )
+                    f"{a} + {b} = {self._convert_to_expression(self._letter2digit[a] + self._letter2digit[b])}"
                 )
         EQUATIONS = "\n".join(EQUATIONS)
 
@@ -230,7 +239,7 @@ Example: `{N_plus_1} {EXAMPLE_1}` (do **NOT** include the backticks or quotes); 
             N=N,
             N_plus_1=N + 1,
             EXAMPLE_1=" ".join([str(_) for _ in range(N)]),
-            EXAMPLE_2=", ".join(["{}={}".format(chr(i), i - 97) for i in range(97, 97 + N)]),
+            EXAMPLE_2=", ".join([f"{chr(i)}={i - 97}" for i in range(97, 97 + N)]),
         )
 
     def _process(self, answer: str | None) -> dict[str, Any] | None:
@@ -251,39 +260,32 @@ Example: `{N_plus_1} {EXAMPLE_1}` (do **NOT** include the backticks or quotes); 
             return {}
 
     def _score_answer(self, answer: str) -> float:
-        """Score the answer based on correctness."""
-        processed_result = self._process(answer)
-        if processed_result is None:
-            return self.rewards["wrong_format"]
+        """Score the answer based on correctness.
 
-        if not processed_result:
-            return self.rewards["invalid_answer"]
+        Returns:
+            1.0 if the answer is correct, 0.0 otherwise.
+        """
+        processed_result = self._process(answer)
+        if processed_result is None or not processed_result:
+            return 0.0
 
         N = processed_result["N"]
         if N != self._N:
-            return self.rewards["wrong_N"]
+            return 0.0
 
         predict_digits = processed_result["digits"]
-        assert len(predict_digits) == N, "digits should have the same length as N"
+        if len(predict_digits) != N:
+            return 0.0
 
-        assert self._letter2digit is not None
-        letter2digit = self._letter2digit
-        assert len(letter2digit) == N, "letter2digit should have the same length as N"
-        gold_digits = [letter2digit[chr(i)] for i in range(97, 97 + N)]
+        if self._letter2digit is None:
+            return 0.0
 
-        if self.rewards["rewarding_strategy"] == "mean([gold=answer])^beta":
-            return self.rewards["rewarding_weight"] * (
-                (sum(float(a == b) for a, b in zip(gold_digits, predict_digits)) / N)
-                ** self.rewards["rewarding_beta"]
-            )
-        elif self.rewards["rewarding_strategy"] == "gold=answer":
-            return self.rewards["rewarding_weight"] * all(
-                a == b for a, b in zip(gold_digits, predict_digits)
-            )
-        else:
-            raise NotImplementedError(
-                "Unknown rewarding strategy: {}".format(self.rewards["rewarding_strategy"])
-            )
+        gold_digits = [self._letter2digit[chr(i)] for i in range(97, 97 + N)]
+
+        # Exact match required
+        if all(a == b for a, b in zip(gold_digits, predict_digits, strict=False)):
+            return 1.0
+        return 0.0
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the addition table puzzle as a beautiful visual grid."""
@@ -380,7 +382,9 @@ Example: `{N_plus_1} {EXAMPLE_1}` (do **NOT** include the backticks or quotes); 
             for c in range(N):
                 row_letter = chr(97 + r)
                 col_letter = chr(97 + c)
-                sum_value = self._letter2digit[row_letter] + self._letter2digit[col_letter]
+                sum_value = (
+                    self._letter2digit[row_letter] + self._letter2digit[col_letter]
+                )
                 result = self._convert_to_expression(sum_value)
 
                 # Add light background for diagonal

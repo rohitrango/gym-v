@@ -7,7 +7,6 @@ import math
 from textwrap import dedent
 from typing import Any
 
-import networkx as nx
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation
@@ -56,7 +55,7 @@ Please compute the number of **bijections** `p` (i.e., permutations) from the ve
         self._G_edges: list[tuple[int, int]] | None = None
         self._T_edges: list[tuple[int, int]] | None = None
         self._prompt: str | None = None
-        self._reference_answer: int | None = None
+        self._oracle_answer: int | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -81,6 +80,10 @@ Please compute the number of **bijections** `p` (i.e., permutations) from the ve
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the graph and tree data."""
+        return self._prompt_generate()
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -90,16 +93,16 @@ Please compute the number of **bijections** `p` (i.e., permutations) from the ve
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
             text=self._prompt,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -119,16 +122,16 @@ Please compute the number of **bijections** `p` (i.e., permutations) from the ve
 
         reward = float(self._score_answer(action_str))
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=self._prompt,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
 
         terminated = True
@@ -252,7 +255,7 @@ Please compute the number of **bijections** `p` (i.e., permutations) from the ve
         enumerate_subsets()
 
         assert ans > 0, "Reference answer should be positive"
-        self._reference_answer = ans
+        self._oracle_answer = ans
 
     def _prompt_generate(self) -> str:
         N = self._N
@@ -275,13 +278,10 @@ Please compute the number of **bijections** `p` (i.e., permutations) from the ve
     def _score_answer(self, answer: str) -> float:
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         if processed_result <= 0:
-            return -1.0
-
-        # Use (min/max)^beta scoring strategy
-        a, b = self._reference_answer, processed_result
+            return 0.0
+        a, b = self._oracle_answer, processed_result
         return (min(a, b) / max(a, b)) ** 10
 
     def render(self) -> Image.Image:
@@ -340,7 +340,9 @@ Please compute the number of **bijections** `p` (i.e., permutations) from the ve
                 draw.line([(x1, y1), (x2, y2)], fill=edge_color, width=2)
 
             # Draw nodes
-            node_color = (144, 238, 144) if is_tree else (100, 150, 255)  # Light green for tree
+            node_color = (
+                (144, 238, 144) if is_tree else (100, 150, 255)
+            )  # Light green for tree
             for i, (x, y) in enumerate(positions):
                 draw.ellipse(
                     [
@@ -358,9 +360,7 @@ Please compute the number of **bijections** `p` (i.e., permutations) from the ve
                 bbox = draw.textbbox((0, 0), text, font=font)
                 tw = bbox[2] - bbox[0]
                 th = bbox[3] - bbox[1]
-                draw.text(
-                    (x - tw // 2, y - th // 2), text, fill=(0, 0, 0), font=font
-                )
+                draw.text((x - tw // 2, y - th // 2), text, fill=(0, 0, 0), font=font)
 
         # Draw graph G on the left
         draw_graph(G_edges, 0, "Graph G", is_tree=False)

@@ -71,7 +71,7 @@ Your task: Choose which heaps to remove **in your first move** so that you **gua
         self._n: int | None = None
         self._heaps: list[int] | None = None
         self._prompt: str | None = None
-        self._reference_answer: int | None = None
+        self._oracle_answer: int | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -111,6 +111,10 @@ Your task: Choose which heaps to remove **in your first move** so that you **gua
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt or ""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -131,16 +135,16 @@ Your task: Choose which heaps to remove **in your first move** so that you **gua
         # If gold_answer is 0, output empty string
         oracle_answer = self._generate_oracle_answer()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": oracle_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": oracle_answer,
+            "oracle_answer": oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -158,16 +162,16 @@ Your task: Choose which heaps to remove **in your first move** so that you **gua
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": str(self._reference_answer),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": str(self._reference_answer),
+            "oracle_answer": str(self._oracle_answer),
         }
 
         terminated = True
@@ -199,9 +203,7 @@ Your task: Choose which heaps to remove **in your first move** so that you **gua
         # Generate random heap sizes
         self._heaps = [
             int(
-                self.np_random.integers(
-                    1, N * self._match_number_range_coefficient + 1
-                )
+                self.np_random.integers(1, N * self._match_number_range_coefficient + 1)
             )
             for _ in range(N)
         ]
@@ -229,7 +231,7 @@ Your task: Choose which heaps to remove **in your first move** so that you **gua
             if not add(x):
                 ans += x
 
-        self._reference_answer = ans
+        self._oracle_answer = ans
 
     def _generate_oracle_answer(self) -> str:
         """Generate the oracle answer (indices of heaps to remove).
@@ -239,11 +241,11 @@ Your task: Choose which heaps to remove **in your first move** so that you **gua
         """
         N = self._n
         A = self._heaps
-        gold_answer = self._reference_answer
+        gold_answer = self._oracle_answer
 
         # Try all possible subsets of heaps to find optimal solution
         best_indices = None
-        best_sum = float('inf')
+        best_sum = float("inf")
 
         for mask in range(1 << N):
             # Cannot remove all heaps or no heaps would remain
@@ -286,7 +288,9 @@ Your task: Choose which heaps to remove **in your first move** so that you **gua
             raise RuntimeError("No valid solution found!")
 
         if best_sum != gold_answer:
-            raise RuntimeError(f"Best sum {best_sum} does not match gold answer {gold_answer}")
+            raise RuntimeError(
+                f"Best sum {best_sum} does not match gold answer {gold_answer}"
+            )
 
         # Return "0" if no heaps need to be removed (user can also provide empty line)
         if not best_indices:
@@ -338,19 +342,19 @@ Your task: Choose which heaps to remove **in your first move** so that you **gua
         processed_result = self._process(answer)
         if processed_result is not None:
             if not isinstance(processed_result, list):
-                return self._rewards["wrong_format"]
+                return 0.0
 
             # Check for duplicate indices
             if len(processed_result) != len(set(processed_result)):
-                return self._rewards["invalid_solution"]
+                return 0.0
 
             # Check for valid indices
             if not all(1 <= index <= self._n for index in processed_result):
-                return self._rewards["invalid_solution"]
+                return 0.0
 
             # Check cannot remove all heaps
             if len(processed_result) == self._n:
-                return self._rewards["invalid_solution"]
+                return 0.0
 
             # Build removed array
             removed = [False] * self._n
@@ -375,11 +379,11 @@ Your task: Choose which heaps to remove **in your first move** so that you **gua
             for i, Ai in enumerate(self._heaps):
                 if not removed[i]:
                     if not add(Ai):
-                        return self._rewards["unsuccessful_solution"]
+                        return 0.0
 
             # Valid solution - compute score
             answer_sum = sum(self._heaps[i - 1] for i in processed_result)
-            gold = self._reference_answer
+            gold = self._oracle_answer
 
             if not (0 <= gold <= answer_sum):
                 raise ValueError(
@@ -401,7 +405,7 @@ Your task: Choose which heaps to remove **in your first move** so that you **gua
                     f"Unknown rewarding strategy: {self._rewards['rewarding_strategy']}"
                 )
         else:
-            return self._rewards["wrong_format"]
+            return 0.0
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the Nim game as an image.
@@ -531,10 +535,16 @@ Your task: Choose which heaps to remove **in your first move** so that you **gua
 
                 # Draw text with shadow
                 draw.text(
-                    (count_x + 2, count_y + 2), count_text, fill=(0, 0, 0), font=font_large
+                    (count_x + 2, count_y + 2),
+                    count_text,
+                    fill=(0, 0, 0),
+                    font=font_large,
                 )
                 draw.text(
-                    (count_x, count_y), count_text, fill=(255, 255, 255), font=font_large
+                    (count_x, count_y),
+                    count_text,
+                    fill=(255, 255, 255),
+                    font=font_large,
                 )
 
             # Draw heap index

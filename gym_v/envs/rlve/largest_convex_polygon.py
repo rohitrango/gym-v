@@ -8,9 +8,9 @@ from textwrap import dedent
 from typing import Any
 
 import matplotlib
-import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.patches import Polygon as MPLPolygon
+import numpy as np
 from PIL import Image
 
 from gym_v import Env, Observation
@@ -47,7 +47,7 @@ Find a subset of distinct points that forms the vertices of a **convex polygon**
 
         self._points: list[tuple[int, int]] | None = None
         self._gold_answer: int | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._prompt: str | None = None
         self._last_image: Image.Image | None = None
 
@@ -73,6 +73,10 @@ Find a subset of distinct points that forms the vertices of a **convex polygon**
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt or ""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -82,18 +86,18 @@ Find a subset of distinct points that forms the vertices of a **convex polygon**
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
+                "text_prompt": f"{state_text}\n\n{self.description}",
                 "rlve_gold_answer": self._gold_answer,
-                "rlve_reference_answer": self._reference_answer,
             },
         )
         info = {
             "gold_answer": self._gold_answer,
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -111,18 +115,18 @@ Find a subset of distinct points that forms the vertices of a **convex polygon**
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
+                "text_prompt": f"{state_text}\n\n{self.description}",
                 "rlve_gold_answer": self._gold_answer,
-                "rlve_reference_answer": self._reference_answer,
             },
         )
         info = {
             "gold_answer": self._gold_answer,
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -282,7 +286,7 @@ Find a subset of distinct points that forms the vertices of a **convex polygon**
                 if p == hp:
                     hull_indices.append(idx)
                     break
-        self._reference_answer = " ".join(map(str, hull_indices))
+        self._oracle_answer = " ".join(map(str, hull_indices))
 
     def _prompt_generate(self) -> str:
         """Generate problem prompt from generated points."""
@@ -291,8 +295,7 @@ Find a subset of distinct points that forms the vertices of a **convex polygon**
 
         N = len(self._points)
         points_str = "\n".join(
-            f"Point {i}: ({x}, {y})"
-            for i, (x, y) in enumerate(self._points, start=1)
+            f"Point {i}: ({x}, {y})" for i, (x, y) in enumerate(self._points, start=1)
         )
 
         return self.prompt_template.format(N=N, points=points_str)
@@ -313,32 +316,30 @@ Find a subset of distinct points that forms the vertices of a **convex polygon**
         processed_result = self._process(answer)
 
         if processed_result is None:
-            return -1.0  # wrong_format
+            return 0.0
 
         N = len(self._points)
 
         # Check valid indices
         if not all(1 <= i <= N for i in processed_result):
-            return -0.5  # invalid_solution
+            return 0.0
 
         # Check distinct indices
         if len(processed_result) != len(set(processed_result)):
-            return -0.5  # invalid_solution
+            return 0.0
 
         # Check if forms convex polygon
         if not self._can_form_convex_polygon(
             [self._points[i - 1] for i in processed_result]
         ):
-            return -0.2  # unsuccessful_solution
+            return 0.0
 
         # Reward based on quality
         answer_count = len(processed_result)
         gold = self._gold_answer
 
         if answer_count > gold:
-            raise AssertionError(
-                f"Answer {answer_count} should be <= gold {gold}"
-            )
+            raise AssertionError(f"Answer {answer_count} should be <= gold {gold}")
 
         # Reward strategy: (answer/gold)^5
         return (answer_count / gold) ** 5
@@ -418,7 +419,16 @@ Find a subset of distinct points that forms the vertices of a **convex polygon**
             ax.add_patch(polygon)
 
         # Draw all points
-        ax.scatter(xs, ys, c="darkred", s=120, zorder=3, alpha=0.8, edgecolors="black", linewidths=1.5)
+        ax.scatter(
+            xs,
+            ys,
+            c="darkred",
+            s=120,
+            zorder=3,
+            alpha=0.8,
+            edgecolors="black",
+            linewidths=1.5,
+        )
 
         # Label points with their indices
         for i, (x, y) in enumerate(self._points, start=1):
@@ -436,7 +446,12 @@ Find a subset of distinct points that forms the vertices of a **convex polygon**
         ax.grid(True, linestyle="--", alpha=0.3, color="gray")
         ax.set_xlabel("X", fontsize=12, fontweight="bold")
         ax.set_ylabel("Y", fontsize=12, fontweight="bold")
-        ax.set_title("Point Set - Find Largest Convex Polygon", fontsize=14, fontweight="bold", pad=15)
+        ax.set_title(
+            "Point Set - Find Largest Convex Polygon",
+            fontsize=14,
+            fontweight="bold",
+            pad=15,
+        )
 
         # Convert to PIL Image
         fig.tight_layout()
@@ -449,7 +464,9 @@ Find a subset of distinct points that forms the vertices of a **convex polygon**
 
         return img
 
-    def _compute_convex_hull(self, points: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    def _compute_convex_hull(
+        self, points: list[tuple[int, int]]
+    ) -> list[tuple[int, int]]:
         """Compute convex hull of points using Andrew's monotone chain algorithm."""
         if len(points) < 3:
             return points

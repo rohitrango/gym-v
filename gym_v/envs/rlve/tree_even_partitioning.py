@@ -49,7 +49,7 @@ Partition all vertices into {N} **disjoint** sets such that: (1) each set contai
         self._K: int | None = None
         self._edges: list[tuple[int, int]] | None = None
         self._groups: list[list[int]] | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._prompt: str | None = None
         self._last_image: Image.Image | None = None
 
@@ -78,6 +78,10 @@ Partition all vertices into {N} **disjoint** sets such that: (1) each set contai
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -87,16 +91,14 @@ Partition all vertices into {N} **disjoint** sets such that: (1) each set contai
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -116,16 +118,14 @@ Partition all vertices into {N} **disjoint** sets such that: (1) each set contai
 
         reward = float(self._score_answer(action_str))
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -194,7 +194,7 @@ Partition all vertices into {N} **disjoint** sets such that: (1) each set contai
         tree.add_edges_from(edges)
         assert nx.is_tree(tree)
 
-        self._reference_answer = "\n".join(" ".join(map(str, group)) for group in groups)
+        self._oracle_answer = "\n".join(" ".join(map(str, group)) for group in groups)
 
     def _prompt_generate(self) -> str:
         N, K = self._N, self._K
@@ -227,19 +227,17 @@ Partition all vertices into {N} **disjoint** sets such that: (1) each set contai
     def _score_answer(self, answer: str) -> float:
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
-        # Check all vertices are used exactly once
+            return 0.0
         if set(vertex for group in processed_result for vertex in group) != set(
             range(1, self._N * self._K + 1)
         ):
-            return -0.5
-
-        # Create vertex to label mapping
+            return 0.0
         labels = [None] * (self._N * self._K + 1)
         for label, group in enumerate(processed_result):
             assert 0 <= label < self._N, f"Label {label} is out of range"
-            assert len(group) == self._K, f"Group {group} should have exactly {self._K} vertices"
+            assert len(group) == self._K, (
+                f"Group {group} should have exactly {self._K} vertices"
+            )
             for vertex in group:
                 assert labels[vertex] is None, f"Vertex {vertex} is already labeled"
                 labels[vertex] = label
@@ -251,9 +249,9 @@ Partition all vertices into {N} **disjoint** sets such that: (1) each set contai
                 edge_numbers[labels[u]] += 1
 
         # For a group of K vertices to be connected in a tree, it needs exactly K-1 edges
-        assert all(
-            0 <= edge_number <= self._K - 1 for edge_number in edge_numbers
-        ), "Edge numbers are out of range"
+        assert all(0 <= edge_number <= self._K - 1 for edge_number in edge_numbers), (
+            "Edge numbers are out of range"
+        )
         connected = sum(int(edge_number == self._K - 1) for edge_number in edge_numbers)
         assert connected <= self._N, "Connected components exceed N"
 
@@ -262,7 +260,9 @@ Partition all vertices into {N} **disjoint** sets such that: (1) each set contai
 
     def render(self) -> Image.Image:
         if self._N is None:
-            return Image.new("RGB", (self._image_size, self._image_size), (240, 245, 248))
+            return Image.new(
+                "RGB", (self._image_size, self._image_size), (240, 245, 248)
+            )
 
         N = self._N
         K = self._K
@@ -321,6 +321,7 @@ Partition all vertices into {N} **disjoint** sets such that: (1) each set contai
         try:
             # Try hierarchical layout first (better for trees)
             from networkx.drawing.nx_agraph import graphviz_layout
+
             pos = graphviz_layout(G, prog="dot")
         except:
             # Fallback to spring layout

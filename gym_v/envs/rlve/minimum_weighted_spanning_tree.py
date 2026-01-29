@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import math
 from importlib import resources
+import math
 from textwrap import dedent
 from typing import Any
 
 import networkx as nx
-import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation
@@ -74,7 +73,7 @@ Output a single line containing the root and the endpoints of the selected edges
 
         self._N: int | None = None
         self._edges: list[tuple[int, int, int]] | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._gold_answer: int | None = None
         self._prompt: str | None = None
         self._last_image: Image.Image | None = None
@@ -102,6 +101,10 @@ Output a single line containing the root and the endpoints of the selected edges
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -111,16 +114,16 @@ Output a single line containing the root and the endpoints of the selected edges
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -140,16 +143,16 @@ Output a single line containing the root and the endpoints of the selected edges
 
         reward = float(self._score_answer(action_str))
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -320,9 +323,7 @@ Output a single line containing the root and the endpoints of the selected edges
                         mst_edges.append((u, v))
                         queue.append(v)
 
-        self._reference_answer = f"{root} " + " ".join(
-            f"{u} {v}" for u, v in mst_edges
-        )
+        self._oracle_answer = f"{root} " + " ".join(f"{u} {v}" for u, v in mst_edges)
 
     def _prompt_generate(self) -> str:
         """Generate text prompt."""
@@ -350,26 +351,26 @@ Output a single line containing the root and the endpoints of the selected edges
         """Score answer - ported from RLVE."""
         processed_result = self._process(answer)
         if processed_result is None:
-            return self._rewards["wrong_format"]
+            return 0.0
 
         N = self._N
         root = processed_result[0]
 
         if not (0 <= root < N):
-            return self._rewards["invalid_solution"]
+            return 0.0
 
         mst = processed_result[1:]
         if len(mst) % 2 != 0:
-            return self._rewards["wrong_format"]
+            return 0.0
 
         mst = [(mst[i], mst[i + 1]) for i in range(0, len(mst), 2)]
 
         if len(mst) != N - 1:
-            return self._rewards["invalid_solution"]
+            return 0.0
 
         vertices_in_mst = set(u for u, v in mst) | set(v for u, v in mst)
         if vertices_in_mst != set(range(N)):
-            return self._rewards["invalid_solution"]
+            return 0.0
 
         # Build edge weight lookup
         edge2weight = {}
@@ -381,14 +382,14 @@ Output a single line containing the root and the endpoints of the selected edges
         for u, v in mst:
             u_norm, v_norm = min(u, v), max(u, v)
             if (u_norm, v_norm) not in edge2weight:
-                return self._rewards["invalid_solution"]
+                return 0.0
             subgraph.add_edge(u, v)
 
         if not nx.is_connected(subgraph):
-            return self._rewards["invalid_solution"]
+            return 0.0
 
         if not nx.is_tree(subgraph):
-            return self._rewards["invalid_solution"]
+            return 0.0
 
         # Calculate answer weight using DFS
         answer_weight = 0
@@ -412,7 +413,7 @@ Output a single line containing the root and the endpoints of the selected edges
 
         if self._gold_answer > answer_weight:
             # Answer is better than gold, something is wrong
-            return self._rewards["invalid_solution"]
+            return 0.0
 
         # Return reward based on strategy
         if self._rewards["rewarding_strategy"] == "(gold/answer)^beta":
@@ -420,7 +421,7 @@ Output a single line containing the root and the endpoints of the selected edges
                 if self._gold_answer == 0:
                     return self._rewards["rewarding_weight"] * 1.0
                 else:
-                    return self._rewards["invalid_solution"]
+                    return 0.0
             return self._rewards["rewarding_weight"] * (
                 (self._gold_answer / answer_weight) ** self._rewards["rewarding_beta"]
             )

@@ -52,7 +52,7 @@ You may remove one edge from the tree and add a new edge (possibly the same edge
         self._minimize_or_maximize: str | None = None
         self._gold_answer: int | None = None
         self._prompt: str | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -78,6 +78,10 @@ You may remove one edge from the tree and add a new edge (possibly the same edge
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt or ""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -87,16 +91,14 @@ You may remove one edge from the tree and add a new edge (possibly the same edge
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -116,16 +118,14 @@ You may remove one edge from the tree and add a new edge (possibly the same edge
 
         reward = float(self._score_answer(action_str))
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
-            metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
-            },
+            text=state_text,
+            metadata={"text_prompt": f"{state_text}\n\n{self.description}"},
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
 
         terminated = True
@@ -303,12 +303,14 @@ You may remove one edge from the tree and add a new edge (possibly the same edge
 
         if self._minimize_or_maximize == "minimize":
             self._gold_answer = kmin
-            self._reference_answer = f"{x1min} {y1min} {x2min} {y2min}"
+            self._oracle_answer = f"{x1min} {y1min} {x2min} {y2min}"
         elif self._minimize_or_maximize == "maximize":
             self._gold_answer = kmax
-            self._reference_answer = f"{x1max} {y1max} {x2max} {y2max}"
+            self._oracle_answer = f"{x1max} {y1max} {x2max} {y2max}"
         else:
-            raise ValueError("minimize_or_maximize should be either 'minimize' or 'maximize'")
+            raise ValueError(
+                "minimize_or_maximize should be either 'minimize' or 'maximize'"
+            )
 
     def _prompt_generate(self) -> str:
         N = self._N
@@ -337,40 +339,47 @@ You may remove one edge from the tree and add a new edge (possibly the same edge
             N = self._N
 
             edges = [
-                (u, v)
-                for u, v in self._edges
-                if (u, v) != (min(u1, v1), max(u1, v1))
+                (u, v) for u, v in self._edges if (u, v) != (min(u1, v1), max(u1, v1))
             ]
             if len(edges) != N - 2:
-                assert len(edges) == N - 1, "There should be exactly N-1 edges in the tree"
-                return -0.5
-            if not (1 <= u2 <= N and 1 <= v2 <= N and u2 != v2 and (min(u2, v2), max(u2, v2)) not in edges):
-                return -0.5
+                assert len(edges) == N - 1, (
+                    "There should be exactly N-1 edges in the tree"
+                )
+                return 0.0
+            if not (
+                1 <= u2 <= N
+                and 1 <= v2 <= N
+                and u2 != v2
+                and (min(u2, v2), max(u2, v2)) not in edges
+            ):
+                return 0.0
             edges.append((u2, v2))
 
             G = nx.Graph()
             G.add_edges_from(edges)
             if not nx.is_tree(G):
-                return -0.5
+                return 0.0
             assert set([u for u, v in edges] + [v for u, v in edges]) == set(
                 range(1, N + 1)
             ), "All vertices should be present in the tree"
 
             answer, gold = nx.diameter(G), self._gold_answer
             if self._minimize_or_maximize == "minimize":
-                assert (
-                    0 < gold <= answer
-                ), "For minimization, answer should be greater than 0 and at least as large as the gold answer"
+                assert 0 < gold <= answer, (
+                    "For minimization, answer should be greater than 0 and at least as large as the gold answer"
+                )
                 return (gold / answer) ** 5
             elif self._minimize_or_maximize == "maximize":
-                assert (
-                    0 < answer <= gold
-                ), "For maximization, answer should be greater than 0 and at most as large as the gold answer"
+                assert 0 < answer <= gold, (
+                    "For maximization, answer should be greater than 0 and at most as large as the gold answer"
+                )
                 return (answer / gold) ** 5
             else:
-                raise ValueError("minimize_or_maximize should be either 'minimize' or 'maximize'")
+                raise ValueError(
+                    "minimize_or_maximize should be either 'minimize' or 'maximize'"
+                )
         else:
-            return -1.0
+            return 0.0
 
     def render(self) -> Image.Image:
         if self._edges is None:
@@ -411,6 +420,7 @@ You may remove one edge from the tree and add a new edge (possibly the same edge
 
         try:
             from networkx.drawing.nx_agraph import graphviz_layout
+
             pos = graphviz_layout(G, prog="dot")
         except:
             # Fallback to spring layout
@@ -487,8 +497,12 @@ You may remove one edge from the tree and add a new edge (possibly the same edge
             )
 
         # Add info text
-        objective = "Minimize" if self._minimize_or_maximize == "minimize" else "Maximize"
-        info_text = f"Vertices: {N}  |  Edges: {len(edges)}  |  Objective: {objective} Diameter"
+        objective = (
+            "Minimize" if self._minimize_or_maximize == "minimize" else "Maximize"
+        )
+        info_text = (
+            f"Vertices: {N}  |  Edges: {len(edges)}  |  Objective: {objective} Diameter"
+        )
         bbox = draw.textbbox((0, 0), info_text, font=info_font)
         tw = bbox[2] - bbox[0]
         draw.text(

@@ -29,8 +29,7 @@ class RLVEFbiBinaryTreeEnv(Env):
 
     assets_dir = resources.files("gym_v.envs") / "assets"
 
-    prompt_template = (
-        r"""We classify binary strings made up of only `0` and `1` into three types:
+    prompt_template = r"""We classify binary strings made up of only `0` and `1` into three types:
 - A string consisting of only `0`s is called a **B-string**.
 - A string consisting of only `1`s is called an **I-string**.
 - A string that contains both `0` and `1` is called an **F-string**.
@@ -48,7 +47,6 @@ Then, output the **postorder traversal** of the tree — a string consisting of 
 Output Format:
 Your output should be a single line containing the postorder traversal of the tree. Each node type (F, B, or I) should appear **without any separators**.
 Example: `{all_B_answer}` (do **NOT** include the backticks or quotes)."""
-    )
 
     def __init__(
         self,
@@ -69,7 +67,7 @@ Example: `{all_B_answer}` (do **NOT** include the backticks or quotes)."""
 
         self._N: int | None = None
         self._string: str | None = None
-        self._reference_answer: str | None = None
+        self._oracle_answer: str | None = None
         self._prompt: str | None = None
         self._last_image: Image.Image | None = None
 
@@ -105,6 +103,12 @@ Example: `{all_B_answer}` (do **NOT** include the backticks or quotes)."""
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return text representation of the binary string."""
+        if self._string is None:
+            return ""
+        return f"Binary string: {self._string}"
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -114,16 +118,16 @@ Example: `{all_B_answer}` (do **NOT** include the backticks or quotes)."""
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": self._reference_answer,
+            "oracle_answer": self._oracle_answer,
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
             agent_id: info for agent_id in self._agent_ids
@@ -142,15 +146,15 @@ Example: `{all_B_answer}` (do **NOT** include the backticks or quotes)."""
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": self._reference_answer,
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
-        info = {"reference_answer": self._reference_answer}
+        info = {"oracle_answer": self._oracle_answer}
 
         terminated = True
         truncated = False
@@ -204,13 +208,14 @@ Example: `{all_B_answer}` (do **NOT** include the backticks or quotes)."""
                 root = "F"
             return left + right + root
 
-        self._reference_answer = get_postorder(0, 2**N - 1)
-        assert len(self._reference_answer) == (2 ** (N + 1) - 1), \
+        self._oracle_answer = get_postorder(0, 2**N - 1)
+        assert len(self._oracle_answer) == (2 ** (N + 1) - 1), (
             f"reference_answer length should be {2 ** (N + 1) - 1}"
+        )
 
     def _prompt_generate(self) -> str:
         """Generate text prompt."""
-        all_B_answer = "B" * len(self._reference_answer)
+        all_B_answer = "B" * len(self._oracle_answer)
         return self.prompt_template.format(
             N=self._N,
             string=self._string,
@@ -229,32 +234,30 @@ Example: `{all_B_answer}` (do **NOT** include the backticks or quotes)."""
         """Score answer - ported from RLVE with beta=5."""
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
-        if len(processed_result) != len(self._reference_answer):
-            return -0.5
-
+            return 0.0
+        if len(processed_result) != len(self._oracle_answer):
+            return 0.0
         for char in processed_result:
             if char not in ("F", "B", "I"):
-                return -0.5
-
-        # Use mean([gold=answer])^beta scoring with beta=5
+                return 0.0
         correct_count = sum(
             float(a == b)
-            for a, b in zip(self._reference_answer, processed_result)
+            for a, b in zip(self._oracle_answer, processed_result, strict=False)
         )
-        mean_correct = correct_count / len(self._reference_answer)
+        mean_correct = correct_count / len(self._oracle_answer)
         return mean_correct**5.0
 
     def render(self) -> Image.Image:
         """Render the FBI binary tree structure."""
         if self._string is None:
             return Image.new(
-                "RGB", (self._base_image_width, self._base_image_height), (255, 255, 255)
+                "RGB",
+                (self._base_image_width, self._base_image_height),
+                (255, 255, 255),
             )
 
         # Dynamically adjust image size based on tree depth
-        num_leaves = 2 ** self._N
+        num_leaves = 2**self._N
         image_width = max(self._base_image_width, num_leaves * 70)
         image_height = max(self._base_image_height, self._N * 150 + 300)
 
@@ -300,7 +303,9 @@ Example: `{all_B_answer}` (do **NOT** include the backticks or quotes)."""
 
         # Build tree structure and compute positions
         tree_structure = self._build_fbi_tree_structure()
-        positions = self._compute_tree_positions(tree_structure, image_width, image_height)
+        positions = self._compute_tree_positions(
+            tree_structure, image_width, image_height
+        )
 
         # Draw edges first
         for node_info in tree_structure:
@@ -363,7 +368,7 @@ Example: `{all_B_answer}` (do **NOT** include the backticks or quotes)."""
             )
 
             # Draw range label below node
-            range_text = f"[{l}:{r+1}]"
+            range_text = f"[{l}:{r + 1}]"
             bbox = draw.textbbox((0, 0), range_text, font=label_font)
             tw = bbox[2] - bbox[0]
             draw.text(
@@ -469,16 +474,16 @@ Example: `{all_B_answer}` (do **NOT** include the backticks or quotes)."""
             node_counter[0] += 1
 
             # Determine FBI type for this substring
-            substring = self._string[l:r+1]
-            has_zero = '0' in substring
-            has_one = '1' in substring
+            substring = self._string[l : r + 1]
+            has_zero = "0" in substring
+            has_one = "1" in substring
 
             if has_zero and has_one:
-                fbi_type = 'F'
+                fbi_type = "F"
             elif has_zero:
-                fbi_type = 'B'
+                fbi_type = "B"
             else:
-                fbi_type = 'I'
+                fbi_type = "I"
 
             if l == r:
                 # Leaf node

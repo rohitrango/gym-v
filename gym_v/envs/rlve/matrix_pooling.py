@@ -46,7 +46,7 @@ The matrix is:
         self._m: int = 0
         self._k: int = 0
         self._prompt: str | None = None
-        self._reference_answer: list[list[int]] | None = None
+        self._oracle_answer: list[list[int]] | None = None
         self._last_image: Image.Image | None = None
 
     @property
@@ -59,7 +59,7 @@ The matrix is:
         else:
             size_hint = "N x M matrix with KxK kernel"
         return dedent(
-            f"""
+            """
             Matrix Pooling rules:
             1) Given a matrix of size N × M with integer values.
             2) Apply max pooling with a kernel size of K × K.
@@ -77,6 +77,10 @@ The matrix is:
             """
         ).strip()
 
+    def _get_state_text(self) -> str:
+        """Return the text representation of the current state."""
+        return self._prompt or ""
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -86,19 +90,17 @@ The matrix is:
         self._prompt = self._prompt_generate()
         self._last_image = self.render()
 
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": "\n".join(
-                    " ".join(map(str, row)) for row in self._reference_answer
-                ),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": "\n".join(
-                " ".join(map(str, row)) for row in self._reference_answer
+            "oracle_answer": "\n".join(
+                " ".join(map(str, row)) for row in self._oracle_answer
             ),
         }
         return {agent_id: obs for agent_id in self._agent_ids}, {
@@ -117,19 +119,17 @@ The matrix is:
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
         reward = float(self._score_answer(action_str))
+        state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=state_text,
             metadata={
-                "rlve_prompt": self._prompt,
-                "rlve_reference_answer": "\n".join(
-                    " ".join(map(str, row)) for row in self._reference_answer
-                ),
+                "text_prompt": f"{state_text}\n\n{self.description}",
             },
         )
         info = {
-            "reference_answer": "\n".join(
-                " ".join(map(str, row)) for row in self._reference_answer
+            "oracle_answer": "\n".join(
+                " ".join(map(str, row)) for row in self._oracle_answer
             ),
         }
 
@@ -179,7 +179,7 @@ The matrix is:
             ]
             for i in range(N - K + 1)
         ]
-        self._reference_answer = gold_answer
+        self._oracle_answer = gold_answer
 
     def _prompt_generate(self) -> str:
         if self._matrix is None:
@@ -214,22 +214,22 @@ The matrix is:
         """Score the answer using mean([gold=answer])^beta strategy."""
         processed_result = self._process(answer)
         if processed_result is None:
-            return -1.0
-
+            return 0.0
         pool = processed_result
         expected_rows = self._n - self._k + 1
         expected_cols = self._m - self._k + 1
 
         if len(pool) != expected_rows:
-            return -1.0
+            return 0.0
         if not all(len(row) == expected_cols for row in pool):
-            return -1.0
-
-        # Use mean([gold=answer])^beta strategy
+            return 0.0
         beta = 5.0
         correct_count = sum(
-            sum(answer == gold for answer, gold in zip(answer_row, gold_row))
-            for answer_row, gold_row in zip(pool, self._reference_answer)
+            sum(
+                answer == gold
+                for answer, gold in zip(answer_row, gold_row, strict=False)
+            )
+            for answer_row, gold_row in zip(pool, self._oracle_answer, strict=False)
         )
         total_count = expected_rows * expected_cols
         return (correct_count / total_count) ** beta
