@@ -10,6 +10,7 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation
+from gym_v.envs.rlve.parameter_controllers import get_controller_for_env
 from gym_v.logger import get_logger
 
 logger = get_logger()
@@ -35,20 +36,33 @@ Try your best to **minimize** dist(0, r) * C[0] + dist(1, r) * C[1] + ... + dist
 
     def __init__(
         self,
-        max_n: int = 10,
+        max_n: int | None = None,
         node_radius: int = 22,
         image_size: int = 700,
         padding: int = 60,
         num_players: int = 1,
+        difficulty: int | None = None,
         **kwargs: Any,
     ):
-        super().__init__(**kwargs)
-        self._max_n = max_n
+        super().__init__(difficulty=difficulty, **kwargs)
         self._node_radius = node_radius
         self._image_size = image_size
         self._padding = padding
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
+
+        # Check if explicit parameters are provided
+        self._use_explicit_params = max_n is not None
+
+        # Initialize parameter controller
+        self._parameter_controller = get_controller_for_env(
+            self.__class__.__name__, self._difficulty
+        )
+
+        if self._use_explicit_params:
+            self._max_n = max_n
+        else:
+            self._apply_difficulty_parameters()
 
         self._N: int | None = None
         self._C: list[int] | None = None
@@ -57,6 +71,12 @@ Try your best to **minimize** dist(0, r) * C[0] + dist(1, r) * C[1] + ... + dist
         self._gold_answer: int | None = None
         self._prompt: str | None = None
         self._last_image: Image.Image | None = None
+
+    def _apply_difficulty_parameters(self) -> None:
+        """Apply parameters from the controller."""
+        if not self._use_explicit_params and self._parameter_controller is not None:
+            params = self._parameter_controller.get_parameters()
+            self._max_n = params.get("max_n", 10)
 
     @property
     def description(self) -> str:
