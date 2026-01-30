@@ -51,19 +51,27 @@ The matrix is given in **row-major order**, with each row represented as a strin
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
-        # Check if explicit parameters are provided
+        # Check if explicit parameters or difficulty is provided
         self._use_explicit_params = max_n_m is not None or sparsity is not None
+        self._use_difficulty = difficulty is not None
 
-        # Initialize parameter controller
-        self._parameter_controller = get_controller_for_env(
-            self.__class__.__name__, self._difficulty
-        )
+        # Initialize parameter controller only if difficulty is used
+        if self._use_difficulty:
+            self._parameter_controller = get_controller_for_env(
+                self.__class__.__name__, self._difficulty
+            )
+        else:
+            self._parameter_controller = None
 
         if self._use_explicit_params:
             self._max_n_m = max_n_m if max_n_m is not None else 4
             self._sparsity = sparsity if sparsity is not None else 0.5
-        else:
+        elif self._use_difficulty:
             self._apply_difficulty_parameters()
+        else:
+            # Use original defaults (backward compatibility)
+            self._max_n_m = 4
+            self._sparsity = 0.5
 
         self._matrix: list[str] | None = None
         self._N: int | None = None
@@ -74,7 +82,7 @@ The matrix is given in **row-major order**, with each row represented as a strin
 
     def _apply_difficulty_parameters(self) -> None:
         """Apply parameters from the controller."""
-        if not self._use_explicit_params and self._parameter_controller is not None:
+        if self._use_difficulty and self._parameter_controller is not None:
             params = self._parameter_controller.get_parameters()
             self._max_n_m = params.get("max_n_m", 4)
             self._sparsity = params.get("sparsity", 0.5)

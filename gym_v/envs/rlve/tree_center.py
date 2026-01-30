@@ -51,18 +51,25 @@ Try your best to **minimize** dist(0, r) * C[0] + dist(1, r) * C[1] + ... + dist
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
-        # Check if explicit parameters are provided
+        # Check if explicit parameters or difficulty is provided
         self._use_explicit_params = max_n is not None
+        self._use_difficulty = difficulty is not None
 
-        # Initialize parameter controller
-        self._parameter_controller = get_controller_for_env(
-            self.__class__.__name__, self._difficulty
-        )
+        # Initialize parameter controller only if difficulty is used
+        if self._use_difficulty:
+            self._parameter_controller = get_controller_for_env(
+                self.__class__.__name__, self._difficulty
+            )
+        else:
+            self._parameter_controller = None
 
         if self._use_explicit_params:
             self._max_n = max_n
-        else:
+        elif self._use_difficulty:
             self._apply_difficulty_parameters()
+        else:
+            # Use original defaults (backward compatibility)
+            self._max_n = 10
 
         self._N: int | None = None
         self._C: list[int] | None = None
@@ -74,7 +81,7 @@ Try your best to **minimize** dist(0, r) * C[0] + dist(1, r) * C[1] + ... + dist
 
     def _apply_difficulty_parameters(self) -> None:
         """Apply parameters from the controller."""
-        if not self._use_explicit_params and self._parameter_controller is not None:
+        if self._use_difficulty and self._parameter_controller is not None:
             params = self._parameter_controller.get_parameters()
             self._max_n = params.get("max_n", 10)
 

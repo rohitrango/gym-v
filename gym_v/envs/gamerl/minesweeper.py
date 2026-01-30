@@ -130,21 +130,26 @@ class GameRLMinesweeperQAEnv(Env):
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
-        # Check if explicit game_difficulty is provided
+        # Check if explicit game_difficulty or difficulty is provided
         self._use_explicit_params = game_difficulty is not None
+        self._use_difficulty = difficulty is not None
 
-        # Initialize parameter controller
-        self._parameter_controller = get_controller_for_env(
-            self.__class__.__name__, self._difficulty
-        )
+        # Initialize parameter controller only if difficulty is used
+        if self._use_difficulty:
+            self._parameter_controller = get_controller_for_env(
+                self.__class__.__name__, self._difficulty
+            )
+        else:
+            self._parameter_controller = None
 
         # Initialize game_difficulty_override
         self._game_difficulty_override = None
 
         if self._use_explicit_params:
             self._game_difficulty_override = game_difficulty
-        else:
+        elif self._use_difficulty:
             self._apply_difficulty_parameters()
+        # else: use original defaults (random selection in reset)
 
         # Game state (initialized in reset)
         self._rows = 4
@@ -164,7 +169,7 @@ class GameRLMinesweeperQAEnv(Env):
 
     def _apply_difficulty_parameters(self) -> None:
         """Apply parameters from the controller."""
-        if not self._use_explicit_params and self._parameter_controller is not None:
+        if self._use_difficulty and self._parameter_controller is not None:
             params = self._parameter_controller.get_parameters()
             if "game_difficulty" in params:
                 self._game_difficulty_override = params["game_difficulty"]

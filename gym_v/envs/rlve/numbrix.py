@@ -45,19 +45,27 @@ The matrix is given as follows:
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
-        # Check if explicit parameters are provided
+        # Check if explicit parameters or difficulty is provided
         self._use_explicit_params = max_n_m is not None or sparsity is not None
+        self._use_difficulty = difficulty is not None
 
-        # Initialize parameter controller
-        self._parameter_controller = RLVENumbrixController(self._difficulty)
+        # Initialize parameter controller only if difficulty is used
+        if self._use_difficulty:
+            self._parameter_controller = RLVENumbrixController(self._difficulty)
+        else:
+            self._parameter_controller = None
 
         if self._use_explicit_params:
             # Use explicit parameters (backward compatibility)
             self._max_n_m = max_n_m if max_n_m is not None else 4
             self._sparsity = sparsity if sparsity is not None else 0.5
-        else:
+        elif self._use_difficulty:
             # Use difficulty-based parameters
             self._apply_difficulty_parameters()
+        else:
+            # Use original defaults (backward compatibility)
+            self._max_n_m = 4
+            self._sparsity = 0.5
 
         self._matrix: list[list[int]] | None = None
         self._prompt: str | None = None
@@ -66,7 +74,7 @@ The matrix is given as follows:
 
     def _apply_difficulty_parameters(self) -> None:
         """Apply parameters from the controller."""
-        if not self._use_explicit_params and self._parameter_controller is not None:
+        if self._use_difficulty and self._parameter_controller is not None:
             params = self._parameter_controller.get_parameters()
             self._max_n_m = params["max_n_m"]
             self._sparsity = params["sparsity"]

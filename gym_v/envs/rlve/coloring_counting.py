@@ -66,19 +66,27 @@ The **value** of a valid coloring is the number of **distinct colors used** (i.e
         self._rewarding_weight = rewarding_weight
         self._rewarding_beta = rewarding_beta
 
-        # Check if explicit parameters are provided
+        # Check if explicit parameters or difficulty is provided
         self._use_explicit_params = max_n is not None or edge_density is not None
+        self._use_difficulty = difficulty is not None
 
-        # Initialize parameter controller
-        self._parameter_controller = get_controller_for_env(
-            self.__class__.__name__, self._difficulty
-        )
+        # Initialize parameter controller only if difficulty is used
+        if self._use_difficulty:
+            self._parameter_controller = get_controller_for_env(
+                self.__class__.__name__, self._difficulty
+            )
+        else:
+            self._parameter_controller = None
 
         if self._use_explicit_params:
             self._max_n = max_n if max_n is not None else 8
             self._edge_density = edge_density if edge_density is not None else 0.5
-        else:
+        elif self._use_difficulty:
             self._apply_difficulty_parameters()
+        else:
+            # Use original defaults (backward compatibility)
+            self._max_n = 8
+            self._edge_density = 0.5
 
         # Environment state
         self._N: int | None = None
@@ -91,7 +99,7 @@ The **value** of a valid coloring is the number of **distinct colors used** (i.e
 
     def _apply_difficulty_parameters(self) -> None:
         """Apply parameters from the controller."""
-        if not self._use_explicit_params and self._parameter_controller is not None:
+        if self._use_difficulty and self._parameter_controller is not None:
             params = self._parameter_controller.get_parameters()
             self._max_n = params.get("max_n", 8)
             self._edge_density = params.get("edge_density", 0.5)
