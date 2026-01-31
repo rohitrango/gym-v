@@ -394,6 +394,60 @@ def get_controller_for_env(
         "RLVEGraMinimaGameEnv": lambda d: RLVEGridSizeController(
             d, min_size=4, max_size=12, param_name="n"
         ),
+        # GridSize-based environments (13 additional)
+        "RLVEGridParityConstructionEnv": lambda d: RLVEGridSizeController(
+            d, min_size=3, max_size=8, param_name="max_n_m"
+        ),
+        "RLVEMatrixPoolingEnv": lambda d: RLVEGridSizeController(
+            d, min_size=3, max_size=10, param_name="max_n_m"
+        ),
+        "RLVEGridTriangleCountingEnv": lambda d: RLVEGridSizeController(
+            d, min_size=3, max_size=10, param_name="max_n_m"
+        ),
+        "RLVEStoneIntervalsGameEnv": lambda d: RLVEGridSizeController(
+            d, min_size=3, max_size=15, param_name="max_n"
+        ),
+        "RLVEStoneGameEnv": lambda d: RLVEGridSizeController(
+            d, min_size=10, max_size=50, param_name="max_sum"
+        ),
+        "RLVENewNimGameEnv": lambda d: RLVEGridSizeController(
+            d, min_size=3, max_size=10, param_name="N"
+        ),
+        "RLVELargestRectangleAmongPointsEnv": lambda d: RLVEGridSizeController(
+            d, min_size=5, max_size=15, param_name="max_n"
+        ),
+        "RLVESumTriangleAreaEnv": lambda d: RLVEGridSizeController(
+            d, min_size=3, max_size=12, param_name="max_n"
+        ),
+        "RLVEVisibleLineEnv": lambda d: RLVEGridSizeController(
+            d, min_size=3, max_size=12, param_name="max_n"
+        ),
+        "RLVEMonochromeBlockCountingEnv": lambda d: RLVEGridSizeController(
+            d, min_size=5, max_size=15, param_name="max_a_b"
+        ),
+        "RLVEWarehouseConstructionEnv": lambda d: RLVEGridSizeController(
+            d, min_size=3, max_size=12, param_name="n"
+        ),
+        "RLVELargestConvexPolygonEnv": lambda d: RLVEGridSizeController(
+            d, min_size=5, max_size=20, param_name="n_points"
+        ),
+        "RLVESmallestCircleEnv": lambda d: RLVEGridSizeController(
+            d, min_size=5, max_size=20, param_name="n_points"
+        ),
+        # Graph-based environments (3 additional)
+        "RLVESpyNetworkEnv": lambda d: RLVEGraphController(
+            d, min_n=4, max_n=15, min_density=0.3, max_density=0.7
+        ),
+        "RLVEMinimumSpanningTreeCountingEnv": lambda d: RLVEGraphController(
+            d, min_n=4, max_n=12, min_density=0.3, max_density=0.6
+        ),
+        "RLVEMinimumWeightedSpanningTreeEnv": lambda d: RLVEGraphController(
+            d, min_n=4, max_n=12, min_density=0.3, max_density=0.6
+        ),
+        # Range-based environment
+        "RLVESumManhattanCurvedSurfaceEnv": lambda d: RLVERangeController(
+            d, initial_min=10, initial_max=30, max_limit=100
+        ),
     }
 
     factory = controllers.get(env_class_name)

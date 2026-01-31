@@ -8,7 +8,7 @@ register(
     entry_point="gym_v.envs.reasongym.sudoku:ReasoningGymSudokuEnv",
     max_episode_steps=1,
     kwargs=dict(
-        dataset_kwargs=dict(size=500),
+        dataset_kwargs=None,
         cell_px=64,
         padding=24,
         num_players=1,
@@ -20,7 +20,7 @@ register(
     entry_point="gym_v.envs.reasongym.maze:ReasoningGymMazeEnv",
     max_episode_steps=1,
     kwargs=dict(
-        dataset_kwargs=dict(size=500),
+        dataset_kwargs=None,
         cell_px=48,
         padding=24,
         num_players=1,
@@ -32,7 +32,7 @@ register(
     entry_point="gym_v.envs.reasongym.n_queens:ReasoningGymNQueensEnv",
     max_episode_steps=1,
     kwargs=dict(
-        dataset_kwargs=dict(size=500),
+        dataset_kwargs=None,
         cell_px=64,
         padding=24,
         num_players=1,
@@ -44,7 +44,7 @@ register(
     entry_point="gym_v.envs.reasongym.game_of_life:ReasoningGymGameOfLifeEnv",
     max_episode_steps=1,
     kwargs=dict(
-        dataset_kwargs=dict(size=500),
+        dataset_kwargs=None,
         cell_px=32,
         padding=16,
         num_players=1,
@@ -56,7 +56,7 @@ register(
     entry_point="gym_v.envs.reasongym.tower_of_hanoi:ReasoningGymTowerOfHanoiEnv",
     max_episode_steps=1,
     kwargs=dict(
-        dataset_kwargs=dict(size=500),
+        dataset_kwargs=None,
         peg_width=150,
         peg_height=250,
         padding=40,
@@ -1037,7 +1037,7 @@ register(
     entry_point="gym_v.envs.rlve.tree_center:RLVETreeCenterEnv",
     max_episode_steps=1,
     kwargs=dict(
-        max_n=10,
+        max_n=None,
         node_radius=22,
         image_size=700,
         padding=60,
@@ -1224,8 +1224,8 @@ register(
     entry_point="gym_v.envs.rlve.numbrix:RLVENumbrixEnv",
     max_episode_steps=1,
     kwargs=dict(
-        max_n_m=4,
-        sparsity=0.5,
+        max_n_m=None,
+        sparsity=None,
         cell_px=56,
         padding=24,
         num_players=1,
@@ -1244,7 +1244,6 @@ register(
         num_players=1,
     ),
 )
-
 
 
 register(
@@ -1340,8 +1339,8 @@ register(
     entry_point="gym_v.envs.rlve.binario_no_adjacency_requirement:RLVEBinarioNoAdjacencyRequirementEnv",
     max_episode_steps=1,
     kwargs=dict(
-        max_n_m=4,
-        sparsity=0.5,
+        max_n_m=None,
+        sparsity=None,
         cell_px=56,
         padding=24,
         num_players=1,
@@ -1366,8 +1365,8 @@ register(
     entry_point="gym_v.envs.rlve.coloring_counting:RLVEColoringCountingEnv",
     max_episode_steps=1,
     kwargs=dict(
-        max_n=8,
-        edge_density=0.5,
+        max_n=None,
+        edge_density=None,
         node_radius=20,
         image_size=800,
         padding=60,
@@ -1418,7 +1417,7 @@ register(
     entry_point="gym_v.envs.rlve.grid_bfs:RLVEGridBFSEnv",
     max_episode_steps=1,
     kwargs=dict(
-        max_n_m=8,
+        max_n_m=None,
         cell_px=56,
         padding=24,
         num_players=1,
@@ -1523,7 +1522,6 @@ register(
 )
 
 
-
 register(
     id="RLVE/WarehouseConstruction-v0",
     entry_point="gym_v.envs.rlve.warehouse_construction:RLVEWarehouseConstructionEnv",
@@ -1584,7 +1582,6 @@ register(
         num_players=1,
     ),
 )
-
 
 
 register(
@@ -1670,8 +1667,8 @@ register(
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
-        width=10,
-        height=10,
+        width=None,
+        height=None,
         initial_snake_length=(10, 20),
         cell_size=40,
         num_players=1,
@@ -1684,7 +1681,7 @@ register(
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
-        size="small",
+        size=None,
         cell_size=40,
         num_players=1,
     ),
@@ -1827,7 +1824,7 @@ register(
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
-        size=5,
+        size=None,
         num_boxes=1,
         num_players=1,
     ),
@@ -1865,8 +1862,8 @@ register(
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
-        rows=12,
-        cols=8,
+        rows=None,
+        cols=None,
         cell_size=30,
         num_players=1,
     ),

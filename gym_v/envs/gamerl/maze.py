@@ -16,6 +16,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation, get_logger
+from gym_v.envs.gamerl.parameter_controllers import get_controller_for_env
 from gym_v.envs.gamerl.utils import build_description
 
 logger = get_logger()
@@ -120,36 +121,64 @@ class GameRLMazeQAEnv(Env):
     def __init__(
         self,
         question_type: int | None = None,
-        size: str = "small",
+        size: str | None = None,
         cell_size: int = 40,
         num_players: int = 1,
+        difficulty: int | None = None,
         **kwargs,
     ):
-        super().__init__(**kwargs)
-        assert (
-            size in self.SIZE_CONFIG
-        ), f"size must be one of {list(self.SIZE_CONFIG.keys())}"
-
+        super().__init__(difficulty=difficulty, **kwargs)
         self._question_type_param = question_type
-        self._size_name = size
-        self._grid_size = self.SIZE_CONFIG[size]
         self._cell_size = cell_size
         self._padding = 30  # Padding for coordinate labels
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
-        # Game state (initialized in reset)
-        self._maze: np.ndarray = np.zeros((self._grid_size, self._grid_size), dtype=int)
-        self._player_pos: tuple[int, int] = (0, 0)  # (row, col)
-        self._goal_pos: tuple[int, int] = (0, 0)
+        # Check if explicit size or difficulty is provided
+        self._use_explicit_params = size is not None
+        self._use_difficulty = difficulty is not None
 
-        # Q&A state (initialized in reset)
-        self._question_type_idx: int = 0
-        self._question: str = ""
-        self._oracle_answer: str = ""
-        self._answer_format: str = ""
-        self._options: list[str] | None = None
-        self._move_direction: str | None = None
+        # Initialize parameter controller only if difficulty is used
+        if self._use_difficulty:
+            self._parameter_controller = get_controller_for_env(
+                self.__class__.__name__, self._difficulty
+            )
+        else:
+            self._parameter_controller = None
+
+        # Initialize size based on priority
+        if self._use_explicit_params:
+            assert (
+                size in self.SIZE_CONFIG
+            ), f"size must be one of {list(self.SIZE_CONFIG.keys())}"
+            self._size_name = size
+            self._grid_size = self.SIZE_CONFIG[size]
+        elif self._use_difficulty:
+            self._apply_difficulty_parameters()
+        else:
+            self._size_name = "small"
+            self._grid_size = self.SIZE_CONFIG["small"]
+
+    def _apply_difficulty_parameters(self) -> None:
+        """Apply parameters from the controller."""
+        if self._use_difficulty and self._parameter_controller is not None:
+            params = self._parameter_controller.get_parameters()
+            if "maze_size" in params:
+                maze_size = params["maze_size"]
+                # Map maze_size to size name and grid_size
+                if maze_size <= 9:
+                    self._size_name = "small"
+                elif maze_size <= 11:
+                    self._size_name = "medium"
+                else:
+                    self._size_name = "large"
+                self._grid_size = maze_size
+            else:
+                self._size_name = "small"
+                self._grid_size = self.SIZE_CONFIG["small"]
+        else:
+            self._size_name = "small"
+            self._grid_size = self.SIZE_CONFIG["small"]
 
     @property
     def description(self) -> str:
