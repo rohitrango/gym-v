@@ -49,13 +49,10 @@ class ReasoningGymGameOfLifeEnv(Env):
         self._use_explicit_params = dataset_kwargs is not None
         self._use_difficulty = difficulty is not None
 
-        # Initialize parameter controller only if difficulty is used
-        if self._use_difficulty:
-            self._parameter_controller = get_controller_for_env(
-                self.__class__.__name__, self._difficulty
-            )
-        else:
-            self._parameter_controller = None
+        self._parameter_controller = get_controller_for_env(
+            self.__class__.__name__,
+            self._difficulty if self._difficulty is not None else 0,
+        )
 
         # Initialize dataset_kwargs based on priority
         if self._use_explicit_params:

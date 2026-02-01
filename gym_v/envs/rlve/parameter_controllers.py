@@ -383,7 +383,7 @@ def get_controller_for_env(
             d, min_size=4, max_size=15, param_name="max_n"
         ),
         "RLVECoinSquareGameEnv": lambda d: RLVEGridSizeController(
-            d, min_size=4, max_size=15, param_name="max_n"
+            d, min_size=5, max_size=15, param_name="max_n"
         ),
         "RLVEConvexHullEnv": lambda d: RLVEGridSizeController(
             d, min_size=5, max_size=20, param_name="N"

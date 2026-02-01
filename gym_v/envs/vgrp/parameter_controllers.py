@@ -14,13 +14,26 @@ class VGRPDefaultController(ParameterController):
     """Default controller for VGRP environments."""
 
     def _initialize_parameters(self) -> None:
-        self._grid_size = 6
+        self._size = 6
 
     def update(self) -> None:
-        self._grid_size = min(12, self._grid_size + 1)
+        self._size = min(12, self._size + 1)
 
     def get_parameters(self) -> dict[str, Any]:
-        return {"grid_size": self._grid_size}
+        return {"size": self._size}
+
+
+class VGRPBinairoController(ParameterController):
+    """Controller for Binairo (even grid sizes only)."""
+
+    def _initialize_parameters(self) -> None:
+        self._size = 4
+
+    def update(self) -> None:
+        self._size = min(12, self._size + 2)
+
+    def get_parameters(self) -> dict[str, Any]:
+        return {"size": self._size}
 
 
 class VGRPBattleshipsController(ParameterController):
@@ -39,7 +52,7 @@ class VGRPBattleshipsController(ParameterController):
             self._num_ships = min(5, self._num_ships + 1)
 
     def get_parameters(self) -> dict[str, Any]:
-        return {"grid_size": self._grid_size, "num_ships": self._num_ships}
+        return {"size": self._grid_size}
 
 
 class VGRPSudokuController(ParameterController):
@@ -55,6 +68,28 @@ class VGRPSudokuController(ParameterController):
         return {"size": self._size}
 
 
+class VGRPStarBattleController(ParameterController):
+    """Controller for Star Battle puzzle."""
+
+    def _initialize_parameters(self) -> None:
+        self._size = 6
+        self._stars_per_group = 1
+
+    def update(self) -> None:
+        d = self.current_difficulty + 1
+        if d <= 3:
+            self._size = 6 + d
+        else:
+            self._size = min(10, self._size + 1)
+            self._stars_per_group = min(2, self._stars_per_group + 1)
+
+    def get_parameters(self) -> dict[str, Any]:
+        return {
+            "size": self._size,
+            "stars_per_group": self._stars_per_group,
+        }
+
+
 def get_controller_for_env(
     env_class_name: str, difficulty: int = 0
 ) -> ParameterController:
@@ -62,10 +97,10 @@ def get_controller_for_env(
     controllers = {
         "VGRPBattleshipsEnv": lambda d: VGRPBattleshipsController(d),
         "VGRPFutoshikiEnv": lambda d: VGRPSudokuController(d),
-        "VGRPBinairoEnv": lambda d: VGRPDefaultController(d),
+        "VGRPBinairoEnv": lambda d: VGRPBinairoController(d),
         "VGRPHitoriEnv": lambda d: VGRPDefaultController(d),
         "VGRPRenzokuEnv": lambda d: VGRPSudokuController(d),
-        "VGRPStarbattleEnv": lambda d: VGRPDefaultController(d),
+        "VGRPStarbattleEnv": lambda d: VGRPStarBattleController(d),
         "VGRPThermometersEnv": lambda d: VGRPDefaultController(d),
     }
 

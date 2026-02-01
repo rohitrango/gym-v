@@ -300,7 +300,7 @@ class TestEnvBaseDifficulty:
                 return "Test"
 
         env = TestEnv()
-        assert env.difficulty == 0
+        assert env.difficulty is None
 
         env = TestEnv(difficulty=5)
         assert env.difficulty == 5
@@ -373,7 +373,7 @@ class TestIntegration:
 
         # Test default difficulty
         env = RLVENumbrixEnv()
-        assert env.difficulty == 0
+        assert env.difficulty is None
 
         # Test with explicit difficulty
         env = RLVENumbrixEnv(difficulty=5)

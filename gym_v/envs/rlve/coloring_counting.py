@@ -70,13 +70,10 @@ The **value** of a valid coloring is the number of **distinct colors used** (i.e
         self._use_explicit_params = max_n is not None or edge_density is not None
         self._use_difficulty = difficulty is not None
 
-        # Initialize parameter controller only if difficulty is used
-        if self._use_difficulty:
-            self._parameter_controller = get_controller_for_env(
-                self.__class__.__name__, self._difficulty
-            )
-        else:
-            self._parameter_controller = None
+        self._parameter_controller = get_controller_for_env(
+            self.__class__.__name__,
+            self._difficulty if self._difficulty is not None else 0,
+        )
 
         if self._use_explicit_params:
             self._max_n = max_n if max_n is not None else 8

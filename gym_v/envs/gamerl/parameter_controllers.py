@@ -44,6 +44,17 @@ class GameRLMinesweeperController(StageController):
         ]
 
 
+class GameRLRhythmGameController(StageController):
+    """Controller for Rhythm Game Q&A difficulty."""
+
+    def _get_stages(self) -> list[tuple[int, dict[str, Any]]]:
+        return [
+            (0, {"difficulty": "Easy"}),
+            (3, {"difficulty": "Medium"}),
+            (6, {"difficulty": "Hard"}),
+        ]
+
+
 class GameRLSudokuController(ParameterController):
     """Controller for Sudoku Q&A difficulty.
 
@@ -197,6 +208,7 @@ def get_controller_for_env(
         "GameRLTetrisQAEnv": lambda d: GameRLTetrisController(d),
         "GameRLRubiksCubeQAEnv": lambda d: GameRLRubiksCubeController(d),
         "GameRLSokobanQAEnv": lambda d: GameRLSokobanController(d),
+        "GameRLRhythmGameQAEnv": lambda d: GameRLRhythmGameController(d),
     }
 
     factory = controllers.get(env_class_name)

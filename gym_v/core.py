@@ -82,12 +82,18 @@ class Env:
         difficulty: int | None = None,
     ):
         super().__init__()
+        if difficulty is not None and not isinstance(difficulty, int):
+            raise TypeError(
+                f"difficulty must be an int or None, got {type(difficulty).__name__}"
+            )
+        if difficulty is not None and difficulty < 0:
+            raise ValueError(f"Difficulty must be non-negative, got {difficulty}")
         if max_episode_steps is not None and max_episode_steps > 0:
             self._max_episode_steps = max_episode_steps
         else:
             self._max_episode_steps = float("inf")
         self._current_episode_steps = 0
-        self._difficulty = difficulty if difficulty is not None else 0
+        self._difficulty = difficulty
         self._parameter_controller = None
 
     @property
@@ -190,7 +196,7 @@ class Env:
         self._np_random_seed = -1
 
     @property
-    def difficulty(self) -> int:
+    def difficulty(self) -> int | None:
         """Returns the environment's current difficulty level."""
         return self._difficulty
 
@@ -206,6 +212,8 @@ class Env:
         if difficulty < 0:
             raise ValueError(f"Difficulty must be non-negative, got {difficulty}")
         self._difficulty = difficulty
+        if hasattr(self, "_use_difficulty"):
+            self._use_difficulty = True
         self._on_difficulty_changed(difficulty)
 
     def _on_difficulty_changed(self, difficulty: int) -> None:
@@ -217,6 +225,8 @@ class Env:
         Args:
             difficulty: The new difficulty level.
         """
+        if getattr(self, "_use_explicit_params", False):
+            return
         if self._parameter_controller is not None:
             self._parameter_controller.reset_to_difficulty(difficulty)
             self._apply_difficulty_parameters()
@@ -316,7 +326,7 @@ class Wrapper(Env):
         return self.env.np_random_seed
 
     @property
-    def difficulty(self) -> int:
+    def difficulty(self) -> int | None:
         """Returns the base environment's difficulty level."""
         return self.env.difficulty
 

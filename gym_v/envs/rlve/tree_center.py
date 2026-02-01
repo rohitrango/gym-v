@@ -55,13 +55,10 @@ Try your best to **minimize** dist(0, r) * C[0] + dist(1, r) * C[1] + ... + dist
         self._use_explicit_params = max_n is not None
         self._use_difficulty = difficulty is not None
 
-        # Initialize parameter controller only if difficulty is used
-        if self._use_difficulty:
-            self._parameter_controller = get_controller_for_env(
-                self.__class__.__name__, self._difficulty
-            )
-        else:
-            self._parameter_controller = None
+        self._parameter_controller = get_controller_for_env(
+            self.__class__.__name__,
+            self._difficulty if self._difficulty is not None else 0,
+        )
 
         if self._use_explicit_params:
             self._max_n = max_n
