@@ -100,7 +100,7 @@ def get_controller_for_env(
         "VGRPBinairoEnv": lambda d: VGRPBinairoController(d),
         "VGRPHitoriEnv": lambda d: VGRPDefaultController(d),
         "VGRPRenzokuEnv": lambda d: VGRPSudokuController(d),
-        "VGRPStarbattleEnv": lambda d: VGRPStarBattleController(d),
+        "VGRPStarBattleEnv": lambda d: VGRPStarBattleController(d),
         "VGRPThermometersEnv": lambda d: VGRPDefaultController(d),
     }
 

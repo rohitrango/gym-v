@@ -448,6 +448,79 @@ def get_controller_for_env(
         "RLVESumManhattanCurvedSurfaceEnv": lambda d: RLVERangeController(
             d, initial_min=10, initial_max=30, max_limit=100
         ),
+        # === Additional environments (batch 2) ===
+        # Graph-based environments
+        "RLVEHamiltonianPathExistenceEnv": lambda d: RLVEGraphController(
+            d, min_n=4, max_n=12
+        ),
+        "RLVEMinimumDirectedSpanningTreeEnv": lambda d: RLVEGraphController(
+            d, min_n=4, max_n=12, min_density=0.3, max_density=0.6
+        ),
+        "RLVEMixedGraphEulerianCircuitEnv": lambda d: RLVEGridSizeController(
+            d, min_size=4, max_size=12, param_name="max_n"
+        ),
+        # Tree-based environments
+        "RLVEMaximumIndependentSetTreeEnv": lambda d: RLVETreeController(
+            d, min_n=5, max_n=15
+        ),
+        "RLVETreeDistanceEqualTriadCountingEnv": lambda d: RLVETreeController(
+            d, min_n=5, max_n=15
+        ),
+        "RLVETreeTopologicalSequenceCountingEnv": lambda d: RLVETreeController(
+            d, min_n=5, max_n=15
+        ),
+        "RLVEWeightedBinarytreeEnv": lambda d: RLVETreeController(d, min_n=4, max_n=12),
+        # Grid-based environments (max_n_m)
+        "RLVEMaximumIndependentSetGridEnv": lambda d: RLVEGridSizeController(
+            d, min_size=3, max_size=8, param_name="max_n_m"
+        ),
+        "RLVEMinimumDominatingSetGridEnv": lambda d: RLVEGridSizeController(
+            d, min_size=3, max_size=8, param_name="max_n_m"
+        ),
+        "RLVEWhackAMoleEnv": lambda d: RLVEGridSizeController(
+            d, min_size=3, max_size=8, param_name="max_n_m"
+        ),
+        # Puzzle with steps
+        "RLVETwiddlePuzzleEnv": lambda d: RLVEPuzzleStepsController(
+            d, min_steps=2, max_steps=15, step_increment=1
+        ),
+        # Simple max_n environments
+        "RLVELandformGenerationCountingEnv": lambda d: RLVEGridSizeController(
+            d, min_size=4, max_size=12, param_name="max_n"
+        ),
+        "RLVETetrisAttackEnv": lambda d: RLVEGridSizeController(
+            d, min_size=4, max_size=12, param_name="max_n"
+        ),
+        "RLVESkaRockGardenEnv": lambda d: RLVEGridSizeController(
+            d, min_size=5, max_size=15, param_name="max_n"
+        ),
+        "RLVEPipelineArrangementEnv": lambda d: RLVEGridSizeController(
+            d, min_size=4, max_size=12, param_name="max_n"
+        ),
+        "RLVEMoneyChargingGameEnv": lambda d: RLVEGridSizeController(
+            d, min_size=3, max_size=10, param_name="n"
+        ),
+        "RLVEJugPuzzleEnv": lambda d: RLVEGridSizeController(
+            d, min_size=5, max_size=15, param_name="max_capacity_multiple"
+        ),
+        # Matrix environments (N parameter)
+        "RLVEMatrixPermutationMainDiagonalOneEnv": lambda d: RLVEGridSizeController(
+            d, min_size=3, max_size=8, param_name="N"
+        ),
+        "RLVEMatrixPermutationBothDiagonalOneEnv": lambda d: RLVEGridSizeController(
+            d, min_size=3, max_size=8, param_name="N"
+        ),
+        "RLVEMatrixRmqCountingEnv": lambda d: RLVEGridSizeController(
+            d, min_size=2, max_size=5, param_name="H_W_range"
+        ),
+        # Grid path environments (n parameter)
+        "RLVEMaxGridPathIntersectionEnv": lambda d: RLVEGridSizeController(
+            d, min_size=3, max_size=10, param_name="n"
+        ),
+        # Simple n environments
+        "RLVESkyscraperSumPuzzleEnv": lambda d: RLVEGridSizeController(
+            d, min_size=3, max_size=7, param_name="n"
+        ),
     }
 
     factory = controllers.get(env_class_name)

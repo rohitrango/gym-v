@@ -188,6 +188,332 @@ class GameRLSokobanController(ParameterController):
         return {"level": self._level}
 
 
+class GameRLGridSizeController(ParameterController):
+    """Controller for grid_size-based GameRL QA envs."""
+
+    def __init__(
+        self, initial_difficulty: int = 0, min_size: int = 4, max_size: int = 12
+    ) -> None:
+        self._min_size = min_size
+        self._max_size = max_size
+        super().__init__(initial_difficulty)
+
+    def _initialize_parameters(self) -> None:
+        self._size = self._min_size
+
+    def update(self) -> None:
+        self._size = min(self._max_size, self._size + 1)
+
+    def get_parameters(self) -> dict[str, Any]:
+        return {"grid_size": self._size}
+
+
+class GameRLBoardSizeController(ParameterController):
+    """Controller for board_size-based GameRL QA envs."""
+
+    def __init__(
+        self, initial_difficulty: int = 0, min_size: int = 4, max_size: int = 12
+    ) -> None:
+        self._min_size = min_size
+        self._max_size = max_size
+        super().__init__(initial_difficulty)
+
+    def _initialize_parameters(self) -> None:
+        self._size = self._min_size
+
+    def update(self) -> None:
+        self._size = min(self._max_size, self._size + 1)
+
+    def get_parameters(self) -> dict[str, Any]:
+        return {"board_size": self._size}
+
+
+class GameRLSizeController(ParameterController):
+    """Controller for size-based GameRL QA envs."""
+
+    def __init__(
+        self, initial_difficulty: int = 0, min_size: int = 4, max_size: int = 12
+    ) -> None:
+        self._min_size = min_size
+        self._max_size = max_size
+        super().__init__(initial_difficulty)
+
+    def _initialize_parameters(self) -> None:
+        self._size = self._min_size
+
+    def update(self) -> None:
+        self._size = min(self._max_size, self._size + 1)
+
+    def get_parameters(self) -> dict[str, Any]:
+        return {"size": self._size}
+
+
+class GameRLFreecellController(ParameterController):
+    """Controller for Freecell Q&A (cascade_number)."""
+
+    def _initialize_parameters(self) -> None:
+        self._cascade_number = 4
+
+    def update(self) -> None:
+        self._cascade_number = min(10, self._cascade_number + 1)
+
+    def get_parameters(self) -> dict[str, Any]:
+        return {"cascade_number": self._cascade_number}
+
+
+class GameRLHueController(ParameterController):
+    """Controller for Hue Q&A (board_size + num_lines)."""
+
+    def __init__(
+        self,
+        initial_difficulty: int = 0,
+        min_size: int = 4,
+        max_size: int = 10,
+        min_lines: int = 4,
+        max_lines: int = 12,
+    ) -> None:
+        self._min_size = min_size
+        self._max_size = max_size
+        self._min_lines = min_lines
+        self._max_lines = max_lines
+        super().__init__(initial_difficulty)
+
+    def _initialize_parameters(self) -> None:
+        self._size = self._min_size
+        self._lines = self._min_lines
+
+    def update(self) -> None:
+        self._size = min(self._max_size, self._size + 1)
+        self._lines = min(self._max_lines, self._lines + 1)
+
+    def get_parameters(self) -> dict[str, Any]:
+        return {"board_size": self._size, "num_lines": self._lines}
+
+
+class GameRLSpiderSolitaireController(ParameterController):
+    """Controller for SpiderSolitaire Q&A."""
+
+    def _initialize_parameters(self) -> None:
+        self._num_waste = 1
+
+    def update(self) -> None:
+        self._num_waste = min(5, self._num_waste + 1)
+
+    def get_parameters(self) -> dict[str, Any]:
+        return {"num_waste": self._num_waste}
+
+
+class GameRLTangramController(ParameterController):
+    """Controller for Tangram Q&A."""
+
+    def _initialize_parameters(self) -> None:
+        self._grid_size = 6
+        self._num_seeds = 2
+        self._num_remove = 1
+
+    def update(self) -> None:
+        self._grid_size = min(12, self._grid_size + 1)
+        self._num_seeds = min(6, self._num_seeds + 1)
+        self._num_remove = min(4, self._num_remove + 1)
+
+    def get_parameters(self) -> dict[str, Any]:
+        return {
+            "grid_size": self._grid_size,
+            "num_seeds": self._num_seeds,
+            "num_pieces_to_remove": self._num_remove,
+        }
+
+
+class GameRLTentsController(ParameterController):
+    """Controller for Tents Q&A (grid_size + num_trees)."""
+
+    def __init__(
+        self,
+        initial_difficulty: int = 0,
+        min_grid: int = 6,
+        max_grid: int = 12,
+        min_trees: int = 5,
+        max_trees: int = 20,
+    ) -> None:
+        self._min_grid = min_grid
+        self._max_grid = max_grid
+        self._min_trees = min_trees
+        self._max_trees = max_trees
+        super().__init__(initial_difficulty)
+
+    def _initialize_parameters(self) -> None:
+        self._grid = self._min_grid
+        self._trees = self._min_trees
+
+    def update(self) -> None:
+        self._grid = min(self._max_grid, self._grid + 1)
+        self._trees = min(self._max_trees, self._trees + 2)
+
+    def get_parameters(self) -> dict[str, Any]:
+        return {"grid_size": (self._grid, self._grid), "num_trees": self._trees}
+
+
+class GameRLTuringMachineController(ParameterController):
+    """Controller for TuringMachine2d Q&A."""
+
+    def __init__(
+        self,
+        initial_difficulty: int = 0,
+        min_grid: int = 5,
+        max_grid: int = 12,
+        min_states: int = 2,
+        max_states: int = 6,
+        min_symbols: int = 2,
+        max_symbols: int = 4,
+        min_steps: int = 10,
+        max_steps: int = 40,
+    ) -> None:
+        self._min_grid = min_grid
+        self._max_grid = max_grid
+        self._min_states = min_states
+        self._max_states = max_states
+        self._min_symbols = min_symbols
+        self._max_symbols = max_symbols
+        self._min_steps = min_steps
+        self._max_steps = max_steps
+        super().__init__(initial_difficulty)
+
+    def _initialize_parameters(self) -> None:
+        self._grid = self._min_grid
+        self._states = self._min_states
+        self._symbols = self._min_symbols
+        self._steps = self._min_steps
+
+    def update(self) -> None:
+        self._grid = min(self._max_grid, self._grid + 1)
+        self._states = min(self._max_states, self._states + 1)
+        self._symbols = min(self._max_symbols, self._symbols + 1)
+        self._steps = min(self._max_steps, self._steps + 5)
+
+    def get_parameters(self) -> dict[str, Any]:
+        return {
+            "grid_size": (self._grid, self._grid),
+            "num_states": self._states,
+            "num_symbols": self._symbols,
+            "max_steps": self._steps,
+        }
+
+
+class GameRLSpaceInvadersController(ParameterController):
+    """Controller for SpaceInvaders Q&A."""
+
+    def _initialize_parameters(self) -> None:
+        self._enemy_rows = 3
+        self._enemy_cols = 4
+        self._enemy_area_rows = 6
+
+    def update(self) -> None:
+        self._enemy_rows = min(5, self._enemy_rows + 1)
+        self._enemy_cols = min(8, self._enemy_cols + 1)
+        self._enemy_area_rows = min(8, self._enemy_area_rows + 1)
+
+    def get_parameters(self) -> dict[str, Any]:
+        return {
+            "enemy_rows": self._enemy_rows,
+            "enemy_cols": self._enemy_cols,
+            "enemy_area_rows": self._enemy_area_rows,
+        }
+
+
+class GameRLStarBattleController(ParameterController):
+    """Controller for StarBattle Q&A."""
+
+    def _initialize_parameters(self) -> None:
+        self._grid_size = 5
+        self._stars_per_region = 1
+
+    def update(self) -> None:
+        if self._grid_size == 5:
+            self._grid_size = 6
+        elif self._grid_size == 6:
+            self._grid_size = 8
+        if self._grid_size >= 8:
+            self._stars_per_region = 2
+
+    def get_parameters(self) -> dict[str, Any]:
+        return {
+            "grid_size": self._grid_size,
+            "stars_per_region": self._stars_per_region,
+        }
+
+
+class GameRLPacmanController(ParameterController):
+    """Controller for Pacman Q&A."""
+
+    def _initialize_parameters(self) -> None:
+        self._grid_size = 12
+        self._wall_ratio = 0.08
+
+    def update(self) -> None:
+        self._grid_size = min(20, self._grid_size + 1)
+        self._wall_ratio = min(0.2, self._wall_ratio + 0.01)
+
+    def get_parameters(self) -> dict[str, Any]:
+        return {"grid_size": self._grid_size, "wall_ratio": self._wall_ratio}
+
+
+class GameRLZumaController(ParameterController):
+    """Controller for Zuma Q&A."""
+
+    def _initialize_parameters(self) -> None:
+        self._num_balls = 15
+
+    def update(self) -> None:
+        self._num_balls = min(40, self._num_balls + 3)
+
+    def get_parameters(self) -> dict[str, Any]:
+        return {"num_balls": self._num_balls}
+
+
+class GameRLPlotLevelController(ParameterController):
+    """Controller for plot_level-based GameRL QA envs."""
+
+    def _initialize_parameters(self) -> None:
+        self._plot_level = "Easy"
+
+    def update(self) -> None:
+        if self._plot_level == "Easy":
+            self._plot_level = "Medium"
+        elif self._plot_level == "Medium":
+            self._plot_level = "Hard"
+
+    def get_parameters(self) -> dict[str, Any]:
+        return {"plot_level": self._plot_level}
+
+
+class GameRLChessRangerController(ParameterController):
+    """Controller for ChessRanger Q&A."""
+
+    def _initialize_parameters(self) -> None:
+        self._num_pieces = 4
+
+    def update(self) -> None:
+        self._num_pieces = min(10, self._num_pieces + 1)
+
+    def get_parameters(self) -> dict[str, Any]:
+        return {"num_pieces": self._num_pieces}
+
+
+class GameRL3dMazeController(ParameterController):
+    """Controller for 3D Maze QA (grid_size tuple)."""
+
+    def _initialize_parameters(self) -> None:
+        self._size = 5
+        self._height = 5
+
+    def update(self) -> None:
+        self._size = min(10, self._size + 1)
+        self._height = min(8, self._height + 1)
+
+    def get_parameters(self) -> dict[str, Any]:
+        return {"grid_size": (self._size, self._size, self._height)}
+
+
 def get_controller_for_env(
     env_class_name: str, difficulty: int = 0
 ) -> ParameterController:
@@ -209,6 +535,25 @@ def get_controller_for_env(
         "GameRLRubiksCubeQAEnv": lambda d: GameRLRubiksCubeController(d),
         "GameRLSokobanQAEnv": lambda d: GameRLSokobanController(d),
         "GameRLRhythmGameQAEnv": lambda d: GameRLRhythmGameController(d),
+        "GameRL3dMazeQAEnv": lambda d: GameRL3dMazeController(d),
+        "GameRLLifegameQAEnv": lambda d: GameRLGridSizeController(d, 5, 12),
+        "GameRLLangtonAntQAEnv": lambda d: GameRLGridSizeController(d, 5, 12),
+        "GameRLFreecellQAEnv": lambda d: GameRLFreecellController(d),
+        "GameRLHueQAEnv": lambda d: GameRLHueController(d),
+        "GameRLJewel2QAEnv": lambda d: GameRLSizeController(d, 4, 10),
+        "GameRLPacmanQAEnv": lambda d: GameRLPacmanController(d),
+        "GameRLSpiderSolitaireQAEnv": lambda d: GameRLSpiderSolitaireController(d),
+        "GameRLTangramQAEnv": lambda d: GameRLTangramController(d),
+        "GameRLTentsQAEnv": lambda d: GameRLTentsController(d),
+        "GameRL2dTuringMachineQAEnv": lambda d: GameRLTuringMachineController(d),
+        "GameRLSpaceInvadersQAEnv": lambda d: GameRLSpaceInvadersController(d),
+        "GameRLStarBattleQAEnv": lambda d: GameRLStarBattleController(d),
+        "GameRLWordSearchQAEnv": lambda d: GameRLGridSizeController(d, 8, 16),
+        "GameRLZumaQAEnv": lambda d: GameRLZumaController(d),
+        "GameRL3DReconstructionQAEnv": lambda d: GameRLPlotLevelController(d),
+        "GameRLPyramidChessQAEnv": lambda d: GameRLPlotLevelController(d),
+        "GameRLUltraTicTacToeQAEnv": lambda d: GameRLPlotLevelController(d),
+        "GameRLChessRangerQAEnv": lambda d: GameRLChessRangerController(d),
     }
 
     factory = controllers.get(env_class_name)
