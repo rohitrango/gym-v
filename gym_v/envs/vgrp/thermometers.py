@@ -124,6 +124,39 @@ class VGRPThermometersEnv(Env):
 
     assets_dir = resources.files("gym_v.envs") / "assets"
 
+    prompt_template = r"""You are given a {size}×{size} Thermometers puzzle.
+
+Rules:
++ Fill thermometers starting from the bulb (marked with a red circle in the image)
++ Each thermometer can be filled from 0 cells to its full length
++ If filling, must start from the bulb and fill continuously (no gaps allowed)
++ Only cells that are part of a thermometer can be filled
++ Numbers on the left indicate how many filled cells are required in each row
++ Numbers on the top indicate how many filled cells are required in each column
+
+Clues:
+Row clues (filled cells per row): {row_clues}
+Column clues (filled cells per column): {col_clues}
+Number of thermometers: {num_thermometers}
+
+Thermometer positions (bulb listed first, then cells in order):
+{thermometer_positions}
+
+**Output Format:**
+Your answer should be a {size}×{size} grid where:
+- Use 's' for filled (shaded) cells
+- Use 'e' for empty cells
+- Separate values with spaces within rows
+- Separate rows with newlines
+
+Example output for a 5×5 puzzle:
+e e s s e
+s s e e e
+e e e e e
+s e s s e
+e e e e e
+"""
+
     def __init__(
         self,
         size: int = 5,
@@ -147,6 +180,7 @@ class VGRPThermometersEnv(Env):
         self._row_counts: list[int] | None = None
         self._col_counts: list[int] | None = None
         self._factory = ThermometersPuzzleFactory(size)
+        self._prompt: str | None = None
 
     @property
     def description(self) -> str:
@@ -177,6 +211,27 @@ class VGRPThermometersEnv(Env):
             e e e e e e
             e e s s s e
         """).strip()
+
+    def _prompt_generate(self) -> str:
+        """Generate complete text prompt for the puzzle."""
+        row_clues = " ".join(map(str, self._row_counts))
+        col_clues = " ".join(map(str, self._col_counts))
+        thermometer_positions = self._thermometers_to_text()
+        return self.prompt_template.format(
+            size=self._size,
+            row_clues=row_clues,
+            col_clues=col_clues,
+            num_thermometers=len(self._thermometers),
+            thermometer_positions=thermometer_positions,
+        )
+
+    def _thermometers_to_text(self) -> str:
+        """Convert thermometer positions to text description."""
+        lines = []
+        for i, thermo in enumerate(self._thermometers):
+            cells = " -> ".join(f"({r+1},{c+1})" for r, c in thermo)
+            lines.append(f"Thermometer {i+1}: {cells}")
+        return "\n".join(lines)
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
@@ -242,10 +297,17 @@ class VGRPThermometersEnv(Env):
 
         logger.info("Reset VGRP Thermometers.")
 
+        # Generate prompt
+        self._prompt = self._prompt_generate()
+
         obs = Observation(
             image=self.render(),
-            text=self._board_to_text_with_clues(),
-            metadata={"size": self._size},
+            text=None,
+            metadata={
+                "text_prompt": self._prompt,
+                "state_text": self._board_to_text_with_clues(),
+                "size": self._size,
+            },
         )
         info = {
             "oracle_answer": self._board_to_text(self._solution_board),
@@ -336,8 +398,12 @@ class VGRPThermometersEnv(Env):
 
         obs = Observation(
             image=self.render(),
-            text=self._board_to_text_with_clues(),
-            metadata={"size": self._size},
+            text=None,
+            metadata={
+                "text_prompt": self._prompt,
+                "state_text": self._board_to_text_with_clues(),
+                "size": self._size,
+            },
         )
         terminated = True
         truncated = False

@@ -105,6 +105,37 @@ class VGRPRenzokuEnv(Env):
 
     assets_dir = resources.files("gym_v.envs") / "assets"
 
+    prompt_template = r"""You are given a {size}×{size} Renzoku puzzle.
+
+Rules:
++ Fill the grid with numbers 1 to {size}
++ Each row and column must contain each number exactly once (Latin Square rules)
++ A dot (●) between two cells means those numbers are consecutive (differ by 1)
++ If there is NO dot between two adjacent cells, the numbers must NOT be consecutive
+
+Dot constraints:
+{dot_constraints}
+
+Note: Refer to the image for the visual representation of dots between cells.
+
+**Output Format:**
+Your answer should be a {size}×{size} grid where:
+- Use numbers 1 to {size}
+- Separate values with spaces within rows
+- Separate rows with newlines
+
+Example output for a 9×9 puzzle:
+5 3 4 6 7 8 9 1 2
+6 7 2 1 9 5 3 4 8
+1 9 8 3 4 2 5 6 7
+8 5 9 7 6 1 4 2 3
+4 2 6 8 5 3 7 9 1
+7 1 3 9 2 4 8 5 6
+9 6 1 5 3 7 2 8 4
+2 8 7 4 1 9 6 3 5
+3 4 5 2 8 6 1 7 9
+"""
+
     def __init__(
         self,
         size: int = 9,
@@ -128,6 +159,7 @@ class VGRPRenzokuEnv(Env):
         )
         self._puzzle_board: list[list[int]] | None = None
         self._factory = RenzokuPuzzleFactory(size)
+        self._prompt: str | None = None
 
     @property
     def description(self) -> str:
@@ -153,6 +185,29 @@ class VGRPRenzokuEnv(Env):
             2 8 7 4 1 9 6 3 5
             3 4 5 2 8 6 1 7 9
         """).strip()
+
+    def _prompt_generate(self) -> str:
+        """Generate complete text prompt for the puzzle."""
+        dot_constraints = self._hints_to_text()
+        return self.prompt_template.format(
+            size=self._size,
+            dot_constraints=dot_constraints,
+        )
+
+    def _hints_to_text(self) -> str:
+        """Convert hints to text description of dot positions."""
+        lines = []
+        # Horizontal dots (between columns in same row)
+        for r in range(self._size):
+            for c in range(self._size - 1):
+                if self._hints["row"][r][c] == "1":
+                    lines.append(f"Dot between ({r+1},{c+1}) and ({r+1},{c+2})")
+        # Vertical dots (between rows in same column)
+        for r in range(self._size - 1):
+            for c in range(self._size):
+                if self._hints["col"][r][c] == "1":
+                    lines.append(f"Dot between ({r+1},{c+1}) and ({r+2},{c+1})")
+        return "\n".join(lines) if lines else "No consecutive constraints (no dots)"
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
@@ -191,10 +246,17 @@ class VGRPRenzokuEnv(Env):
 
         logger.info("Reset VGRP Renzoku.")
 
+        # Generate prompt
+        self._prompt = self._prompt_generate()
+
         obs = Observation(
             image=self.render(),
-            text=self._board_to_text_with_hints(),
-            metadata={"size": self._size},
+            text=None,
+            metadata={
+                "text_prompt": self._prompt,
+                "state_text": self._board_to_text_with_hints(),
+                "size": self._size,
+            },
         )
         info = {
             "oracle_answer": self._board_to_text(self._solution_board),
@@ -223,8 +285,12 @@ class VGRPRenzokuEnv(Env):
 
         obs = Observation(
             image=self.render(),
-            text=self._board_to_text_with_hints(),
-            metadata={"size": self._size},
+            text=None,
+            metadata={
+                "text_prompt": self._prompt,
+                "state_text": self._board_to_text_with_hints(),
+                "size": self._size,
+            },
         )
         info = {
             "oracle_answer": self._board_to_text(self._solution_board),

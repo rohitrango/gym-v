@@ -209,6 +209,35 @@ class VGRPBattleshipsEnv(Env):
 
     assets_dir = resources.files("gym_v.envs") / "assets"
 
+    prompt_template = r"""You are given a {size}×{size} Battleships puzzle.
+
+Rules:
++ Place all ships in the grid (horizontal or vertical orientation only)
++ Ships cannot touch each other, not even diagonally
++ Numbers on the left indicate how many ship cells are in each row
++ Numbers on the top indicate how many ship cells are in each column
++ Ship fleet: {ship_fleet}
+
+Clues:
+Row clues (ship cells per row): {row_clues}
+Column clues (ship cells per column): {col_clues}
+
+**Output Format:**
+Your answer should be a {size}×{size} grid where:
+- Use 's' for ship cells
+- Use 'e' for empty (water) cells
+- Separate values with spaces within rows
+- Separate rows with newlines
+
+Example output for a 6×6 puzzle:
+e e s s s s
+e e e e e e
+s e e e e e
+s e s s e e
+e e e e e e
+e e e s e e
+"""
+
     def __init__(
         self,
         size: int = 6,
@@ -232,6 +261,7 @@ class VGRPBattleshipsEnv(Env):
         self._col_hints: list[int] | None = None
         self._ships: dict[int, int] | None = None  # {length: count}
         self._factory = BattleshipsPuzzleFactory(size)
+        self._prompt: str | None = None
 
     @property
     def description(self) -> str:
@@ -263,6 +293,20 @@ class VGRPBattleshipsEnv(Env):
             e e e e e e
             e e s s s e
         """).strip()
+
+    def _prompt_generate(self) -> str:
+        """Generate complete text prompt for the puzzle."""
+        ship_fleet = ", ".join(
+            [f"{count}x{length}-cell" for length, count in sorted(self._ships.items())]
+        )
+        row_clues = " ".join(map(str, self._row_hints))
+        col_clues = " ".join(map(str, self._col_hints))
+        return self.prompt_template.format(
+            size=self._size,
+            ship_fleet=ship_fleet,
+            row_clues=row_clues,
+            col_clues=col_clues,
+        )
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
@@ -311,10 +355,17 @@ class VGRPBattleshipsEnv(Env):
 
         logger.info("Reset VGRP Battleships.")
 
+        # Generate prompt
+        self._prompt = self._prompt_generate()
+
         obs = Observation(
             image=self.render(),
-            text=self._board_to_text_with_clues(),
-            metadata={"size": self._size},
+            text=None,
+            metadata={
+                "text_prompt": self._prompt,
+                "state_text": self._board_to_text_with_clues(),
+                "size": self._size,
+            },
         )
         info = {
             "oracle_answer": self._board_to_text(self._solution_board),
@@ -343,8 +394,12 @@ class VGRPBattleshipsEnv(Env):
 
         obs = Observation(
             image=self.render(),
-            text=self._board_to_text_with_clues(),
-            metadata={"size": self._size},
+            text=None,
+            metadata={
+                "text_prompt": self._prompt,
+                "state_text": self._board_to_text_with_clues(),
+                "size": self._size,
+            },
         )
         terminated = True
         truncated = False

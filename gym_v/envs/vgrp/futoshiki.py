@@ -109,6 +109,39 @@ class VGRPFutoshikiEnv(Env):
 
     assets_dir = resources.files("gym_v.envs") / "assets"
 
+    prompt_template = r"""You are given a {size}×{size} Futoshiki puzzle.
+
+Rules:
++ Fill the grid with numbers 1 to {size}
++ Each row and column must contain each number exactly once
++ Respect inequality signs between cells:
+  - '<' means left cell < right cell
+  - '>' means left cell > right cell
+  - '^' means top cell < bottom cell
+  - 'v' means top cell > bottom cell
+
+Current puzzle state:
+{puzzle_state}
+
+Inequality constraints:
+{inequalities}
+
+Note: '.' represents empty cells that need to be filled.
+
+**Output Format:**
+Your answer should be a {size}×{size} grid where:
+- Use numbers 1 to {size}
+- Separate values with spaces within rows
+- Separate rows with newlines
+
+Example output for a 5×5 puzzle:
+1 2 3 4 5
+2 3 4 5 1
+3 4 5 1 2
+4 5 1 2 3
+5 1 2 3 4
+"""
+
     def __init__(
         self,
         size: int = 5,
@@ -129,6 +162,7 @@ class VGRPFutoshikiEnv(Env):
         self._inequalities: dict[str, list[list[str]]] | None = None
         self._puzzle_board: list[list[int]] | None = None
         self._factory = FutoshikiPuzzleFactory(size)
+        self._prompt: str | None = None
 
     @property
     def description(self) -> str:
@@ -151,6 +185,37 @@ class VGRPFutoshikiEnv(Env):
             4 5 1 2 3
             5 1 2 3 4
         """).strip()
+
+    def _prompt_generate(self) -> str:
+        """Generate complete text prompt for the puzzle."""
+        puzzle_text = self._board_to_text_puzzle()
+        inequalities_text = self._inequalities_to_text()
+        return self.prompt_template.format(
+            size=self._size,
+            puzzle_state=puzzle_text,
+            inequalities=inequalities_text,
+        )
+
+    def _inequalities_to_text(self) -> str:
+        """Convert inequalities to text description."""
+        lines = []
+        # Row inequalities (horizontal)
+        for r in range(self._size):
+            for c in range(self._size - 1):
+                sign = self._inequalities["row"][r][c]
+                if sign:
+                    lines.append(
+                        f"Row {r+1}: cell({r+1},{c+1}) {sign} cell({r+1},{c+2})"
+                    )
+        # Col inequalities (vertical)
+        for r in range(self._size - 1):
+            for c in range(self._size):
+                sign = self._inequalities["col"][r][c]
+                if sign:
+                    lines.append(
+                        f"Col {c+1}: cell({r+1},{c+1}) {sign} cell({r+2},{c+1})"
+                    )
+        return "\n".join(lines) if lines else "No inequality constraints"
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
@@ -185,10 +250,17 @@ class VGRPFutoshikiEnv(Env):
 
         logger.info("Reset VGRP Futoshiki.")
 
+        # Generate prompt
+        self._prompt = self._prompt_generate()
+
         obs = Observation(
             image=self.render(),
-            text=self._board_to_text_puzzle(),
-            metadata={"size": self._size},
+            text=None,
+            metadata={
+                "text_prompt": self._prompt,
+                "state_text": self._board_to_text_puzzle(),
+                "size": self._size,
+            },
         )
         info = {
             "oracle_answer": self._board_to_text(self._solution_board),
@@ -217,8 +289,12 @@ class VGRPFutoshikiEnv(Env):
 
         obs = Observation(
             image=self.render(),
-            text=self._board_to_text_puzzle(),
-            metadata={"size": self._size},
+            text=None,
+            metadata={
+                "text_prompt": self._prompt,
+                "state_text": self._board_to_text_puzzle(),
+                "size": self._size,
+            },
         )
         info = {
             "oracle_answer": self._board_to_text(self._solution_board),

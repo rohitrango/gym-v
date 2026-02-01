@@ -152,6 +152,37 @@ class VGRPStarBattleEnv(Env):
 
     assets_dir = resources.files("gym_v.envs") / "assets"
 
+    prompt_template = r"""You are given a {size}×{size} Star Battle puzzle.
+
+Rules:
++ Place exactly {stars_per_group} star(s) in each row
++ Place exactly {stars_per_group} star(s) in each column
++ Place exactly {stars_per_group} star(s) in each outlined region
++ Stars cannot touch each other, not even diagonally (no two stars can be adjacent in any direction)
+
+Region layout:
+{regions}
+
+Note: Each number represents a different region. Cells with the same number belong to the same region.
+
+**Output Format:**
+Your answer should be a {size}×{size} grid where:
+- Use 's' for star cells
+- Use 'e' for empty cells
+- Separate values with spaces within rows
+- Separate rows with newlines
+
+Example output for an 8×8 puzzle with 1 star per group:
+e e e s e e e e
+e s e e e e e e
+e e e e e e s e
+s e e e e e e e
+e e e e s e e e
+e e s e e e e e
+e e e e e e e s
+e e e e e s e e
+"""
+
     def __init__(
         self,
         size: int = 8,
@@ -174,6 +205,7 @@ class VGRPStarBattleEnv(Env):
         self._regions: list[list[int]] | None = None  # Grid of region IDs
         self._puzzle_board: list[list[str]] | None = None  # Empty initially
         self._factory = StarBattlePuzzleFactory(size, stars_per_group)
+        self._prompt: str | None = None
 
     @property
     def description(self) -> str:
@@ -195,6 +227,15 @@ class VGRPStarBattleEnv(Env):
             e e e e e e
             e e s s s e
         """).strip()
+
+    def _prompt_generate(self) -> str:
+        """Generate complete text prompt for the puzzle."""
+        regions_text = self._board_to_text_regions()
+        return self.prompt_template.format(
+            size=self._size,
+            stars_per_group=self._stars_per_group,
+            regions=regions_text,
+        )
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
@@ -257,10 +298,17 @@ class VGRPStarBattleEnv(Env):
 
         logger.info("Reset VGRP Star Battle.")
 
+        # Generate prompt
+        self._prompt = self._prompt_generate()
+
         obs = Observation(
             image=self.render(),
-            text=self._board_to_text_regions(),
-            metadata={"size": self._size},
+            text=None,
+            metadata={
+                "text_prompt": self._prompt,
+                "state_text": self._board_to_text_regions(),
+                "size": self._size,
+            },
         )
         info = {
             "oracle_answer": self._board_to_text(self._solution_board),
@@ -289,8 +337,12 @@ class VGRPStarBattleEnv(Env):
 
         obs = Observation(
             image=self.render(),
-            text=self._board_to_text_regions(),
-            metadata={"size": self._size},
+            text=None,
+            metadata={
+                "text_prompt": self._prompt,
+                "state_text": self._board_to_text_regions(),
+                "size": self._size,
+            },
         )
         info = {
             "oracle_answer": self._board_to_text(self._solution_board),

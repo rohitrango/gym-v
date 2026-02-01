@@ -136,6 +136,31 @@ class VGRPBinairoEnv(Env):
 
     assets_dir = resources.files("gym_v.envs") / "assets"
 
+    prompt_template = r"""You are given a {size}×{size} Binairo puzzle.
+
+Rules:
++ Each row and column must contain exactly {half_size} white circles ('w') and {half_size} black circles ('b')
++ No more than two consecutive circles of the same color are allowed in any row or column
+
+Current puzzle state:
+{puzzle_state}
+
+Note: '?' represents empty cells that need to be filled.
+
+**Output Format:**
+Your answer should be a {size}×{size} grid where:
+- Use 'w' for white circles
+- Use 'b' for black circles
+- Separate values with spaces within rows
+- Separate rows with newlines
+
+Example output for a 4×4 puzzle:
+w b w b
+b w b w
+w b b w
+b w w b
+"""
+
     def __init__(
         self,
         size: int = 6,
@@ -157,6 +182,7 @@ class VGRPBinairoEnv(Env):
         self._factory = BinairoPuzzleFactory(size)
         self._puzzle_board: list[list[str]] | None = None
         self._solution_board: list[list[str]] | None = None
+        self._prompt: str | None = None
 
     @property
     def description(self) -> str:
@@ -181,6 +207,15 @@ class VGRPBinairoEnv(Env):
             b w b b w w
         """).strip()
 
+    def _prompt_generate(self) -> str:
+        """Generate complete text prompt for the puzzle."""
+        puzzle_text = self._board_to_text(self._puzzle_board)
+        return self.prompt_template.format(
+            size=self._size,
+            half_size=self._size // 2,
+            puzzle_state=puzzle_text,
+        )
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -199,13 +234,21 @@ class VGRPBinairoEnv(Env):
         self._puzzle_board, self._solution_board = result
         logger.info(f"Reset VGRP Binairo with {self._num_hints} hints.")
 
+        # Generate prompt
+        self._prompt = self._prompt_generate()
+
         # Convert board to text format
         puzzle_text = self._board_to_text(self._puzzle_board)
 
         obs = Observation(
             image=self.render(),
-            text=puzzle_text,
-            metadata={"size": self._size, "num_hints": self._num_hints},
+            text=None,
+            metadata={
+                "text_prompt": self._prompt,
+                "state_text": puzzle_text,
+                "size": self._size,
+                "num_hints": self._num_hints,
+            },
         )
         info = {
             "oracle_answer": self._board_to_text(self._solution_board),
@@ -236,7 +279,11 @@ class VGRPBinairoEnv(Env):
         obs = Observation(
             image=self.render(),
             text=None,
-            metadata={"size": self._size},
+            metadata={
+                "text_prompt": self._prompt,
+                "state_text": self._board_to_text(self._puzzle_board),
+                "size": self._size,
+            },
         )
         info = {
             "oracle_answer": self._board_to_text(self._solution_board),

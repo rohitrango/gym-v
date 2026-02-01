@@ -136,6 +136,34 @@ class VGRPHitoriEnv(Env):
 
     assets_dir = resources.files("gym_v.envs") / "assets"
 
+    prompt_template = r"""You are given a {size}×{size} Hitori puzzle.
+
+Rules:
++ Shade some cells so that no number appears more than once in any row or column (considering only unshaded cells)
++ Shaded cells cannot be adjacent (share a side horizontally or vertically)
++ All unshaded cells must form a single connected region
+
+Current puzzle (number grid):
+{puzzle_state}
+
+Note: You need to decide which cells to shade ('s') and which to leave empty ('e').
+
+**Output Format:**
+Your answer should be a {size}×{size} grid where:
+- Use 's' for shaded cells
+- Use 'e' for empty (unshaded) cells
+- Separate values with spaces within rows
+- Separate rows with newlines
+
+Example output for a 6×6 puzzle:
+e e s e e e
+s e e e s e
+e e e s e e
+e s e e e s
+e e s e e e
+s e e e s e
+"""
+
     def __init__(
         self,
         size: int = 6,
@@ -157,6 +185,7 @@ class VGRPHitoriEnv(Env):
         )
         self._number_grid: list[list[int]] | None = None  # The numbers shown to player
         self._factory = HitoriPuzzleFactory(size)
+        self._prompt: str | None = None
 
         # Puzzle state for player is just the numbers. The action is the shading pattern.
         # So we don't store a "puzzle_board" that changes state,
@@ -186,6 +215,14 @@ class VGRPHitoriEnv(Env):
             e e s s s e
         """).strip()
 
+    def _prompt_generate(self) -> str:
+        """Generate complete text prompt for the puzzle."""
+        puzzle_text = self._board_to_text_numbers()
+        return self.prompt_template.format(
+            size=self._size,
+            puzzle_state=puzzle_text,
+        )
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
@@ -202,10 +239,17 @@ class VGRPHitoriEnv(Env):
 
         logger.info("Reset VGRP Hitori.")
 
+        # Generate prompt
+        self._prompt = self._prompt_generate()
+
         obs = Observation(
             image=self.render(),
-            text=self._board_to_text_numbers(),
-            metadata={"size": self._size},
+            text=None,
+            metadata={
+                "text_prompt": self._prompt,
+                "state_text": self._board_to_text_numbers(),
+                "size": self._size,
+            },
         )
         info = {
             "oracle_answer": self._board_to_text_solution(self._solution_board),
@@ -234,8 +278,12 @@ class VGRPHitoriEnv(Env):
 
         obs = Observation(
             image=self.render(),
-            text=self._board_to_text_numbers(),
-            metadata={"size": self._size},
+            text=None,
+            metadata={
+                "text_prompt": self._prompt,
+                "state_text": self._board_to_text_numbers(),
+                "size": self._size,
+            },
         )
         info = {
             "oracle_answer": self._board_to_text_solution(self._solution_board),
