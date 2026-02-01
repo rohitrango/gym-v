@@ -98,8 +98,9 @@ Try your best to **minimize** dist(0, r) * C[0] + dist(1, r) * C[1] + ... + dist
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=state_text,
+            text=None,
             metadata={
+                "state_text": state_text,
                 "text_prompt": self._prompt,
             },
         )
@@ -127,8 +128,9 @@ Try your best to **minimize** dist(0, r) * C[0] + dist(1, r) * C[1] + ... + dist
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=state_text,
+            text=None,
             metadata={
+                "state_text": state_text,
                 "text_prompt": self._prompt,
             },
         )

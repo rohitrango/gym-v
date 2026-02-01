@@ -95,7 +95,7 @@ class PerceptionDAGToTopoOrderEnv(Env):
 
         obs = Observation(
             image=self._current_image,
-            text="Extract a valid topological ordering from this DAG into JSON.",
+            text=None,
             metadata={
                 "num_nodes": self._current_graph.number_of_nodes(),
                 "num_edges": self._current_graph.number_of_edges(),

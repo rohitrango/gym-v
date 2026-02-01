@@ -96,8 +96,9 @@ Please compute the number of **bijections** `p` (i.e., permutations) from the ve
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=state_text,
+            text=None,
             metadata={
+                "state_text": state_text,
                 "text_prompt": self._prompt,
             },
         )
@@ -125,8 +126,9 @@ Please compute the number of **bijections** `p` (i.e., permutations) from the ve
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=state_text,
+            text=None,
             metadata={
+                "state_text": state_text,
                 "text_prompt": self._prompt,
             },
         )

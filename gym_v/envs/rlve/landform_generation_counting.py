@@ -112,8 +112,8 @@ Please count the number of **distinct sequences** `H[p[0]], H[p[1]], ..., H[p[{N
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=state_text,
-            metadata={"text_prompt": self._prompt},
+            text=None,
+            metadata={"state_text": state_text, "text_prompt": self._prompt},
         )
         info = {
             "oracle_answer": str(self._oracle_answer),
@@ -137,8 +137,8 @@ Please count the number of **distinct sequences** `H[p[0]], H[p[1]], ..., H[p[{N
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=state_text,
-            metadata={"text_prompt": self._prompt},
+            text=None,
+            metadata={"state_text": state_text, "text_prompt": self._prompt},
         )
         info = {
             "oracle_answer": str(self._oracle_answer),

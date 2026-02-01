@@ -111,7 +111,7 @@ class PerceptionGraphToAdjacencyEnv(Env):
 
         obs = Observation(
             image=self._current_image,
-            text="Extract the graph structure from this visualization into JSON.",
+            text=None,
             metadata={
                 "is_directed": self._is_directed,
                 "is_weighted": self._is_weighted,

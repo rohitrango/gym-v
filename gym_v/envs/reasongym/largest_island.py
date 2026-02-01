@@ -116,8 +116,9 @@ class ReasoningGymLargestIslandEnv(Env):
 
         obs = Observation(
             image=self.render(),
-            text=grid_text,
+            text=None,
             metadata={
+                "state_text": grid_text,
                 **self._metadata,
                 "text_prompt": self._entry.get("question", ""),
             },

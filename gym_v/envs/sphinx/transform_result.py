@@ -140,13 +140,11 @@ class SphinxTransformResultBaseEnv(Env):
         labels = ["(a)", "(b)", "(c)", "(d)", "(e)", "(f)", "(g)", "(h)"]
         self._oracle_answer = labels[self._correct_idx]
 
-        obs_text = self._build_problem_text()
-
         self._log_reset()
 
         obs = Observation(
             image=self.render(),
-            text=obs_text,
+            text=None,
             metadata={"transform": self._correct_transform, **self._get_metadata()},
         )
         info = {

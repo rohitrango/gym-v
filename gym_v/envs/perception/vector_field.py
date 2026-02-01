@@ -85,7 +85,7 @@ class PerceptionVectorFieldEnv(Env):
 
         obs = Observation(
             image=self._current_image,
-            text="Identify the vector field components Fx and Fy from this visualization.",
+            text=None,
             metadata={
                 "field_type": self._current_field_type,
                 "xy_range": self.xy_range,

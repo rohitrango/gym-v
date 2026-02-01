@@ -1314,8 +1314,9 @@ class GameRLSpiderSolitaireQAEnv(Env):
         text_state = self._get_state_text()
         obs = Observation(
             image=self.render(),
-            text=text_state,
+            text=None,
             metadata={
+                "state_text": text_state,
                 "text_prompt": f"{text_state}\n\n{self.description}",
                 "question": self._question,
                 "options": self._options,

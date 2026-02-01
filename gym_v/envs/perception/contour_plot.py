@@ -81,7 +81,7 @@ class PerceptionContourPlotEnv(Env):
 
         obs = Observation(
             image=self._current_image,
-            text="Identify the mathematical function from this contour plot.",
+            text=None,
             metadata={
                 "func_type": self._current_func_type,
                 "xy_range": self.xy_range,

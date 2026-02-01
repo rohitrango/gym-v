@@ -130,8 +130,9 @@ class ReasoningGymSudokuEnv(Env):
 
         obs = Observation(
             image=self.render(),
-            text=self._dataset._board_to_string(self._puzzle),
+            text=None,
             metadata={
+                "state_text": self._dataset._board_to_string(self._puzzle),
                 **self._metadata,
                 "text_prompt": self._entry.get("question", ""),
             },

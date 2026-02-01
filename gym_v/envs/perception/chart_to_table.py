@@ -118,7 +118,7 @@ class PerceptionChartToTableEnv(Env):
 
         obs = Observation(
             image=self._current_image,
-            text="Extract the data from this chart into JSON.",
+            text=None,
             metadata={
                 "chart_type": self._current_chart_type,
                 "style": self._current_style,

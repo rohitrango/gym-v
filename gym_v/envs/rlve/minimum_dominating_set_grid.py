@@ -88,8 +88,9 @@ Select a set of **distinct** cells S such that every cell is either in S or has 
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=state_text,
+            text=None,
             metadata={
+                "state_text": state_text,
                 "text_prompt": self._prompt,
                 "rlve_gold_answer": self._gold_answer,
             },
@@ -117,8 +118,9 @@ Select a set of **distinct** cells S such that every cell is either in S or has 
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=state_text,
+            text=None,
             metadata={
+                "state_text": state_text,
                 "text_prompt": self._prompt,
                 "rlve_gold_answer": self._gold_answer,
             },

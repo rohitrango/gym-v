@@ -146,8 +146,9 @@ class ReasoningGymArc1DEnv(Env):
 
         obs = Observation(
             image=self.render(),
-            text=text,
+            text=None,
             metadata={
+                "state_text": text,
                 **self._metadata,
                 "text_prompt": self._entry.get("question", ""),
             },

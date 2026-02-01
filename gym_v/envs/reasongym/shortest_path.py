@@ -132,8 +132,9 @@ class ReasoningGymShortestPathEnv(Env):
 
         obs = Observation(
             image=self.render(),
-            text=matrix_text,
+            text=None,
             metadata={
+                "state_text": matrix_text,
                 **self._metadata,
                 "text_prompt": self._entry.get("question", ""),
             },

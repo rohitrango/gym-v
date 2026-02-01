@@ -160,8 +160,9 @@ class ReasoningGymKnightSwapEnv(Env):
 
         obs = Observation(
             image=self.render(),
-            text=board_text,
+            text=None,
             metadata={
+                "state_text": board_text,
                 **self._metadata,
                 "text_prompt": self._entry.get("question", ""),
             },

@@ -104,8 +104,9 @@ Your task is to find four **distinct** points such that they form a rectangle (N
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=state_text,
+            text=None,
             metadata={
+                "state_text": state_text,
                 "text_prompt": self._prompt,
                 "rlve_gold_area": self._gold_answer,
             },
@@ -133,8 +134,9 @@ Your task is to find four **distinct** points such that they form a rectangle (N
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=state_text,
+            text=None,
             metadata={
+                "state_text": state_text,
                 "text_prompt": self._prompt,
                 "rlve_gold_area": self._gold_answer,
             },

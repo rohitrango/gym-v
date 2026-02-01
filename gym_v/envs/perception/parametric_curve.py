@@ -94,7 +94,7 @@ class PerceptionParametricCurveEnv(Env):
 
         obs = Observation(
             image=self._current_image,
-            text="Identify the parametric equations x(t) and y(t) from this curve.",
+            text=None,
             metadata={
                 "curve_type": self._current_curve_type,
             },

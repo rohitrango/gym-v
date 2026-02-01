@@ -102,8 +102,9 @@ Modify any number of cells so that the resulting grid satisfies the following co
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=state_text,
+            text=None,
             metadata={
+                "state_text": state_text,
                 "text_prompt": self._prompt,
                 "rlve_gold_answer": self._gold_answer,
             },
@@ -131,8 +132,9 @@ Modify any number of cells so that the resulting grid satisfies the following co
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=state_text,
+            text=None,
             metadata={
+                "state_text": state_text,
                 "text_prompt": self._prompt,
                 "rlve_gold_answer": self._gold_answer,
             },

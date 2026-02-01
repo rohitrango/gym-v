@@ -157,8 +157,9 @@ $x$ and $y$ represent the center of the circle, and $r$ represents the radius of
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=state_text,
+            text=None,
             metadata={
+                "state_text": state_text,
                 "text_prompt": self._prompt,
             },
         )
@@ -184,8 +185,9 @@ $x$ and $y$ represent the center of the circle, and $r$ represents the radius of
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=state_text,
+            text=None,
             metadata={
+                "state_text": state_text,
                 "text_prompt": self._prompt,
             },
         )

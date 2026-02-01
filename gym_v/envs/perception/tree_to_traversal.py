@@ -98,7 +98,7 @@ class PerceptionTreeToTraversalEnv(Env):
 
         obs = Observation(
             image=self._current_image,
-            text="Extract the tree traversals from this binary tree visualization into JSON.",
+            text=None,
             metadata={
                 "num_nodes": len(self._current_traversals["preorder"]),
             },

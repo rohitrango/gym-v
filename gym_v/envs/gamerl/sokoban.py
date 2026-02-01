@@ -193,8 +193,9 @@ Grid (#=wall, @=player, $=box, .=target, *=box on target, +=player on target, sp
 
         obs = Observation(
             image=self.render(),
-            text=text_state,
+            text=None,
             metadata={
+                "state_text": text_state,
                 "text_prompt": f"{text_state}\n\n{self.description}",
                 "question": self._question,
                 "options": self._options,

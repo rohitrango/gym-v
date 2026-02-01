@@ -93,7 +93,7 @@ class PerceptionFunctionGraphEnv(Env):
 
         obs = Observation(
             image=self._current_image,
-            text="Identify the mathematical function from this graph.",
+            text=None,
             metadata={
                 "func_type": self._current_func_type,
                 "x_range": self.x_range,

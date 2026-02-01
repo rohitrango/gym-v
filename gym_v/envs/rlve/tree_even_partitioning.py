@@ -94,8 +94,8 @@ Partition all vertices into {N} **disjoint** sets such that: (1) each set contai
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=state_text,
-            metadata={"text_prompt": self._prompt},
+            text=None,
+            metadata={"state_text": state_text, "text_prompt": self._prompt},
         )
         info = {
             "oracle_answer": self._oracle_answer,
@@ -121,8 +121,8 @@ Partition all vertices into {N} **disjoint** sets such that: (1) each set contai
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=state_text,
-            metadata={"text_prompt": self._prompt},
+            text=None,
+            metadata={"state_text": state_text, "text_prompt": self._prompt},
         )
         info = {
             "oracle_answer": self._oracle_answer,

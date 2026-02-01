@@ -179,16 +179,11 @@ class SphinxSequenceCompletionBaseEnv(Env):
         labels = ["(a)", "(b)", "(c)", "(d)", "(e)", "(f)", "(g)", "(h)"]
         self._oracle_answer = labels[self._correct_idx]
 
-        obs_text = (
-            f"The sequence follows a {self._current_pattern.replace('_', ' ')} pattern. "
-            f"Which option (a)-(h) comes next?"
-        )
-
         self._log_reset()
 
         obs = Observation(
             image=self.render(),
-            text=obs_text,
+            text=None,
             metadata={
                 "pattern": self._current_pattern,
                 "correct_idx": self._correct_idx,

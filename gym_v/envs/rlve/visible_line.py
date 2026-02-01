@@ -106,8 +106,9 @@ We say a line is **visible** if any portion of it can be seen when viewed from y
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=state_text,
+            text=None,
             metadata={
+                "state_text": state_text,
                 "text_prompt": self._prompt,
             },
         )
@@ -133,8 +134,9 @@ We say a line is **visible** if any portion of it can be seen when viewed from y
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=state_text,
+            text=None,
             metadata={
+                "state_text": state_text,
                 "text_prompt": self._prompt,
             },
         )

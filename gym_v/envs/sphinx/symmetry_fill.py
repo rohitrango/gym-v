@@ -158,16 +158,11 @@ class SphinxSymmetryFillBaseEnv(Env):
         labels = ["(a)", "(b)", "(c)", "(d)", "(e)", "(f)", "(g)", "(h)"]
         self._oracle_answer = labels[self._correct_idx]
 
-        obs_text = (
-            "Which option (a)-(h) completes the left 2×2 grid "
-            "with vertical + horizontal mirror symmetry?"
-        )
-
         self._log_reset()
 
         obs = Observation(
             image=self.render(),
-            text=obs_text,
+            text=None,
             metadata={"hidden_idx": self._hidden_idx, **self._get_metadata()},
         )
         info = {

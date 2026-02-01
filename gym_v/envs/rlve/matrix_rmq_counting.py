@@ -97,8 +97,8 @@ Output a single integer — the number of such matrices modulo {MOD}."""
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=state_text,
-            metadata={"text_prompt": self._prompt},
+            text=None,
+            metadata={"state_text": state_text, "text_prompt": self._prompt},
         )
         info = {
             "oracle_answer": str(self._oracle_answer),
@@ -122,8 +122,8 @@ Output a single integer — the number of such matrices modulo {MOD}."""
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=state_text,
-            metadata={"text_prompt": self._prompt},
+            text=None,
+            metadata={"state_text": state_text, "text_prompt": self._prompt},
         )
         info = {
             "oracle_answer": str(self._oracle_answer),

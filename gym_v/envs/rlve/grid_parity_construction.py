@@ -112,8 +112,9 @@ class RLVEGridParityConstructionEnv(Env):
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=state_text,
+            text=None,
             metadata={
+                "state_text": state_text,
                 "text_prompt": self._prompt,
             },
         )
@@ -139,8 +140,9 @@ class RLVEGridParityConstructionEnv(Env):
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=state_text,
+            text=None,
             metadata={
+                "state_text": state_text,
                 "text_prompt": self._prompt,
             },
         )

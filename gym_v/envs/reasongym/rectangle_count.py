@@ -109,8 +109,9 @@ class ReasoningGymRectangleCountEnv(Env):
 
         obs = Observation(
             image=self.render(),
-            text=self._grid_str,
+            text=None,
             metadata={
+                "state_text": self._grid_str,
                 **self._metadata,
                 "text_prompt": self._entry.get("question", ""),
             },

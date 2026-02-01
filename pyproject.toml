@@ -69,6 +69,8 @@ ignore = ["E203", "E501"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
+# Pre-existing issues in RLVE files
+"gym_v/envs/rlve/*.py" = ["B007", "B011", "B023", "E722", "E741", "F841"]
 
 [tool.ruff.lint.isort]
 combine-as-imports = true

@@ -134,16 +134,11 @@ class SphinxOddOneOutBaseEnv(Env):
         labels = ["(a)", "(b)", "(c)", "(d)", "(e)", "(f)", "(g)", "(h)"]
         self._oracle_answer = labels[self._odd_idx]
 
-        obs_text = (
-            "7 shapes are transformations of the same original. "
-            "Which option (a)-(h) is the odd one out?"
-        )
-
         self._log_reset()
 
         obs = Observation(
             image=self.render(),
-            text=obs_text,
+            text=None,
             metadata={"odd_idx": self._odd_idx, **self._get_metadata()},
         )
         info = {

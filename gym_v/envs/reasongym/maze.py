@@ -124,8 +124,9 @@ class ReasoningGymMazeEnv(Env):
 
         obs = Observation(
             image=self.render(),
-            text=maze_text,
+            text=None,
             metadata={
+                "state_text": maze_text,
                 **self._metadata,
                 "text_prompt": self._entry.get("question", ""),
             },

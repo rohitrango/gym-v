@@ -97,7 +97,7 @@ class PerceptionGraphToMSTEnv(Env):
 
         obs = Observation(
             image=self._current_image,
-            text="Identify the Minimum Spanning Tree edges from this weighted graph.",
+            text=None,
             metadata={
                 "num_nodes": self._current_graph.number_of_nodes(),
                 "num_edges": self._current_graph.number_of_edges(),
