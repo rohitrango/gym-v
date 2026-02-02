@@ -567,19 +567,6 @@ register(
     ),
 )
 
-# Game-RL environments
-register(
-    id="GameRL/Snake-v0",
-    entry_point="gym_v.envs.gamerl_multiturn.snake:GameRLSnakeEnv",
-    max_episode_steps=200,
-    kwargs=dict(
-        width=10,
-        height=10,
-        initial_snake_length=3,
-        cell_size=40,
-    ),
-)
-
 # Offline datasets
 register(
     id="Offline/SingleTurn-v0",
@@ -680,80 +667,6 @@ register(
         num_players=1,
     ),
 )
-register(
-    id="GameRL/Pacman-v0",
-    entry_point="gym_v.envs.gamerl_multiturn.pacman:GameRLPacmanEnv",
-    max_episode_steps=500,
-    kwargs=dict(
-        grid_size=16,
-        wall_ratio=0.1,
-        cell_size=25,
-        num_players=1,
-    ),
-)
-
-register(
-    id="GameRL/Tetris-v0",
-    entry_point="gym_v.envs.gamerl_multiturn.tetris:GameRLTetrisEnv",
-    max_episode_steps=1000,
-    kwargs=dict(
-        rows=12,
-        cols=8,
-        cell_size=30,
-        num_players=1,
-    ),
-)
-
-register(
-    id="GameRL/SpaceInvaders-v0",
-    entry_point="gym_v.envs.gamerl_multiturn.space_invaders:GameRLSpaceInvadersEnv",
-    max_episode_steps=200,
-    kwargs=dict(
-        enemy_rows=4,
-        enemy_cols=6,
-        enemy_area_rows=8,
-        cell_width=50,
-        cell_height=40,
-        num_players=1,
-    ),
-)
-
-register(
-    id="GameRL/Maze-v0",
-    entry_point="gym_v.envs.gamerl_multiturn.maze:GameRLMazeEnv",
-    max_episode_steps=200,
-    kwargs=dict(
-        size="small",
-        cell_size=40,
-        num_players=1,
-    ),
-)
-
-register(
-    id="GameRL/Lifegame-v0",
-    entry_point="gym_v.envs.gamerl_multiturn.lifegame:GameRLLifegameEnv",
-    max_episode_steps=1000,
-    kwargs=dict(
-        grid_size=30,
-        cell_size=20,
-        random_init=True,
-        init_density=0.3,
-        num_players=1,
-    ),
-)
-
-register(
-    id="GameRL/LangtonAnt-v0",
-    entry_point="gym_v.envs.gamerl_multiturn.langton_ant:GameRLLangtonAntEnv",
-    max_episode_steps=1000,
-    kwargs=dict(
-        grid_size=15,
-        cell_size=30,
-        init_black_ratio=0.1,
-        num_players=1,
-    ),
-)
-
 register(
     id="RLVE/CampsitePuzzle-v0",
     entry_point="gym_v.envs.rlve.campsite_puzzle:RLVECampsitePuzzleEnv",
