@@ -54,17 +54,11 @@ You should output the number of valid permutations modulo {MOD}."""
     @property
     def description(self) -> str:
         return dedent(
-            """
-            Tree Topological Sequence Counting Problem:
-
-            Count the number of permutations p[0], p[1], ..., p[N-1] of integers
-            from 0 to N-1 that satisfy a set of ordering constraints. The constraints
-            form a tree structure (connected undirected graph with no cycles).
-
-            Each constraint is of the form "p[i] < p[j]" or "p[i] > p[j]", meaning
-            that in the permutation, vertex i must appear before/after vertex j.
-
-            The problem asks for the count of valid permutations modulo MOD.
+            """\
+            Count the number of permutations of integers that satisfy a set of
+            ordering constraints. Each constraint is of the form `p[i] < p[j]` or
+            `p[i] > p[j]`, and collectively, these constraints correspond to a
+            tree -- a connected undirected graph with no cycles.
 
             In the image:
             - Vertices are numbered and shown as circles in a tree layout
@@ -73,7 +67,8 @@ You should output the number of valid permutations modulo {MOD}."""
             - All nodes are shown in light blue
             - The tree structure is displayed using a hierarchical layout
 
-            Output format: A single integer representing the count modulo MOD.
+            Output Format: A single integer representing the number of valid
+            permutations modulo MOD.
             Example: "12345"
             """
         ).strip()

@@ -56,26 +56,23 @@ Please compute the number of three-vertex sets (a triad of vertices A, B, and C 
 
     @property
     def description(self) -> str:
-        return dedent(
-            """
-            Tree Distance Equal Triad Counting Problem:
-
-            Given a tree (connected undirected graph with no cycles) with N vertices,
-            count how many three-vertex sets (triads A, B, C with A < B < C) have
-            the property that all three pairwise distances are equal.
-
-            The distance between two vertices is the number of edges on the shortest
-            path connecting them (unique in a tree).
+        return dedent("""
+            You are given a tree (i.e., a connected undirected graph with no cycles)
+            with N vertices. Please compute the number of three-vertex sets (a triad
+            of vertices A, B, and C such that A < B < C) for which the pairwise
+            distances are all equal - that is, the distance between A and B, between
+            A and C, and between B and C are all the same. The distance between two
+            vertices is the number of edges on the shortest path connecting them.
 
             In the image:
             - Vertices are numbered from 1 to N
             - Edges connect vertices to form a tree structure
             - Each triad forms an equilateral triangle in distance space
 
-            Output format: A single integer representing the count of such triads.
+            Output format: A single non-negative integer representing the count of
+            such triads.
             Example: "5"
-            """
-        ).strip()
+        """).strip()
 
     def _get_state_text(self) -> str:
         """Return the text representation of the current state."""

@@ -56,21 +56,26 @@ The matrix is given as follows:
             rows = len(self._matrix)
             cols = len(self._matrix[0]) if self._matrix[0] else 0
             size_hint = f"{rows} x {cols}"
+            nm_minus_1 = rows * cols - 1
         else:
             size_hint = "N x M"
+            nm_minus_1 = "N*M-1"
         return dedent(
             f"""
-            Numbrix puzzle rules:
-            1) Fill the grid with numbers from 0 to N*M-1.
-            2) Each number appears exactly once.
-            3) Consecutive numbers must be horizontally or vertically adjacent (forming a path).
+            You are given a matrix with some cells filled with numbers and some cells \
+            empty (represented by -1). Please fill the empty cells such that:
+            1) Each number from 0 to {nm_minus_1} appears exactly once in the matrix.
+            2) Each number is horizontally or vertically adjacent to the next number \
+            (i.e., every number x is adjacent to x + 1).
 
             In the image:
             - Pre-filled cells show numbers
             - Empty cells show "?"
             - The grid is {size_hint}
 
-            Output format: N lines with M numbers separated by spaces (row-major order).
+            **Output Format:** Your final answer should contain N lines, each with M \
+            numbers, separated by spaces. The numbers should represent the completed \
+            matrix in row-major order, matching the format of the given input.
             """
         ).strip()
 

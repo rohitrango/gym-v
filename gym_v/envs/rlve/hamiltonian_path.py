@@ -64,7 +64,7 @@ Example: `0 1 0 2` (do **NOT** include the backticks or quotes); this means the 
     @property
     def description(self) -> str:
         return dedent(
-            """
+            """\
             Hamiltonian Path Problem (Minimum Weight):
 
             Given a directed graph with N vertices and weighted edges, find a path
@@ -76,11 +76,14 @@ Example: `0 1 0 2` (do **NOT** include the backticks or quotes); this means the 
             - Directed edges are shown as arrows with weights labeled
             - Find a path that visits all vertices with minimum total edge weight
 
-            Output format: A single line containing the path as vertex indices
-            separated by spaces. Example: "0 1 2 3" means start at vertex 0,
-            then go to 1, then 2, then 3.
-            """
-        ).strip()
+            Output Format:
+            Your final answer should be a single line containing the path in order:
+            `p1, p2, ..., pk`, separated by **spaces**.
+            Example: `0 1 0 2` (do **NOT** include the backticks or quotes); this
+            means the path starts at vertex 0, goes to 1, returns to 0, and then
+            to 2 - thus visiting all three vertices at least once (assuming 3
+            vertices in total)."""
+        )
 
     def _get_state_text(self) -> str:
         """Return text representation of the graph."""

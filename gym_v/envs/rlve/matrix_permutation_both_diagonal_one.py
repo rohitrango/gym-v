@@ -63,7 +63,13 @@ Matrix A is given as follows:
             size_hint = "N x N"
         return dedent(
             f"""
-            Matrix Permutation Both Diagonal One rules:
+            You are given a square matrix where each element is either 0 or 1. Find
+            a permutation of the row indices and a permutation of the column indices
+            such that after applying these permutations, both diagonals of the
+            resulting matrix contain only 1s (main diagonal where i = j, and
+            anti-diagonal where i + j = N - 1).
+
+            Rules:
             1) You are given a {size_hint} binary matrix (elements are 0 or 1).
             2) Find permutations of row indices and column indices.
             3) After applying these permutations, BOTH diagonals must contain all 1s.
@@ -77,9 +83,11 @@ Matrix A is given as follows:
             - Cells on both diagonals (intersection) are highlighted in red.
             - Non-diagonal cells use blue tint for 1s, light gray for 0s.
 
-            Output format: Two lines:
-            - First line: row permutation (space-separated integers)
-            - Second line: column permutation (space-separated integers)
+            Output Format: Output two lines:
+            - The first line contains the row permutation: a[0] a[1] ... a[N-1]
+            - The second line contains the column permutation: b[0] b[1] ... b[N-1]
+            (Use spaces to separate adjacent integers. Do not include backticks or
+            quotes.)
             """
         ).strip()
 

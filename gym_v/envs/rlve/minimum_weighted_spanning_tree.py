@@ -81,13 +81,25 @@ Output a single line containing the root and the endpoints of the selected edges
     @property
     def description(self) -> str:
         return dedent(
-            """
+            """\
             Minimum Weighted Spanning Tree Problem:
 
             Given an undirected graph with N vertices and weighted edges, find a spanning
-            tree and root vertex that minimizes the total weighted depth cost. The cost
-            of a tree with root is the sum over all non-root vertices of (edge_weight × depth),
-            where depth is the number of edges from the root to that vertex.
+            tree and root vertex that minimizes the total weighted depth cost.
+
+            Understanding Weighted Depth Cost:
+            - Depth: The number of edges on the path from the root to a vertex.
+              For example, the root has depth 0, its direct neighbors have depth 1,
+              their neighbors have depth 2, and so on.
+            - Weighted Depth Cost: For each non-root vertex, multiply the weight of
+              its incoming edge (the edge connecting it to its parent) by its depth.
+              The total cost is the sum of these values for all non-root vertices.
+
+            Example: Consider a tree with root 0 and edges (0,1,w=3), (1,2,w=2), (1,3,w=4).
+            - Vertex 1: depth=1, incoming edge weight=3, cost = 3 x 1 = 3
+            - Vertex 2: depth=2, incoming edge weight=2, cost = 2 x 2 = 4
+            - Vertex 3: depth=2, incoming edge weight=4, cost = 4 x 2 = 8
+            - Total weighted depth cost = 3 + 4 + 8 = 15
 
             In the image:
             - Vertices are numbered and shown as circles
@@ -95,11 +107,13 @@ Output a single line containing the root and the endpoints of the selected edges
             - All edges have equal visual weight (none are highlighted)
             - Find a root and N-1 edges forming a spanning tree that minimizes total weighted depth
 
-            Output format: A single line starting with the root vertex, followed by the
-            selected edges as pairs of vertex indices separated by spaces.
-            Example: "0 0 1 1 2 1 3" means root=0 and edges (0,1), (1,2), (1,3) are selected.
-            """
-        ).strip()
+            Output Format:
+            Output a single line containing the root and the endpoints of the selected \
+            edges in order: `root u_1 v_1 u_2 v_2 ... u_k v_k`, separated by spaces. \
+            Example: `0 0 1 1 2 1 3` (do NOT include the backticks or quotes); this means \
+            the root is `0`, and the selected edges are `(0, 1)`, `(1, 2)`, and `(1, 3)` \
+            (assuming 4 vertices in total)."""
+        )
 
     def _get_state_text(self) -> str:
         """Return the text representation of the current state."""

@@ -87,11 +87,15 @@ Do **NOT** include backticks or quotes in your output. Output one action per lin
             - Bottom grid: Destination configuration to achieve
             - Each cell shows a digit from the permutation
 
-            Output format: One action per line: `row_or_column index shifts`
-            - row_or_column: "row" or "column"
-            - index: 0-based row or column index
-            - shifts: signed integer (positive = right/down, negative = left/up)
-            - Example: "row 0 2" or "column 1 -3"
+            Output Format: Each action should be written on its own line in the \
+following format: [row_or_column] [index] [shifts]
+            Where:
+            - row_or_column is either "row" or "column"
+            - index is the 0-based index of the row or column
+            - shifts is a signed integer: positive for right/down, negative for left/up
+            - Example: row 0 2 or column 1 -3
+            Do NOT include backticks or quotes in your output. Output one action \
+per line in the order they should be performed.
             """
         ).strip()
 

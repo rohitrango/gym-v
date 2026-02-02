@@ -71,8 +71,8 @@ Your goal is:
             Face Right Way Problem:
 
             Given a binary array of length {size_hint} representing arrow directions:
-            - 0 = right-facing arrow (→)
-            - 1 = left-facing arrow (←)
+            - 0 = right-facing arrow (->)
+            - 1 = left-facing arrow (<-)
 
             Goal: Make all arrows face right (all 0s) using minimal operations.
 
@@ -85,17 +85,14 @@ Your goal is:
             In the visualization:
             - Top row shows the initial array state
             - Arrows are displayed left-to-right with clear directional indicators
-            - Right-facing arrows (→) shown in green when 0
-            - Left-facing arrows (←) shown in red when 1
+            - Right-facing arrows (->) shown in green when 0
+            - Left-facing arrows (<-) shown in red when 1
             - Visual representation helps identify flip patterns
 
-            Output format: M lines, each with two space-separated integers "l r"
-            representing the closed interval [l, r] to flip (1-indexed).
-            All intervals must have the same length K.
-
-            Example output:
-            1 3
-            4 6
+            Output Format: Output M lines, each containing two integers l and \
+            l + K - 1 (separated by a space), representing the closed interval \
+            [l, l + K - 1] flipped in that operation. All intervals must have \
+            the same length K.
             """
         ).strip()
 

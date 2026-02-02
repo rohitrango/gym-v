@@ -77,14 +77,14 @@ Once the array becomes stable (i.e., no adjacent equal pairs remain), you may pe
             4) After a swap, the removal process restarts
             5) Goal: Remove all elements with minimum swaps
 
-            In the visualization:
+            In the image:
             - Each block represents an array element with its value
             - Different colors distinguish different values
             - The horizontal layout shows the initial array configuration
             - The legend maps colors to values
 
-            Output format: A single line containing space-separated indices, where each
-            index i indicates a swap between A[i] and A[i+1]. Example: "2 4 1"
+            Output a single line containing the indices of the swaps (space-separated),
+            where each index `i` indicates a swap between A[i] and A[i + 1].
             """
         ).strip()
 

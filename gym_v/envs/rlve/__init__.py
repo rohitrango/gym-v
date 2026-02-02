@@ -5,7 +5,6 @@ from gym_v.envs.rlve.binario_no_adjacency_requirement import (
 from gym_v.envs.rlve.binary_tree_leaf_num_expectation import (
     RLVEBinaryTreeLeafNumExpectationEnv,
 )
-from gym_v.envs.rlve.block_image import RLVEBlockImageEnv
 from gym_v.envs.rlve.campsite_puzzle import RLVECampsitePuzzleEnv
 from gym_v.envs.rlve.card_coloring_counting import RLVECardColoringCountingEnv
 from gym_v.envs.rlve.circulating_grid import RLVECirculatingGridEnv
@@ -24,7 +23,6 @@ from gym_v.envs.rlve.grid_parity_construction import RLVEGridParityConstructionE
 from gym_v.envs.rlve.grid_triangle_counting import RLVEGridTriangleCountingEnv
 from gym_v.envs.rlve.hamiltonian_path import RLVEHamiltonianPathEnv
 from gym_v.envs.rlve.hamiltonian_path_existence import RLVEHamiltonianPathExistenceEnv
-from gym_v.envs.rlve.hitori_puzzle import RLVEHitoriPuzzleEnv
 from gym_v.envs.rlve.jug_puzzle import RLVEJugPuzzleEnv
 from gym_v.envs.rlve.klo_blocks import RLVEKloBlocksEnv
 from gym_v.envs.rlve.landform_generation_counting import (
@@ -40,7 +38,6 @@ from gym_v.envs.rlve.matrix_permutation_main_diagonal_one import (
     RLVEMatrixPermutationMainDiagonalOneEnv,
 )
 from gym_v.envs.rlve.matrix_pooling import RLVEMatrixPoolingEnv
-from gym_v.envs.rlve.matrix_rmq_counting import RLVEMatrixRmqCountingEnv
 from gym_v.envs.rlve.max_grid_path_intersection import RLVEMaxGridPathIntersectionEnv
 from gym_v.envs.rlve.maximum_achromatic_number import RLVEMaximumAchromaticNumberEnv
 from gym_v.envs.rlve.maximum_clique import RLVEMaximumCliqueEnv
@@ -73,15 +70,11 @@ from gym_v.envs.rlve.numbrix import RLVENumbrixEnv
 from gym_v.envs.rlve.patrol import RLVEPatrolEnv
 from gym_v.envs.rlve.pipeline_arrangement import RLVEPipelineArrangementEnv
 from gym_v.envs.rlve.ska_rock_garden import RLVESkaRockGardenEnv
-from gym_v.envs.rlve.skyscraper_puzzle import RLVESkyscraperPuzzleEnv
 from gym_v.envs.rlve.skyscraper_sum_puzzle import RLVESkyscraperSumPuzzleEnv
 from gym_v.envs.rlve.smallest_circle import RLVESmallestCircleEnv
 from gym_v.envs.rlve.spy_network import RLVESpyNetworkEnv
 from gym_v.envs.rlve.stone_game import RLVEStoneGameEnv
 from gym_v.envs.rlve.stone_intervals_game import RLVEStoneIntervalsGameEnv
-from gym_v.envs.rlve.sum_manhattan_curved_surface import (
-    RLVESumManhattanCurvedSurfaceEnv,
-)
 from gym_v.envs.rlve.sum_triangle_area import RLVESumTriangleAreaEnv
 from gym_v.envs.rlve.tetris_attack import RLVETetrisAttackEnv
 from gym_v.envs.rlve.tree_add_one_edge_diameter import RLVETreeAddOneEdgeDiameterEnv
@@ -101,4 +94,3 @@ from gym_v.envs.rlve.twiddle_puzzle import RLVETwiddlePuzzleEnv
 from gym_v.envs.rlve.visible_line import RLVEVisibleLineEnv
 from gym_v.envs.rlve.warehouse_construction import RLVEWarehouseConstructionEnv
 from gym_v.envs.rlve.weighted_binarytree import RLVEWeightedBinarytreeEnv
-from gym_v.envs.rlve.whack_a_mole import RLVEWhackAMoleEnv

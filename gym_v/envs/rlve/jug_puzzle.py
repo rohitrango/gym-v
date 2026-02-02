@@ -110,12 +110,7 @@ Please fill a jug (you pick the one) with exactly {target_volume} liters of wate
             - The target volume is displayed prominently
             - Jug indices are labeled at the bottom (0-indexed)
 
-            Output format: Each action on its own line in the format:
-            Fill i
-            Empty i
-            Pour i j
-
-            (where i and j are jug indices, without backticks or quotes)
+            Output Format: Each action should be written on its own line in the format shown above (without backticks or quotes). Output one action per line, in the order they should be performed.
             """
         ).strip()
 
@@ -403,15 +398,7 @@ Please fill a jug (you pick the one) with exactly {target_volume} liters of wate
         n_jugs = self._n
         max_capacity = max(self._jug_capacities)
 
-        # Calculate dimensions
-        title_height = 120
-        total_width = padding * 2 + n_jugs * jug_width + (n_jugs - 1) * padding
-        total_height = padding * 3 + title_height + jug_height
-
-        img = Image.new("RGB", (total_width, total_height), (250, 250, 250))
-        draw = ImageDraw.Draw(img)
-
-        # Load font
+        # Load font first to calculate text dimensions
         font_path = None
         font_path_candidate = self.assets_dir / "DejaVuSans.ttf"
         if font_path_candidate.exists():
@@ -428,10 +415,28 @@ Please fill a jug (you pick the one) with exactly {target_volume} liters of wate
             font_medium = ImageFont.load_default()
             font_small = ImageFont.load_default()
 
-        # Draw title with target volume
+        # Calculate dimensions
+        title_height = 120
+
+        # Calculate content width (jugs)
+        content_width = n_jugs * jug_width + (n_jugs - 1) * padding
+
+        # Calculate title width
         title = f"Fill one jug with exactly {self._target_volume} liters"
-        bbox = draw.textbbox((0, 0), title, font=font_title)
+        # Create dummy draw to measure text
+        dummy_img = Image.new("RGB", (1, 1))
+        dummy_draw = ImageDraw.Draw(dummy_img)
+        bbox = dummy_draw.textbbox((0, 0), title, font=font_title)
         title_width = bbox[2] - bbox[0]
+
+        # Ensure total width accommodates both content and title
+        total_width = max(padding * 2 + content_width, padding * 2 + title_width)
+        total_height = padding * 3 + title_height + jug_height
+
+        img = Image.new("RGB", (total_width, total_height), (250, 250, 250))
+        draw = ImageDraw.Draw(img)
+
+        # Draw title with target volume
         title_x = (total_width - title_width) // 2
         draw.text((title_x, padding), title, fill=(220, 50, 50), font=font_title)
 
@@ -444,12 +449,13 @@ Please fill a jug (you pick the one) with exactly {target_volume} liters of wate
             (subtitle_x, padding + 35), subtitle, fill=(100, 100, 100), font=font_small
         )
 
-        # Draw each jug
+        # Draw each jug - centered horizontally
         jug_y = padding * 2 + title_height
+        start_x = (total_width - content_width) // 2
 
         for i in range(n_jugs):
             capacity = self._jug_capacities[i]
-            jug_x = padding + i * (jug_width + padding)
+            jug_x = start_x + i * (jug_width + padding)
             jug_center_x = jug_x + jug_width // 2
 
             # Draw jug as cylinder (initially empty)

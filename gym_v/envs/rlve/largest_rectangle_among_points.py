@@ -78,13 +78,12 @@ Your task is to find four **distinct** points such that they form a rectangle (N
               2) All angles are 90 degrees
               3) Diagonals have equal length and bisect each other
 
-            The image shows:
+            In the image:
             - Scatter plot of all points with their indices labeled
             - Points are distributed across a 2D coordinate plane
 
-            Output format: Four space-separated indices (0-based) of the points
-            forming the maximum-area rectangle.
-            Example: "0 3 5 8"
+            Output Format: Output one line containing the indices (0-based) of the
+            four selected points, separated by spaces.
             """
         ).strip()
 

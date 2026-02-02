@@ -67,9 +67,9 @@ class RLVEGridParityConstructionEnv(Env):
     @property
     def description(self) -> str:
         if self._n and self._m:
-            size_hint = f"{self._n} x {self._m}"
+            n_hint, m_hint = str(self._n), str(self._m)
         else:
-            size_hint = "N x M"
+            n_hint, m_hint = "N", "M"
         return dedent(
             f"""
             Grid Parity Construction puzzle:
@@ -87,10 +87,11 @@ class RLVEGridParityConstructionEnv(Env):
             - Light blue cells represent parity value 0 (even)
             - Light coral cells represent parity value 1 (odd)
             - Grid lines clearly separate cells
-            - The grid is {size_hint}
+            - The grid is {n_hint} x {m_hint}
 
-            Output format: N lines with M characters ('0' or '1'), no separators.
-            Each line represents one row of the solution matrix.
+            Output Format: Output {n_hint} lines, each with {m_hint} characters \
+(each '0' or '1'), without separators. The format must match the input: one \
+line per row.
             """
         ).strip()
 

@@ -86,7 +86,9 @@ Determine how many distinct coloring schemes exist, where two colorings are cons
             - Each shuffling method shows how cards are permuted
             - Color requirements (R, G, B) are displayed
 
-            Output format: A single integer (the number of distinct colorings).
+            **Output Format:** Your final answer should be a single integer — the
+            total number of distinct coloring schemes, considering equivalence
+            under the shuffling methods.
             """
         ).strip()
 

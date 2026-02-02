@@ -75,19 +75,24 @@ Example: `{all_B_answer}` (do **NOT** include the backticks or quotes)."""
     def description(self) -> str:
         """Return description adapted for visual input."""
         return dedent(
-            """
-            FBI Binary Tree rules:
-            1) Binary strings are classified as:
-               - B-string: only '0's
-               - I-string: only '1's
-               - F-string: both '0' and '1'
+            """\
+            We classify binary strings made up of only `0` and `1` into three types:
+            - A string consisting of only `0`s is called a B-string.
+            - A string consisting of only `1`s is called an I-string.
+            - A string that contains both `0` and `1` is called an F-string.
 
-            2) An FBI tree is built recursively:
-               - Each node represents a substring
-               - If substring length > 1, split it in half into left and right
-               - Label each node as B, I, or F based on its substring
+            An FBI tree is a binary tree where each node is labeled as either F, B, \
+            or I, based on the type of the substring it represents.
+            Given a binary string S, construct an FBI tree T using the following \
+            recursive rules:
+            1. The root node corresponds to the entire string S, and its type is \
+            determined using the rules above.
+            2. If the length of S is greater than 1, divide S exactly in half into \
+            two equal substrings: S1 (left) and S2 (right). Recursively build the \
+            left subtree from S1, and the right subtree from S2.
 
-            3) Output the postorder traversal (left, right, root) of node labels
+            Your task is to output the postorder traversal of the tree (left, right, \
+            root) of node labels.
 
             In the image:
             - The binary string is shown at the top
@@ -98,10 +103,12 @@ Example: `{all_B_answer}` (do **NOT** include the backticks or quotes)."""
             - Orange nodes = F-strings (mixed 0s and 1s)
             - The tree is built by recursively splitting the string in half
 
-            Output format: A string of F/B/I characters representing the postorder
-            traversal (e.g., "BBBFIBF"). Do NOT include quotes or separators.
-            """
-        ).strip()
+            Output Format:
+            Your output should be a single line containing the postorder traversal \
+            of the tree. Each node type (F, B, or I) should appear without any \
+            separators.
+            Example: BBBBBBB (do NOT include backticks or quotes)."""
+        )
 
     def _get_state_text(self) -> str:
         """Return text representation of the binary string."""

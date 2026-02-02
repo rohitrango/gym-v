@@ -109,8 +109,11 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
             - Edge arrows show direction of reachability
             - Costs are labeled on each vertex
 
-            Output format: Space-separated list of vertex IDs representing the selected vertices.
-            Example: "0 2 5" means vertices 0, 2, and 5 are selected.
+            Output Format:
+            Your final answer should be a single line containing the selected vertices:
+            s_1, s_2, ..., s_k, separated by spaces.
+            Example: `0 1 2` (do NOT include the backticks or quotes); this means the
+            selected vertices are 0, 1, and 2.
             """
         ).strip()
 

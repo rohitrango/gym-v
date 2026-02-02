@@ -85,7 +85,7 @@ Try your best to **minimize the time** when the **last product finishes** on mac
             4) Machine B waits if the previous product hasn't finished on A
             5) Goal: minimize the time when the last product finishes on B
 
-            In the visualization:
+            In the image:
             - A flow diagram shows the two-stage pipeline from top to bottom
             - Machine A (blue) is the first processing stage
             - Machine B (orange) is the second processing stage
@@ -93,8 +93,9 @@ Try your best to **minimize the time** when the **last product finishes** on mac
             - Each product box shows its index and processing times [A_time, B_time]
             - The table displays all processing time requirements
 
-            Output format: Space-separated product indices representing the processing order.
-            Example: 0 2 1 3
+            Output Format: Your final answer should be a single line containing the
+            indices of the products in the chosen order (i.e., the permutation),
+            separated by spaces.
             """
         ).strip()
 

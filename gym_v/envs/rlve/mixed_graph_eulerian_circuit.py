@@ -62,13 +62,15 @@ Output a single line containing the sequence of vertex labels visited in order, 
     def description(self) -> str:
         return dedent(
             """
-            Mixed Graph Eulerian Circuit Problem:
+            You are given a graph with N vertices labeled from 0 to N-1.
 
-            Given a mixed graph with both undirected and directed edges,
-            find an Eulerian circuit - a closed path that visits each edge exactly once.
+            The graph contains undirected edges and directed edges. It is guaranteed
+            that if all directed edges are treated as undirected, the resulting graph
+            is connected and has no repeated edges, and every vertex has an even
+            degree.
 
-            The graph is guaranteed to be connected (treating all edges as undirected)
-            and every vertex has even degree, ensuring an Eulerian circuit exists.
+            Please find an Eulerian circuit in this graph - a closed path that starts
+            and ends at the same vertex and visits each edge exactly once.
 
             In the image:
             - Vertices are numbered and shown as blue circles
@@ -76,8 +78,8 @@ Output a single line containing the sequence of vertex labels visited in order, 
             - Directed edges are shown with arrows indicating direction
             - All edges must be traversed exactly once, respecting edge directions
 
-            Output format: A single line with the sequence of vertex labels visited
-            in order, separated by spaces. The first and last vertex must be the same.
+            Output a single line containing the sequence of vertex labels visited in
+            order, separated by spaces.
             """
         ).strip()
 

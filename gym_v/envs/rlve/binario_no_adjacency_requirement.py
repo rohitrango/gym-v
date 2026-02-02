@@ -64,15 +64,22 @@ The matrix is given in **row-major order**, with each row represented as a strin
             rows = 2 * self._N
             cols = 2 * self._M
             size_hint = f"{rows} x {cols}"
+            row_count = f"{rows}"
+            col_count = f"{cols}"
         else:
             size_hint = "(2N) x (2M)"
+            row_count = "(2N)"
+            col_count = "(2M)"
         return dedent(
             f"""
-            Binario puzzle rules (simplified - no adjacency requirement):
+            This is a simplified Binario puzzle (without adjacency requirement). Fill
+            the empty cells in a grid with '0' or '1' such that each row and column
+            contains equal numbers of '0's and '1's.
+
+            Rules:
             1) Fill all empty cells ('*') with '0' or '1'.
             2) Each row must contain exactly M '0's and M '1's (equal amounts).
-            3. Each column must contain exactly N '0's and N '1's (equal amounts).
-            4) No three consecutive identical digits in any row or column.
+            3) Each column must contain exactly N '0's and N '1's (equal amounts).
 
             In the image:
             - The grid is {size_hint}
@@ -80,7 +87,9 @@ The matrix is given in **row-major order**, with each row represented as a strin
             - Empty cells are shown with '?'
             - Blue cells represent '0', orange cells represent '1'
 
-            Output format: (2N) lines with (2M) characters each ('0' or '1'), no separators.
+            **Output Format:** Output {row_count} lines, each containing {col_count}
+            characters, where each character is either '0' or '1'. The output should
+            match the format of the input (i.e., one row per line, no separators).
             """
         ).strip()
 

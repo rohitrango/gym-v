@@ -72,7 +72,7 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
     @property
     def description(self) -> str:
         return dedent(
-            """
+            """\
             Maximum Independent Set Tree Problem:
 
             Given a tree (connected undirected graph with no cycles) with N vertices,
@@ -87,10 +87,12 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
             - Edges connect adjacent vertices
             - Find the maximum weighted independent set
 
-            Output format: A single line with selected vertex indices separated by spaces.
-            Example: "0 2 4" (selects vertices 0, 2, and 4)
-            """
-        ).strip()
+            Output Format:
+            Your final answer should be a single line containing the selected vertices \
+            in any order, separated by spaces.
+            Example: 0 2 4 (do NOT include backticks or quotes); this means k = 3, \
+            with selected vertices 0, 2, and 4."""
+        )
 
     def _get_state_text(self) -> str:
         """Return the text representation of the current state."""

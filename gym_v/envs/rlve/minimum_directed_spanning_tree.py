@@ -83,9 +83,13 @@ Example: `0 1 0 2 2 3` (do **NOT** include the backticks or quotes); this means 
             - The root vertex is highlighted in gold
             - Find N-1 edges forming a minimum-weight arborescence from the root
 
-            Output format: A single line containing the selected edges as pairs of
-            vertex indices separated by spaces. Example: "0 1 0 2 2 3" means edges
-            (0,1), (0,2), and (2,3) are selected.
+            **Output Format:**
+            Your final answer should be a single line containing the endpoints of the
+            selected edges in order: `s_1 t_1 s_2 t_2 ... s_k t_k`, separated by
+            **spaces**.
+            Example: `0 1 0 2 2 3` (do **NOT** include the backticks or quotes); this
+            means the arborescence includes edges `(0, 1)`, `(0, 2)`, and `(2, 3)`
+            (assuming 4 vertices in total and root = 0).
             """
         ).strip()
 

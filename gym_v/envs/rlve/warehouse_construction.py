@@ -98,7 +98,9 @@ You can choose to build warehouses at any subset of factories.
             - Downhill flow direction is from top to bottom
             - Color intensity indicates relative warehouse construction cost
 
-            Output format: Space-separated indices of factories with warehouses (e.g., "0 3 5").
+            Output Format: Output a single line containing the indices of the
+            factories where warehouses should be built, separated by spaces
+            (in any order).
             """
         ).strip()
 

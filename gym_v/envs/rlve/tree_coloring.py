@@ -62,8 +62,7 @@ Example: `{first_K_vertices}` (do **NOT** include the backticks or quotes)."""
 
     @property
     def description(self) -> str:
-        return dedent(
-            """
+        return dedent("""
             Tree Coloring Problem:
 
             Given a tree (connected undirected graph with no cycles) with N vertices,
@@ -79,10 +78,11 @@ Example: `{first_K_vertices}` (do **NOT** include the backticks or quotes)."""
             - Edges are shown as lines with weights
             - Find K vertices that maximize the total distance
 
-            Output format: A single line with K selected vertex indices separated
-            by spaces. Example: "0 3 5"
-            """
-        ).strip()
+            Output Format:
+            Your final answer should be a single line containing the K selected
+            (colored) vertices in any order, separated by spaces.
+            Example: "0 3 5" (do NOT include the backticks or quotes).
+        """).strip()
 
     def _get_state_text(self) -> str:
         """Return the text representation of the current state."""

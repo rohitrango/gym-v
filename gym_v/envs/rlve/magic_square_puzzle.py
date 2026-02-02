@@ -107,6 +107,9 @@ The grid is given as follows:
 
         return dedent(
             f"""
+            Given a grid filled with integers where some cells may be empty, complete
+            the grid to form a magic square.
+
             Magic square puzzle rules:
             1) Fill the grid so each integer from 1 to N^2 appears exactly once.
             2) Each row, column, and both main diagonals must sum to the magic constant: {magic_constant}.
@@ -120,7 +123,9 @@ The grid is given as follows:
             - Column sums are shown at the bottom (in green)
             - Diagonal sums are indicated in the corners (in red)
 
-            Output format: N lines with N space-separated integers representing the completed grid.
+            Output Format: Your final answer should contain N lines, each with N
+            numbers, separated by spaces. The numbers should represent the completed
+            magic square in row-major order, matching the format of the given input.
             """
         ).strip()
 

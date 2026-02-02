@@ -57,10 +57,17 @@ The grid is given as follows:
             size_hint = "N x M"
         return dedent(
             f"""
-            Grid Component Identification rules:
-            1) Find the largest connected component of 1s in a binary grid.
-            2) Two cells are connected if they are adjacent (up/down/left/right) and both contain 1.
-            3) A connected component is a maximal set of 1s where any two can reach each other through adjacent 1s.
+            Given a binary grid where each cell contains either 0 or 1, compute the
+            largest connected component of 1s. A connected component is defined as a
+            group of 1 cells that are reachable from each other by moving up, down,
+            left, or right to an adjacent 1 cell.
+
+            Rules:
+            1) Find the largest connected component of 1s in the grid.
+            2) Two cells are connected if they are adjacent (up/down/left/right) and
+               both contain 1.
+            3) A connected component is a maximal set of 1s where any two can reach
+               each other through adjacent 1s.
             4) Return the size (number of cells) of the largest connected component.
 
             In the image:
@@ -68,8 +75,9 @@ The grid is given as follows:
             - Different colored regions represent different connected components
             - The grid is {size_hint}
 
-            Output format: A single integer representing the size of the largest component.
-            If there are no 1s, output 0.
+            Output Format: Output a single integer - the size of the largest connected
+            component (i.e., the number of 1s in it). If there are no 1s in the grid,
+            output 0.
             """
         ).strip()
 

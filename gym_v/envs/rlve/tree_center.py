@@ -77,8 +77,8 @@ Try your best to **minimize** dist(0, r) * C[0] + dist(1, r) * C[1] + ... + dist
             - Edges are shown as lines with weights labeled
             - Each node's cost is displayed
 
-            Output format: A single integer representing the selected vertex index.
-            Example: "3"
+            Output Format: Your final answer should be a single integer r (the index
+            of the selected vertex). Example: 0 (do NOT include backticks or quotes).
             """
         ).strip()
 

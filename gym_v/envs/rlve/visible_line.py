@@ -73,7 +73,7 @@ We say a line is **visible** if any portion of it can be seen when viewed from y
             A line is visible if there exists at least one x-coordinate where this line
             has the maximum y-value among all lines at that x-coordinate.
 
-            In the visualization:
+            In the image:
             - Each line is drawn with a distinct color
             - Line indices are labeled on the lines
             - Visible lines are drawn with thicker, solid strokes
@@ -81,12 +81,8 @@ We say a line is **visible** if any portion of it can be seen when viewed from y
             - The upper envelope (convex hull) is highlighted
             - A legend shows line equations and their visibility status
 
-            The problem asks you to identify which lines form the upper envelope when
-            viewed from above. Lines that are completely covered by other lines at all
-            x-coordinates are not visible.
-
-            Output format: A single line containing the indices of all visible lines,
-            separated by spaces (order does not matter).
+            Output Format: A single line containing the indices of all visible
+            lines, in any order, separated by spaces.
             """
         ).strip()
 

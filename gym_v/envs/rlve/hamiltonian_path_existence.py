@@ -57,7 +57,7 @@ Example: `0 2 1` (do **NOT** include the backticks or quotes); this means the pa
     @property
     def description(self) -> str:
         return dedent(
-            """
+            """\
             Hamiltonian Path Existence Problem:
 
             Given a directed graph with N vertices, find a path that visits every
@@ -68,11 +68,13 @@ Example: `0 2 1` (do **NOT** include the backticks or quotes); this means the pa
             - Directed edges are shown as arrows between vertices
             - Find a path that visits all vertices exactly once
 
-            Output format: A single line containing the path vertices in order,
-            separated by spaces. Example: "0 2 1" means the path goes from vertex
-            0 to vertex 2 to vertex 1.
-            """
-        ).strip()
+            Output Format:
+            Your final answer should be a single line containing the path in \
+            order: `p_1, p_2, ..., p_N`, separated by **spaces**.
+            Example: `0 2 1` (do **NOT** include the backticks or quotes); this \
+            means the path starts at vertex 0, then goes to vertex 2, and \
+            finally to vertex 1 (assuming 3 vertices in total)."""
+        )
 
     def _get_state_text(self) -> str:
         """Return a text representation of the current graph state."""

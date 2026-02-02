@@ -106,8 +106,9 @@ Your task: Choose which heaps to remove **in your first move** so that you **gua
             - The game state shows current pile configurations
             - Legend explains the strategic game rules
 
-            Output format: Space-separated 1-based indices of heaps to remove.
-            Output an empty line if you can win without removing any heap.
+            Output Format: Output the distinct indices (1-based) of the heaps you
+            remove in your first move, in any order, separated by spaces; if you can
+            guarantee victory without removing any heap, output an empty line.
             """
         ).strip()
 

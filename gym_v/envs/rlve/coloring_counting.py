@@ -78,7 +78,7 @@ The **value** of a valid coloring is the number of **distinct colors used** (i.e
     @property
     def description(self) -> str:
         return dedent(
-            """
+            """\
             Coloring Counting Problem:
 
             Given an undirected graph with N vertices, where each vertex u has a
@@ -94,10 +94,9 @@ The **value** of a valid coloring is the number of **distinct colors used** (i.e
             - Edges are shown as lines connecting vertices
             - The graph structure determines valid colorings
 
-            Output format: A single integer representing the sum of values over all
-            valid colorings of the graph.
-            """
-        ).strip()
+            Output Format: Your final answer should be a single integer - the sum of \
+            values over all valid colorings of the graph."""
+        )
 
     def _get_state_text(self) -> str:
         """Return text representation of the graph coloring problem."""

@@ -70,18 +70,20 @@ Please compute the total number of distinct ways to build such a tower with the 
             and count the distinct ways to achieve it.
 
             Rules:
-            - Layer i (1 ≤ i ≤ N) contains exactly i blocks of the same color
-            - Total black blocks used ≤ A
-            - Total white blocks used ≤ B
+            - Layer i (1 <= i <= N) contains exactly i blocks of the same color
+            - Total black blocks used <= A
+            - Total white blocks used <= B
             - Maximize N (number of layers)
             - Count distinct configurations with maximum N
 
-            The image shows:
+            In the image:
             - A visual representation of the tower building problem
             - Available black blocks (A) and white blocks (B)
             - Example tower structure
 
-            Output format: A single integer (the count of valid configurations).
+            **Output Format:** Your final answer should be a single integer - the total
+            number of valid tower configurations that achieve the maximum number of
+            layers.
             """
         ).strip()
 

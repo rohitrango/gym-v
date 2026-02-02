@@ -53,22 +53,25 @@ Please compute the **sum of the areas of all triangles** that can be formed by a
             f"""
             Sum of Triangle Areas:
 
-            Given {n_hint} points in a 2D plane, compute the sum of the areas of
-            ALL possible triangles formed by any three distinct points.
+            Compute the sum of the areas of all triangles that can be formed by
+            any three distinct points in a set. If a triangle is degenerate
+            (i.e., the three points are collinear), its area is considered 0.
 
-            For three points (x1, y1), (x2, y2), (x3, y3), the triangle area is:
-            Area = |x1(y2 - y3) + x2(y3 - y1) + x3(y1 - y2)| / 2
+            Rules:
+            - For three points (x1, y1), (x2, y2), (x3, y3), the triangle area is:
+              Area = |x1(y2 - y3) + x2(y3 - y1) + x3(y1 - y2)| / 2
+            - If three points are collinear, the area is 0.
+            - The problem uses an efficient O(n^2 log n) algorithm that sorts
+              points and uses polar angle sorting to avoid checking all O(n^3)
+              triangles explicitly.
 
-            If three points are collinear, the area is 0.
+            In the image:
+            - {n_hint} points are shown as blue dots in a 2D plane.
+            - A few example triangles are highlighted with different colors.
 
-            Output format: A single integer representing twice the sum of all
-            triangle areas. This is always an integer because the cross product
-            formula gives twice the signed area, and summing over all triangles
-            yields an integer result.
-
-            The problem uses an efficient O(n^2 log n) algorithm that sorts
-            points and uses polar angle sorting to avoid checking all O(n^3)
-            triangles explicitly.
+            Output Format:
+            Output the total area multiplied by 2 (i.e., twice the sum of all
+            triangle areas), which will always be an integer.
             """
         ).strip()
 

@@ -61,7 +61,7 @@ Example: `0 2 3` (do **NOT** include the backticks or quotes); this means the se
     @property
     def description(self) -> str:
         return dedent(
-            """
+            """\
             Maximum Clique Problem:
 
             Given an undirected graph with N vertices, find the largest subset of
@@ -73,11 +73,12 @@ Example: `0 2 3` (do **NOT** include the backticks or quotes); this means the se
             - Edges are shown as lines connecting vertices
             - Find the maximum clique (fully connected subgraph)
 
-            Output format: A single line containing the selected vertex indices
-            separated by spaces. Example: "0 2 3" means vertices 0, 2, and 3
-            form a clique.
-            """
-        ).strip()
+            Output Format:
+            Your final answer should be a single line containing the selected
+            vertex indices v1, v2, ..., vk, separated by spaces.
+            Example: 0 2 3 (do NOT include backticks or quotes); this means the
+            selected clique has size k = 3, with vertices 0, 2, and 3."""
+        )
 
     def _get_state_text(self) -> str:
         """Return the text representation of the current state."""

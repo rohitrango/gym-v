@@ -54,20 +54,22 @@ Your task is to find the **convex hull** of these points, which is the smallest 
             point_hint = "N points"
         return dedent(
             f"""
-            Convex hull task:
-            Given {point_hint} on a 2D plane, find the convex hull (smallest convex polygon containing all points).
+            Your task is to find the convex hull of a set of points, which is the smallest convex polygon that contains all the points.
+
+            Given {point_hint} on a 2D plane.
 
             Guarantees:
             - All coordinates are integers
             - No two points have the same coordinates
             - No three points are collinear
 
-            Output format: A single integer representing 2 times the area of the convex hull.
+            In the image:
+            - Red points indicate convex hull vertices
+            - Gray points indicate interior points
+            - Light blue filled area with blue outline shows the convex hull region
+            - Gray lines show the coordinate axes (if visible within the plot range)
 
-            The area formula uses the shoelace formula: For a polygon with vertices (x₀,y₀), (x₁,y₁), ..., (xₙ₋₁,yₙ₋₁) in order,
-            Area = |Σᵢ(xᵢ·yᵢ₊₁ - xᵢ₊₁·yᵢ)| / 2
-
-            Since coordinates are integers and the polygon comes from integer points, 2×Area is always an integer.
+            Output Format: Your output should be one single integer, representing the value of 2 times the area of the convex hull (which can be proven to be an integer).
             """
         ).strip()
 

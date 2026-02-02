@@ -75,7 +75,9 @@ Let's add **exactly one undirected edge** with weight {L} to the tree. Our goal 
             you can add exactly one edge with a specified weight L to the tree.
 
             Goal: Minimize the diameter (longest distance between any two vertices)
-            in the resulting graph after adding the new edge.
+            in the resulting graph after adding the new edge. The distance between
+            two vertices is defined as the sum of edge weights along the shortest
+            path connecting them.
 
             In the image:
             - Vertices are numbered (1-indexed) and shown as circles
@@ -83,8 +85,9 @@ Let's add **exactly one undirected edge** with weight {L} to the tree. Our goal 
             - The tree structure is laid out hierarchically
             - Consider which edge addition would most reduce the diameter
 
-            Output format: Two integers x y separated by a space, indicating the
-            two vertices to connect with the new edge. Example: "1 5"
+            Output Format: Output two integers `x y` (do NOT include quotes),
+            separated by a space, indicating the two vertices to which the new
+            edge is added.
             """
         ).strip()
 

@@ -62,6 +62,11 @@ class RLVEMaximumIndependentSetGridEnv(Env):
             size_hint = "N x M"
         return dedent(
             f"""
+            You are given a matrix. Select some cells such that no two selected
+            cells are adjacent (i.e., no two selected cells share a horizontal
+            or vertical edge). Try your best to maximize the sum of the values
+            in the selected cells.
+
             Maximum Independent Set Grid rules:
             1) Select cells to maximize the sum of their values.
             2) No two selected cells can be adjacent (horizontally or vertically).
@@ -72,9 +77,9 @@ class RLVEMaximumIndependentSetGridEnv(Env):
             - The grid is {size_hint}
             - Goal: Select non-adjacent cells to maximize total value
 
-            Output format: N lines with M digits (0 or 1), no separators.
-            - '1' means the cell is selected
-            - '0' means the cell is not selected
+            Output Format: Output N lines, each with M digits (0 or 1) and no
+            separators. A `1` means the corresponding cell is selected; a `0`
+            means it is not.
             """
         ).strip()
 

@@ -67,7 +67,7 @@ Example: `0 1 0 2` (do **NOT** include the backticks or quotes); this means vert
     @property
     def description(self) -> str:
         return dedent(
-            """
+            """\
             Minimum Chromatic Number (Graph Coloring) Problem:
 
             Given an undirected graph with N vertices, assign a color to each vertex
@@ -79,12 +79,13 @@ Example: `0 1 0 2` (do **NOT** include the backticks or quotes); this means vert
             - Edges are shown as lines connecting vertices
             - Find the minimum number of colors needed to color the graph
 
-            Output format: A single line containing the color assignment for each
+            Output Format:
+            Your final answer should be a single line containing the color of each
             vertex in order: c[0], c[1], ..., c[N-1], separated by spaces.
-            Example: "0 1 0 2" means vertex 0 gets color 0, vertex 1 gets color 1,
-            vertex 2 gets color 0, and vertex 3 gets color 2.
-            """
-        ).strip()
+            Example: 0 1 0 2 (do NOT include backticks or quotes); this means
+            vertex 0 is assigned color 0, vertex 1 color 1, vertex 2 color 0, and
+            vertex 3 color 2 (assuming 4 vertices in total)."""
+        )
 
     def _get_state_text(self) -> str:
         """Return the text representation of the current state."""

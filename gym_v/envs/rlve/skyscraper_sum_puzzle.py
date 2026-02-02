@@ -65,7 +65,7 @@ The **sum height** of visible buildings is specified as follows:
             - The grid is {n} x {n}
             - Edge numbers are sum values of visible building heights
 
-            Output format: {n} lines, each with {n} integers separated by spaces.
+            Output Format: Your final answer should contain {n} lines, each with {n} integers (heights), separated by spaces. Each line represents a row of the grid.
             """
         ).strip()
 

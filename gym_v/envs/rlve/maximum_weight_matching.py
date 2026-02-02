@@ -75,9 +75,11 @@ Example: `0 1 3 4` (do **NOT** include the backticks or quotes); this means k = 
             - Undirected edges are shown as lines with weights labeled
             - Find a matching that maximizes the sum of edge weights
 
-            Output format: A single line containing the endpoints of selected edges:
-            "u1 v1 u2 v2 ... uk vk" (space-separated). Example: "0 1 3 4" means
-            select edges (0, 1) and (3, 4).
+            Output Format:
+            Your final answer should be a single line containing the endpoints of the
+            selected edges in order: u_1 v_1 u_2 v_2 ... u_k v_k, separated by spaces.
+            Example: 0 1 3 4 (do NOT include backticks or quotes); this means k = 2 edges
+            are selected: (0, 1, w_1) and (3, 4, w_2).
             """
         ).strip()
 

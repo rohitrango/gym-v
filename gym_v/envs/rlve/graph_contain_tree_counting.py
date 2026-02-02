@@ -61,7 +61,7 @@ Please compute the number of **bijections** `p` (i.e., permutations) from the ve
     @property
     def description(self) -> str:
         return dedent(
-            """
+            """\
             Graph Contain Tree Counting Problem:
 
             Given an undirected graph G and a tree T with the same number of vertices,
@@ -76,9 +76,8 @@ Please compute the number of **bijections** `p` (i.e., permutations) from the ve
             - Vertices are numbered and shown as circles
             - Edges are shown as lines connecting vertices
 
-            Output format: A single integer representing the count of valid bijections.
-            """
-        ).strip()
+            **Output Format:** A single integer representing the number of valid bijections."""
+        )
 
     def _get_state_text(self) -> str:
         """Return the text representation of the graph and tree data."""

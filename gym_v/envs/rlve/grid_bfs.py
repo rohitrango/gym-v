@@ -59,20 +59,16 @@ The grid is given as follows:
             size_hint = "N x M"
         return dedent(
             f"""
-            Grid BFS (Breadth-First Search) puzzle:
-
-            Given a grid where each cell contains:
-            - '0': Empty cell (passable)
-            - '1': Target cell (distance = 0)
-            - 'X': Obstacle (impassable, distance = -1)
-
-            Task: Calculate the shortest distance from each cell to the nearest target cell.
+            You are given a grid. Each cell contains '0', '1', or 'X'. For each cell,
+            compute its shortest distance to any cell containing '1', where distance
+            is defined as the minimum number of steps required to move from one cell
+            to another under the following rules:
 
             Rules:
-            1) Movement is 4-directional (up, down, left, right).
-            2) Cannot move through obstacles ('X').
-            3) Target cells ('1') have distance 0.
-            4) Unreachable cells have distance -1.
+            1) You may move up, down, left, or right to an adjacent cell.
+            2) You cannot move through cells containing 'X'.
+            3) If a cell cannot reach any '1', its distance should be -1.
+            4) The distance for a '1' cell is 0; the distance for an 'X' cell is also -1.
 
             In the image:
             - Green cells: Targets ('1')
@@ -80,7 +76,8 @@ The grid is given as follows:
             - Blue gradient: Empty cells colored by distance (darker = farther)
             - The grid is {size_hint}
 
-            Output format: N lines with M space-separated integers representing distances.
+            Output Format: Output N lines, each containing M integers (separated by
+            spaces), representing the distance of each cell to the nearest '1' cell.
             """
         ).strip()
 

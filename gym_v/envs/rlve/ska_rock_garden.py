@@ -66,34 +66,33 @@ X, Y, and M are given as follows:
 
     @property
     def description(self) -> str:
-        if self._n:
-            size_hint = f"{self._n} points"
-        else:
-            size_hint = "N points"
+        n_display = self._n if self._n else "N"
 
         return dedent(
             f"""
             Ska Rock Garden Problem:
 
-            Given {size_hint} in a 2D plane, each with coordinates (X[i], Y[i]) and swap cost M[i],
-            determine which points to coordinate-swap to minimize the perimeter of the smallest
-            axis-aligned rectangle that encloses all points.
+            Given {n_display} points in a 2D plane, each with coordinates (X[i], Y[i]) and
+            swap cost M[i], determine which points to coordinate-swap to minimize the
+            perimeter of the smallest axis-aligned rectangle that encloses all points.
 
             Rules:
             1) Each point i has coordinates (X[i], Y[i]) and swap cost M[i]
             2) Swapping point i changes it from (X[i], Y[i]) to (Y[i], X[i])
-            3) Goal: minimize perimeter = 2 × ((max_x - min_x) + (max_y - min_y))
+            3) Goal: minimize perimeter = 2 * ((max_x - min_x) + (max_y - min_y))
             4) If tied on perimeter, minimize total swap cost
 
-            In the visualization:
+            In the image:
             - Blue circles show points that should NOT be swapped (output '0')
             - Red circles show points that SHOULD be swapped (output '1')
             - Point labels show the coordinates (X[i], Y[i]) and swap cost M[i]
             - The green dashed rectangle shows the optimal bounding box after swaps
             - Grid lines help visualize spatial relationships
 
-            Output format: A string of {self._n if self._n else "N"} characters, each '0' or '1',
-            indicating whether to swap each point (e.g., "01001").
+            Output Format: Output a single line of {n_display} characters (no spaces or any
+            other kinds of separators). The i-th character should be:
+            - '0' if you do NOT swap point i,
+            - '1' if you do swap point i.
             """
         ).strip()
 

@@ -63,19 +63,27 @@ The matrix is given in **row-major order**, with each row represented as a strin
             size_hint = "N x M"
         return dedent(
             f"""
+            This is a Campsite puzzle. Given a grid with some cells pre-filled with \
+            '0' or '1' and some empty cells marked '*', the goal is to fill all empty \
+            cells with either '0' or '1' while satisfying adjacency and count constraints.
+
             Campsite puzzle rules:
             1) Fill all empty cells ('*') with either '0' or '1'.
             2) No two horizontally or vertically adjacent cells can both be '1'.
             3) Each row must have a specific number of '1's (given in the prompt).
             4) Each column must have a specific number of '1's (given in the prompt).
+            5) Do not change the pre-filled cells.
 
             In the image:
             - Each cell shows '0', '1', or '?' for empty cells
             - The grid is {size_hint}
             - White cells represent '0', gray cells represent '1', light blue cells are empty
+            - Row/column count constraints are NOT shown in the image; they are only \
+            provided in the text prompt
 
-            Output format: N lines with M characters ('0' or '1'), no separators.
-            Do not change the pre-filled cells.
+            Output Format: Output N lines, each containing M characters, where each \
+            character is either '0' or '1'. The output should match the format of \
+            the input (i.e., one row per line, no separators).
             """
         ).strip()
 

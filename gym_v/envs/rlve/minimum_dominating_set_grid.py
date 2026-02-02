@@ -67,8 +67,7 @@ Select a set of **distinct** cells S such that every cell is either in S or has 
             - Selected cells (if showing answer) are highlighted in green
             - Coverage ranges are shown with light blue for dominated cells
 
-            Output format: K lines, each with two integers "i j" (1-based row and column)
-            representing the selected cells in any order.
+            Output K (the number of selected cells) lines: each line contains two integers `i j` (1-based), the row and column of a selected cell (in any order).
             """
         ).strip()
 

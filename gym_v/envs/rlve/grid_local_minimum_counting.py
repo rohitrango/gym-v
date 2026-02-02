@@ -57,18 +57,23 @@ A cell is considered a local minimum if its value is strictly less than all of i
             size_hint = "N x M"
         return dedent(
             f"""
+            Consider a grid where numbers from 1 to N*M are placed in the cells such that each number appears exactly once. A cell is considered a local minimum if its value is strictly less than all of its 8 neighbors (adjacent vertically, horizontally, or diagonally); if a neighbor does not exist, it is considered to be infinitely large. Count how many valid numberings exist such that the local minima are exactly those marked with 'X'.
+
             Grid Local Minimum Counting rules:
-            1) A grid of {size_hint} contains numbers 1 to N×M, each appearing exactly once.
+            1) A grid of {size_hint} contains numbers 1 to N*M, each appearing exactly once.
             2) A cell is a local minimum if its value is strictly less than all 8 neighbors (diagonal and orthogonal).
             3) Cells without neighbors in a direction treat that direction as infinitely large.
             4) The grid shows 'X' for required local minima and '.' for other positions.
             5) Count how many valid numberings exist where local minima are EXACTLY the 'X' positions.
 
             In the image:
-            - Each cell shows 'X' (local minimum) or '.' (non-local-minimum)
-            - Colors show a gradient visualization (cooler colors = lower conceptual positions)
+            - 'X' marks cells that MUST be local minima (required local minimum positions)
+            - '.' marks cells that must NOT be local minima (non-local-minimum positions)
+            - Color coding:
+              - Blue/purple (cool colors): cells marked with 'X' (local minima)
+              - Yellow/beige (warm colors): cells marked with '.' (non-local-minima)
 
-            Output format: A single integer — the number of valid labelings.
+            **Output Format:** Output a single integer — the number of valid labelings.
             """
         ).strip()
 

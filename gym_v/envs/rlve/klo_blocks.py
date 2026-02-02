@@ -69,24 +69,23 @@ Please maximize the length of the longest contiguous subarray where each item is
             f"""
             Klo Blocks (Block Manipulation Problem):
 
-            You have an array A of N integers. You can perform actions where you:
-            1. Pick an item with value > K
-            2. Subtract 1 from it
-            3. Add 1 to an adjacent item (left or right)
-
-            Goal: Maximize the length of the longest contiguous subarray where
-            each item is >= K.
+            You have an array A of N integers. You can perform any number of
+            actions. One action is to pick one item that is greater than K,
+            subtract 1 from it, and add 1 to an adjacent item (either to the
+            left or right, if such an item exists). Maximize the length of the
+            longest contiguous subarray where each item is greater than or
+            equal to K.
 
             Current parameters: {size_hint}
 
-            The image shows:
-            - The initial array A
-            - The threshold K indicated by a red line
-            - Blocks colored based on their relationship to K:
+            In the image:
+            - The initial array A is displayed as blocks
+            - The threshold K is indicated by a red horizontal line
+            - Blocks are colored based on their relationship to K:
               * Green: value >= K
               * Orange: value < K
 
-            Output format: A single integer representing the maximum length.
+            Output: A single integer representing the maximum length.
             """
         ).strip()
 

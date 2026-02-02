@@ -61,8 +61,7 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
 
     @property
     def description(self) -> str:
-        return dedent(
-            """
+        return dedent("""\
             Longest Simple Path Problem (Maximum Weight):
 
             Given a directed graph with N vertices and weighted edges, find a simple path
@@ -73,11 +72,10 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
             - Directed edges are shown as arrows with weights labeled
             - Find a simple path that maximizes the sum of edge weights
 
-            Output format: A single line containing the path as vertex indices
-            separated by spaces. Example: "0 1 2 3" means the path goes from
-            vertex 0 to 1, then 1 to 2, then 2 to 3.
-            """
-        ).strip()
+            Output Format: Your final answer should be a single line containing the path
+            in order: p1 p2 ... pk, separated by spaces.
+            Example: 0 1 2 (do NOT include the backticks or quotes); this means the path
+            (k = 3) goes from 0 to 1 to 2.""")
 
     def _get_state_text(self) -> str:
         """Return the text representation of the current state."""

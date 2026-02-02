@@ -59,10 +59,16 @@ Matrix A is given as follows:
         if self._matrix:
             size = len(self._matrix)
             size_hint = f"{size} x {size}"
+            n_minus_1 = size - 1
         else:
             size_hint = "N x N"
+            n_minus_1 = "N-1"
         return dedent(
             f"""
+            You are given a square binary matrix. Find permutations of row indices and
+            column indices such that after applying these permutations, the main diagonal
+            of the resulting matrix contains only 1s.
+
             Matrix Permutation Main Diagonal One rules:
             1) You are given a {size_hint} binary matrix (elements are 0 or 1).
             2) Find permutations of row indices and column indices.
@@ -75,9 +81,10 @@ Matrix A is given as follows:
             - Non-diagonal cells use different colors based on their values.
             - Blue tint = cells containing 1, lighter = cells containing 0.
 
-            Output format: Two lines:
-            - First line: row permutation (space-separated integers)
-            - Second line: column permutation (space-separated integers)
+            Output Format: Output two lines:
+            - The first line contains the row permutation: a[0] a[1] ... a[{n_minus_1}]
+            - The second line contains the column permutation: b[0] b[1] ... b[{n_minus_1}]
+            (Use spaces to separate adjacent integers. Do not include backticks or quotes.)
             """
         ).strip()
 

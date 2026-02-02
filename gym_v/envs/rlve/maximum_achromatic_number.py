@@ -71,8 +71,7 @@ Your final answer should be a single line containing the color of each vertex in
 
     @property
     def description(self) -> str:
-        return dedent(
-            """
+        return dedent("""\
             Maximum Achromatic Number Problem:
 
             Given an undirected graph with N vertices, find a complete coloring
@@ -88,12 +87,10 @@ Your final answer should be a single line containing the color of each vertex in
             - Edges connect vertices that must have different colors
             - Find a coloring where all color pairs appear on some edge
 
-            Output format: A single line containing the color (non-negative integer)
-            of each vertex in order, separated by spaces.
-            Example: "0 1 2 1" means vertex 0 gets color 0, vertex 1 gets color 1,
-            vertex 2 gets color 2, and vertex 3 gets color 1.
-            """
-        ).strip()
+            Output Format:
+            Your final answer should be a single line containing the color of \
+            each vertex in order, separated by spaces.
+            """)
 
     def _get_state_text(self) -> str:
         """Return the text representation of the current state."""

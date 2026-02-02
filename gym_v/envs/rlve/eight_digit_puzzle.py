@@ -72,6 +72,10 @@ Your goal is to reach the following grid:
         size_hint = f"{self._n} x {self._m}" if self._start_grid else "N x M"
         return dedent(
             f"""
+            This is a sliding tile puzzle where you rearrange numbered tiles by
+            sliding them into an empty space (represented by 0) to transform a
+            starting grid configuration into a goal configuration.
+
             Eight-digit puzzle (8-puzzle) rules:
             1) The grid contains digits 0 to {self._n * self._m - 1}.
             2) Digit 0 represents the empty space.
@@ -85,7 +89,10 @@ Your goal is to reach the following grid:
             - Numbered tiles (1-{self._n * self._m - 1}) have white backgrounds
             - Grid lines clearly separate each cell
 
-            Output format: Single line of moves (e.g., RRDDLLUU) with no spaces or quotes.
+            Output Format: Output a single line containing the sequence of moves
+            made by the 0, represented by a string of characters (U, D, L, R).
+            For example, RRDDLLUU (do NOT include backticks or quotes) means:
+            right, right, down, down, left, left, up, up.
             """
         ).strip()
 

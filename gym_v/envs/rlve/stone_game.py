@@ -71,15 +71,23 @@ If both players always play optimally, who will win — Stan or Ollie?
 
         return dedent(
             f"""
-            Stone Game Problem:
+            Stan and Ollie are playing a game. The game rules are as follows:
+            there are N heaps of stones, and Stan and Ollie take turns playing
+            (Stan goes first). On a player's turn, they must select a heap that
+            contains at least F stones, choose an integer M (at least 2) and
+            split the selected heap into M smaller heaps such that the sizes of
+            the smaller heaps differ by at most 1 (i.e., as evenly as possible).
+            If a player cannot make a move (i.e., no heap contains at least F
+            stones), they lose. If both players always play optimally, who will
+            win - Stan or Ollie?
 
-            A two-player game with {size_hint}.
+            This instance has {size_hint}.
 
             Rules:
             1) There are N heaps of stones shown as vertical piles
             2) Players alternate turns (Stan goes first)
             3) On each turn, select a heap with at least F stones
-            4) Split it into M smaller heaps (M ≥ 2) as evenly as possible
+            4) Split it into M smaller heaps (M >= 2) as evenly as possible
             5) The player who cannot move loses
 
             In the visualization:
@@ -89,9 +97,9 @@ If both players always play optimally, who will win — Stan or Ollie?
             - Darker piles indicate more stones
             - Game information is displayed at the top
 
-            Your task: Determine the winner with optimal play.
-
-            Output format: Either "Stan" or "Ollie" (without quotes).
+            Output Format: Your final answer should be a single word: either
+            Stan or Ollie (do NOT include quotes or backticks), indicating
+            the winner.
             """
         ).strip()
 

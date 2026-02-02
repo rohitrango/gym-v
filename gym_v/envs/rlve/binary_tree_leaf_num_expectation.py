@@ -67,7 +67,7 @@ What is the expected number of **leaf** nodes (nodes whose left and right childr
     def description(self) -> str:
         """Return description adapted for visual input."""
         return dedent(
-            """
+            """\
             Binary Tree Leaf Number Expectation:
 
             Given a uniformly random binary tree with N nodes (all distinct binary
@@ -88,10 +88,8 @@ What is the expected number of **leaf** nodes (nodes whose left and right childr
             - Edges connect parent nodes to their children
             - The tree structure illustrates what a binary tree looks like
 
-            Output format: A/B where A and B are positive integers separated by a
-            slash (e.g., "3/5"). The fraction should represent the expected number
-            of leaf nodes.
-            """
+            Output format: A/B (do NOT include quotes), where A and B are positive
+            integers separated by a slash `/`."""
         ).strip()
 
     def _get_state_text(self) -> str:

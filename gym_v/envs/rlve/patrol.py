@@ -62,7 +62,7 @@ Please output the **minimum total number of edges traversed** (of course, edges 
     @property
     def description(self) -> str:
         return dedent(
-            """
+            """\
             Patrol Problem:
 
             Given a tree (connected undirected graph with no cycles) with N vertices,
@@ -80,10 +80,11 @@ Please output the **minimum total number of edges traversed** (of course, edges 
             - Other vertices are shown in light blue
             - The legend shows the constraints and parameters
 
-            Output format: A single integer representing the minimum number of edges traversed.
-            Example: "15"
-            """
-        ).strip()
+            Output Format:
+            Output the minimum total number of edges traversed (edges traversed
+            multiple times should be counted multiple times) as a single integer.
+            Example: 15"""
+        )
 
     def _get_state_text(self) -> str:
         """Return the text representation of the current state."""
@@ -328,10 +329,26 @@ Please output the **minimum total number of edges traversed** (of course, edges 
             font=title_font,
         )
 
+        # Layout configuration
+        legend_height = 160
+        legend_margin = 20
+        title_area_height = 100
+
+        # Legend position (fixed at bottom)
+        legend_y = self._image_size - legend_height - legend_margin
+
+        # Plot area (above legend)
+        plot_top = title_area_height
+        plot_bottom = legend_y - 40  # Buffer between plot and legend
+        plot_height = plot_bottom - plot_top
+
         # Compute circular layout
         center_x = self._image_size // 2
-        center_y = (self._image_size // 2) + 20
-        radius = (self._image_size - 2 * self._padding - 150) // 2
+        center_y = plot_top + plot_height // 2
+
+        # Radius limited by both width and available height
+        available_width = self._image_size - 2 * self._padding
+        radius = min(available_width, plot_height) // 2
 
         positions = []
         for i in range(N):
@@ -404,10 +421,8 @@ Please output the **minimum total number of edges traversed** (of course, edges 
             )
 
         # Add legend box at bottom
-        legend_y = self._image_size - 140
         legend_x = 40
         legend_width = self._image_size - 80
-        legend_height = 120
 
         # Draw legend background
         draw.rectangle(

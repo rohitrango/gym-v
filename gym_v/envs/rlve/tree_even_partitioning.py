@@ -56,7 +56,7 @@ Partition all vertices into {N} **disjoint** sets such that: (1) each set contai
     @property
     def description(self) -> str:
         return dedent(
-            """
+            """\
             Tree Even Partitioning Problem:
 
             Given a tree (connected undirected graph with no cycles) with N*K vertices,
@@ -71,11 +71,10 @@ Partition all vertices into {N} **disjoint** sets such that: (1) each set contai
             - The tree structure is laid out clearly
             - The visualization shows the solution with colored partitions
 
-            Output format: N lines, each containing K space-separated vertex numbers.
-            Example:
-            1 2 3
-            4 5 6
-            """
+            Output Format:
+            Output N lines - each line should contain the K vertices of one set, \
+            separated by spaces; the vertices within a set and the sets themselves \
+            may be in any order."""
         ).strip()
 
     def _get_state_text(self) -> str:

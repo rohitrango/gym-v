@@ -69,6 +69,10 @@ Example: `{N_plus_1} {EXAMPLE_1}` (do **NOT** include the backticks or quotes); 
 
         return dedent(
             f"""
+            You are given an unknown base-N number system where distinct letters represent digits.
+            The digits satisfy certain addition equations in base-N.
+            Your task is to find the correct base N and the decimal values of all letters that satisfy all the equations.
+
             Addition table puzzle rules:
             1) You are given {num_letters} distinct letters representing digits in an unknown base-{n_hint} number system.
             2) Each letter maps to a unique digit from 0 to {n_hint}-1.
@@ -81,8 +85,9 @@ Example: `{N_plus_1} {EXAMPLE_1}` (do **NOT** include the backticks or quotes); 
             - The table is symmetric (a+b = b+a)
             - Your task is to determine the base N and the decimal value of each letter
 
-            Output format: A single line with N followed by the decimal values of all letters in alphabetical order, space-separated.
-            Example format: {n_hint} 0 1 2 3... (where the numbers are the decimal values of a, b, c, d...)
+            Output Format:
+            Your final answer should be a single line containing N followed by the decimal values of all letters in alphabetical order, separated by spaces.
+            Example: `{n_hint} 0 1 2 3...` (do NOT include the backticks); this means N={n_hint}, a=0, b=1, c=2, d=3...
             """
         ).strip()
 

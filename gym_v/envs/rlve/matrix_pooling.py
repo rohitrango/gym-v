@@ -51,15 +51,11 @@ The matrix is:
 
     @property
     def description(self) -> str:
-        if self._matrix:
-            rows = len(self._matrix)
-            cols = len(self._matrix[0]) if self._matrix else 0
-            k = self._k
-            size_hint = f"{rows} x {cols} matrix with {k}x{k} kernel"
-        else:
-            size_hint = "N x M matrix with KxK kernel"
         return dedent(
             """
+            Perform a max pooling operation. In max pooling, each output cell
+            contains the maximum value in the corresponding submatrix of the input.
+
             Matrix Pooling rules:
             1) Given a matrix of size N × M with integer values.
             2) Apply max pooling with a kernel size of K × K.
@@ -73,7 +69,9 @@ The matrix is:
             - Red borders highlight the K×K pooling windows at each position.
             - The pooling operation type (MAX) is displayed in the title.
 
-            Output format: (N-K+1) lines, each with (M-K+1) space-separated integers representing the max values in each pooling region.
+            Output Format: Your output should contain (N-K+1) lines, each with
+            (M-K+1) integers separated by spaces. Each integer represents the
+            maximum value in the respective pooling region.
             """
         ).strip()
 

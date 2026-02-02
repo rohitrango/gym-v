@@ -68,11 +68,12 @@ Assuming both players play optimally, what is the **maximum total value** Alice 
             size_hint = "N coins"
 
         return dedent(
-            f"""
+            """
             Coin Square Game:
 
-            Alice and Bob take turns picking leftmost coins from a row of {size_hint}.
-            Each player adds the values of taken coins to their score.
+            Alice and Bob play alternately, with Alice going first. On a turn, a player
+            removes some positive number of leftmost coins and adds the sum of their
+            values to their own score. The game ends when no coins remain.
 
             Rules:
             1) Alice goes first and can take 1 or 2 coins on her first turn
@@ -80,14 +81,15 @@ Assuming both players play optimally, what is the **maximum total value** Alice 
             3) Players alternate turns until no coins remain
             4) Both players play optimally to maximize their own score
 
-            In the visualization:
+            In the image:
             - Coins are shown in a row from left to right (1-indexed)
             - Each coin displays its value
             - Alice's color: blue
             - Bob's color: red
             - Coin colors vary by value (darker = higher value)
 
-            Output format: A single integer (Alice's maximum total value under optimal play).
+            Output Format: A single integer representing Alice's maximum total value
+            under optimal play.
             """
         ).strip()
 

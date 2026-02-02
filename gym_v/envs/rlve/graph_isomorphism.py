@@ -62,7 +62,7 @@ Your task is to find a **bijection** (i.e., a permutation) `p` from the vertices
     @property
     def description(self) -> str:
         return dedent(
-            """
+            """\
             Graph Isomorphism Problem:
 
             Given two undirected graphs G1 and G2 with the same number of vertices,
@@ -75,10 +75,11 @@ Your task is to find a **bijection** (i.e., a permutation) `p` from the vertices
             - Vertices are numbered and shown as circles
             - Edges are shown as lines connecting vertices
 
-            Output format: A single line with the permutation p(0), p(1), ..., p(N-1)
-            separated by spaces.
-            """
-        ).strip()
+            **Output Format:** Your final answer should be a single line containing \
+            the permutation `p(0), p(1), ..., p(N-1)`, separated by spaces. \
+            Example: `N-1 N-2 ... 1 0` (do **NOT** include backticks or quotes); \
+            this means `p(0) = N-1, ..., p(N-1) = 0`."""
+        )
 
     def _get_state_text(self) -> str:
         """Return text representation of the two graphs."""

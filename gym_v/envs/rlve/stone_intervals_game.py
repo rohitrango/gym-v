@@ -57,10 +57,12 @@ Assuming both players play optimally to maximize their own total number of colle
 
         return dedent(
             f"""
-            Stone Intervals Game:
+            Alice and Bob play a game on N piles of stones. On each turn, a player
+            selects a pile where at least one adjacent pile is empty, then collects
+            all stones from that pile. Both players play optimally to maximize their
+            own total stones collected.
 
             Given {n_hint} of stones where pile i contains A[i] stones.
-            Alice and Bob take turns collecting stones optimally.
 
             Rules:
             1) Alice goes first, then they alternate
@@ -70,16 +72,16 @@ Assuming both players play optimally to maximize their own total number of colle
             5) Game ends when all piles are empty
             6) Both players maximize their own total
 
-            In the visualization:
+            In the image:
             - Number line shows all pile positions (0 to N-1)
             - Vertical bars represent stone counts in each pile
-            - Red bars indicate piles with 0 stones (empty)
-            - Blue bars indicate piles with stones
+            - Red circles indicate piles with 0 stones (empty)
+            - Blue bars indicate piles with stones (blocked)
+            - Green bars indicate valid moves (piles adjacent to empty ones)
             - Height of bar corresponds to number of stones
             - Numbers on bars show exact stone count
-            - Valid moves are shown with green highlights (piles adjacent to empty ones)
 
-            Output format: A single integer (number of stones Alice will collect).
+            Output the number of stones Alice will collect.
             """
         ).strip()
 

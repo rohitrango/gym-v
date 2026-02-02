@@ -135,9 +135,10 @@ $x$ and $y$ represent the center of the circle, and $r$ represents the radius of
               optimality (how close to minimum radius)
             - Precision tolerance: 0.001
 
-            Output format:
-            Three space-separated floats: x y r
-            where (x, y) is the center and r is the radius.
+            Output Format:
+            Your output should be three floats in a single line, x, y, and r,
+            separated by spaces. x and y represent the center of the circle,
+            and r represents the radius of the circle.
             """
         ).strip()
 

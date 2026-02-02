@@ -57,22 +57,22 @@ class RLVEGridTriangleCountingEnv(Env):
 
         return dedent(
             f"""
-            Grid Triangle Counting Problem:
+            Count non-degenerate triangles with all three vertices at integer
+            coordinate points.
 
-            Count the number of non-degenerate triangles with all three vertices
-            located at integer coordinate points (x, y) where {size_hint}.
+            Rules:
+            - A non-degenerate triangle has three vertices that are not
+              collinear (don't lie on the same line).
+            - Valid vertex locations: integer coordinate points (x, y) where
+              {size_hint}.
+            - The grid forms a lattice of ({size_hint}) points.
 
-            A non-degenerate triangle is one where the three vertices are not
-            collinear (don't lie on the same line).
+            In the image:
+            - The grid shows all available lattice points.
+            - Each dot represents a valid vertex location.
+            - Grid dimensions indicate the range of x and y coordinates.
 
-            The grid forms a ({size_hint}) lattice of points.
-
-            In the visualization:
-            - The grid shows all available lattice points
-            - Each dot represents a valid vertex location
-            - Grid dimensions indicate the range of x and y coordinates
-
-            Output format: A single positive integer (the count of triangles).
+            Output Format: A single positive integer (the count of triangles).
             """
         ).strip()
 
@@ -263,21 +263,7 @@ class RLVEGridTriangleCountingEnv(Env):
         cell_px = self._cell_px
         padding = self._padding
 
-        # Calculate dimensions
-        grid_width = self._n * cell_px
-        grid_height = self._m * cell_px
-
-        # Extra space for title and footer
-        title_height = 60
-        footer_height = 100
-
-        width = padding * 2 + grid_width
-        height = padding * 2 + title_height + grid_height + footer_height
-
-        img = Image.new("RGB", (width, height), (250, 250, 250))
-        draw = ImageDraw.Draw(img)
-
-        # Load font
+        # Load font first to calculate title width
         font_path = None
         font_path_candidate = self.assets_dir / "DejaVuSans.ttf"
         if font_path_candidate.exists():
@@ -292,16 +278,39 @@ class RLVEGridTriangleCountingEnv(Env):
             font_medium = ImageFont.load_default()
             font_small = ImageFont.load_default()
 
-        # Draw title
+        # Calculate title width
         title = "Grid Triangle Counting"
-        bbox = draw.textbbox((0, 0), title, font=font_large)
-        tw = bbox[2] - bbox[0]
+        # Create a dummy draw object to calculate text size
+        dummy_img = Image.new("RGB", (1, 1))
+        dummy_draw = ImageDraw.Draw(dummy_img)
+        bbox = dummy_draw.textbbox((0, 0), title, font=font_large)
+        title_width = bbox[2] - bbox[0]
+
+        # Calculate dimensions
+        grid_width = self._n * cell_px
+        grid_height = self._m * cell_px
+
+        # Extra space for title and footer
+        title_height = 60
+        footer_height = 100
+
+        # Ensure width covers both grid and title
+        width = max(padding * 2 + grid_width, padding * 2 + title_width)
+        height = padding * 2 + title_height + grid_height + footer_height
+
+        img = Image.new("RGB", (width, height), (250, 250, 250))
+        draw = ImageDraw.Draw(img)
+
+        # Draw title
         draw.text(
-            (width // 2 - tw // 2, padding), title, fill=(30, 30, 30), font=font_large
+            (width // 2 - title_width // 2, padding),
+            title,
+            fill=(30, 30, 30),
+            font=font_large,
         )
 
-        # Grid origin
-        grid_x = padding
+        # Grid origin (centered if grid is narrower than width)
+        grid_x = (width - grid_width) // 2
         grid_y = padding + title_height
 
         # Draw grid lines (light)

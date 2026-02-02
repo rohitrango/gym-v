@@ -62,7 +62,12 @@ Each player plays optimally to maximize **their score minus their opponent's sco
             f"""
             Gra Minima Game:
 
-            Alice and Bob play a turn-based game with {size_hint}.
+            Alice and Bob are playing a game with {size_hint}. Alice goes first, and
+            they take turns. On each turn, a player may choose any non-empty subset of
+            the remaining numbers, add the minimum of that subset to their score, and
+            then remove the entire subset from the game. The game ends when there are
+            no numbers left. Each player plays optimally to maximize their score minus
+            their opponent's score.
 
             Rules:
             1) Alice goes first, then they alternate turns
@@ -72,16 +77,13 @@ Each player plays optimally to maximize **their score minus their opponent's sco
             5) The game ends when no numbers remain
             6) Both players play optimally to maximize (their score - opponent's score)
 
-            Goal: Compute the final value of (Alice's score - Bob's score).
-
-            In the visualization:
-            - The numbers are displayed as a sorted sequence
+            In the image:
+            - The numbers are displayed in their original sequence
             - Each number is shown in its own cell with color coding
-            - Green cells indicate lower values, red cells indicate higher values
-            - The color gradient helps visualize the value distribution
-            - Game state indicators show Alice's turn (green) and optimal play strategy
+            - Green cells indicate lower values, yellow for mid, red for higher values
+            - A color legend at the bottom explains the value-to-color mapping
 
-            Output format: A single integer representing (Alice's score - Bob's score).
+            Output Format: A single integer representing (Alice's score - Bob's score).
             """
         ).strip()
 

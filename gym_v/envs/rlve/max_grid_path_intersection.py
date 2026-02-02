@@ -88,7 +88,8 @@ You will start at cell (0, 0) and move to cell ({N_minus_1}, {N_minus_1}) exactl
             - Paths are shown with different colors
             - Intersection points are highlighted where paths overlap
 
-            Output format: A single integer (maximum total sum).
+            Output Format: A single integer - the maximum total sum that can be collected
+            after K such paths.
             """
         ).strip()
 

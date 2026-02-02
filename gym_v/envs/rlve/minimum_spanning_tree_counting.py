@@ -62,8 +62,7 @@ Please compute **the number of such minimum spanning trees** modulo {MOD}."""
 
     @property
     def description(self) -> str:
-        return dedent(
-            """
+        return dedent("""\
             Minimum Spanning Tree Counting Problem:
 
             Given an undirected weighted graph with N vertices, count the number
@@ -78,10 +77,10 @@ Please compute **the number of such minimum spanning trees** modulo {MOD}."""
             - Edges are shown as lines with weights labeled
             - The graph is undirected (edges work both ways)
 
-            Output format: A single integer - the count of minimum spanning trees
-            modulo MOD. Example: "5" (do NOT include quotes).
-            """
-        ).strip()
+            **Output Format:**
+            A single integer representing the count of minimum spanning trees \
+            modulo MOD.
+            Example: `5`""")
 
     def _get_state_text(self) -> str:
         """Return the text representation of the current state."""

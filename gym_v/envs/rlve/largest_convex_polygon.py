@@ -68,8 +68,9 @@ Find a subset of distinct points that forms the vertices of a **convex polygon**
             A polygon is convex if all interior angles are less than 180 degrees,
             or equivalently, if all points lie on the convex hull of the selected subset.
 
-            Output format: Space-separated list of point labels (integers from 1 to {n_hint})
-            Example: "1 3 5 7" (order doesn't matter)
+            Output Format:
+            Output the labels of the selected points in one line, separated by spaces
+            (in any order); if multiple answers exist, output any one.
             """
         ).strip()
 

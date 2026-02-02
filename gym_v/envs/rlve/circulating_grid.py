@@ -67,6 +67,12 @@ Modify any number of cells so that the resulting grid satisfies the following co
         size_hint = f"{self._R} x {self._C}" if self._R and self._C else "R x C"
         return dedent(
             f"""
+            This is a grid-based optimization puzzle. Each cell in the grid contains a
+            directional arrow (L, R, U, D) that determines movement to an adjacent cell.
+            Movement wraps around at the grid edges (toroidal topology). The goal is to
+            modify the minimum number of cells so that starting from any cell, following
+            the arrows will eventually return to the starting cell.
+
             Circulating Grid puzzle rules:
             1) Each cell contains a direction: L (left), R (right), U (up), or D (down).
             2) Following the direction from a cell takes you to another cell (with wrapping).
@@ -79,7 +85,8 @@ Modify any number of cells so that the resulting grid satisfies the following co
             - Each cell shows a direction arrow: → (R), ← (L), ↑ (U), or ↓ (D)
             - The grid is {size_hint}
 
-            Output format: R lines with C characters (L/R/U/D), no separators.
+            Output Format: Output the modified grid — exactly {self._R or 'R'} lines, each
+            containing {self._C or 'C'} characters (L, R, U, or D) with no separators.
             The optimal solution requires exactly {self._gold_answer} changes.
             """
         ).strip()
@@ -191,32 +198,41 @@ Modify any number of cells so that the resulting grid satisfies the following co
         self._grid = grid
 
         # Compute gold answer using min-cost max-flow
-        self._gold_answer = self._compute_gold_answer(grid, R, C)
+        self._gold_answer, optimal_grid = self._compute_gold_answer(grid, R, C)
 
-        # Generate a simple valid reference answer (all R for horizontal cycles)
-        # This is valid but may not be optimal - that's okay for optimization problems
-        reference_grid = [["R"] * C for _ in range(R)]
-        self._oracle_answer = "\n".join("".join(row) for row in reference_grid)
+        # Set the optimal grid as oracle answer
+        self._oracle_answer = "\n".join("".join(row) for row in optimal_grid)
 
-    def _compute_gold_answer(self, grid: list[list[str]], R: int, C: int) -> int:
-        """Compute the minimum number of changes needed using min-cost max-flow."""
+    def _compute_gold_answer(
+        self, grid: list[list[str]], R: int, C: int
+    ) -> tuple[int, list[list[str]]]:
+        """Compute the minimum number of changes needed using min-cost max-flow.
+
+        Returns:
+            (min_changes, optimal_grid)
+        """
         # Directions: L, R, U, D
+        # Order must match loop below
+        DIRS = ["L", "R", "U", "D"]
         DX = [0, 0, -1, 1]  # row delta
         DY = [-1, 1, 0, 0]  # col delta
         DIR_ID = {"L": 0, "R": 1, "U": 2, "D": 3}
 
         class Edge:
-            __slots__ = ("to", "rev", "cap", "cost")
+            __slots__ = ("to", "rev", "cap", "cost", "is_real")
 
-            def __init__(self, to, rev, cap, cost):
+            def __init__(self, to, rev, cap, cost, is_real=False):
                 self.to = to
                 self.rev = rev
                 self.cap = cap
                 self.cost = cost
+                self.is_real = (
+                    is_real  # True if this is a u->v edge representing a move
+                )
 
-        def add_edge(graph, u, v, cap, cost):
-            graph[u].append(Edge(v, len(graph[v]), cap, cost))
-            graph[v].append(Edge(u, len(graph[u]) - 1, 0, -cost))
+        def add_edge(graph, u, v, cap, cost, is_real=False):
+            graph[u].append(Edge(v, len(graph[v]), cap, cost, is_real))
+            graph[v].append(Edge(u, len(graph[u]) - 1, 0, -cost, False))
 
         def min_cost_max_flow(graph, N, s, t, INF):
             flow = 0
@@ -299,6 +315,10 @@ Modify any number of cells so that the resulting grid satisfies the following co
         graph = [[] for _ in range(N)]
 
         # Build edges from each cell (left partition) to its 4 neighbors (right partition)
+        # Store mapping to retrieve direction later
+        # map (u, edge_index_in_graph[u]) -> direction_index (0..3)
+        edge_dir_map = {}
+
         for i in range(R):
             for j in range(C):
                 u = i * C + j
@@ -307,7 +327,10 @@ Modify any number of cells so that the resulting grid satisfies the following co
                     nj = (j + DY[k]) % C
                     v = offset + (ni * C + nj)
                     cost = 0 if k == MP[i][j] else 1
-                    add_edge(graph, u, v, 1, cost)
+
+                    edge_idx = len(graph[u])
+                    edge_dir_map[(u, edge_idx)] = k
+                    add_edge(graph, u, v, 1, cost, is_real=True)
 
         # Source to all left nodes; all right nodes to sink
         for u in range(n_left):
@@ -316,7 +339,29 @@ Modify any number of cells so that the resulting grid satisfies the following co
             add_edge(graph, v, t, 1, 0)
 
         _, total_cost = min_cost_max_flow(graph, N, s, t, INF)
-        return total_cost
+
+        # Reconstruct the optimal grid
+        optimal_grid = [[""] * C for _ in range(R)]
+
+        for i in range(R):
+            for j in range(C):
+                u = i * C + j
+                # Find the outgoing edge from u that has flow (cap == 0 because capacity was 1)
+                for ei, e in enumerate(graph[u]):
+                    if e.is_real and e.cap == 0:
+                        # This edge was used in the flow
+                        k = edge_dir_map.get((u, ei))
+                        if k is not None:
+                            optimal_grid[i][j] = DIRS[k]
+                            break
+
+                # Fallback (should not happen if max flow is perfect)
+                if optimal_grid[i][j] == "":
+                    optimal_grid[i][j] = grid[i][
+                        j
+                    ]  # Keep original if no flow (unexpected)
+
+        return total_cost, optimal_grid
 
     def _prompt_generate(self) -> str:
         if self._grid is None:

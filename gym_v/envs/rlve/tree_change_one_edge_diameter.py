@@ -72,9 +72,10 @@ You may remove one edge from the tree and add a new edge (possibly the same edge
             - The tree structure is displayed in a hierarchical or circular layout
             - Find which edge to remove and which to add to optimize the diameter
 
-            Output format: Four integers separated by spaces: u1 v1 u2 v2
-            where (u1, v1) is removed and (u2, v2) is added.
-            Example: "3 5 2 7"
+            Output Format: Output four integers `u1 v1 u2 v2` (do NOT include the \
+            backticks or quotes), separated by spaces, where:
+            - `(u1, v1)` is the edge to be removed
+            - `(u2, v2)` is the edge to be added
             """
         ).strip()
 

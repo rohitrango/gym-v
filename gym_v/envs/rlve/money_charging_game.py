@@ -66,9 +66,36 @@ Please compute the total probability that all the above T[u] < T[v] conditions h
             f"""
             Money Charging Game (Tree Probability Problem):
 
-            Problem: Given {n} nodes with weighted probabilities and a tree structure,
-            compute the probability that a random selection process satisfies all tree
-            ordering constraints.
+            === Step 1: Basic Concepts ===
+
+            There are {n} nodes (labeled 0 to {n - 1}). Each node i has three values:
+            A[i][1], A[i][2], A[i][3]. These values determine probability weights:
+              P[i][j] = A[i][j] / (A[i][1] + A[i][2] + A[i][3])  for j = 1, 2, 3
+
+            === Step 2: The Random Process ===
+
+            (a) Weight Assignment:
+                For each node i, randomly assign W[i] = j (where j in {{1, 2, 3}})
+                with probability P[i][j]. This happens once at the start.
+
+            (b) Sequential Selection:
+                Starting with an empty set, repeatedly select a node with probability
+                proportional to its weight W[i], and add it to the set (duplicates allowed).
+                Continue until all {n} nodes have been added at least once.
+
+            (c) First Arrival Time:
+                T[i] = the first time node i is added to the set.
+
+            === Step 3: Tree Constraints ===
+
+            The problem provides a set of ordering constraints in the form T[u] < T[v].
+            These constraints correspond to the edges of an undirected tree on {n} nodes.
+            "T[u] < T[v]" means node u must be selected before node v for the first time.
+
+            === Goal ===
+
+            Compute the probability that ALL constraints T[u] < T[v] are satisfied
+            during the random process.
 
             In the image:
             - Top section: Node probability bars showing A[i][1], A[i][2], A[i][3] values
@@ -83,13 +110,7 @@ Please compute the total probability that all the above T[u] < T[v] conditions h
               * Shows all T[u] < T[v] constraints that must be satisfied
               * These constraints form an undirected tree structure
 
-            The random process:
-            1. Each node i gets weight W[i] ∈ {{1,2,3}} with probability P[i][j] = A[i][j] / sum(A[i])
-            2. Nodes are selected with probability proportional to their weights
-            3. T[i] is the first time node i is selected
-            4. We compute the probability that all T[u] < T[v] constraints hold
-
-            Output format: A single integer (the probability result modulo {self.MOD}).
+            Output Format: A single integer, the probability modulo {self.MOD}.
             """
         ).strip()
 

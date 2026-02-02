@@ -64,16 +64,25 @@ Please count the number of **distinct sequences** `H[p[0]], H[p[1]], ..., H[p[{N
             size_hint = f"N={self._n}"
             h_hint = ", ".join(f"H[{i}]={h}" for i, h in enumerate(self._h_array))
             c_hint = ", ".join(f"C[{i}]={c}" for i, c in enumerate(self._c_array))
-            mod_hint = f"mod {self._mod}"
+            mod_value = self._mod
         else:
             size_hint = "N points"
             h_hint = "H[i] = height of point i"
             c_hint = "C[i] = capacity of point i"
-            mod_hint = "mod MOD"
+            mod_value = "MOD"
 
         return dedent(
             f"""
-            Landform Generation Counting Problem:
+            Count the number of distinct height sequences that can be formed by valid
+            permutations of terrain points.
+
+            **Understanding Capacity:**
+            C[i] (Capacity of point i) indicates how many taller points can appear before
+            point i in a valid permutation. In other words, when placing point i in a
+            sequence, at most C[i]-1 points with greater height can precede it.
+
+            Example: If C[2]=3, then point 2 can be placed at a position where 0, 1, or 2
+            taller points have already been placed before it.
 
             Given {size_hint} terrain points with heights and capacities:
             - Heights: {h_hint}
@@ -87,12 +96,12 @@ Please count the number of **distinct sequences** `H[p[0]], H[p[1]], ..., H[p[{N
             that can be formed by valid permutations. Two permutations producing the same
             height sequence count as one.
 
-            The landform visualization shows:
+            In the image:
             - Each point as a vertical bar with height proportional to H[i]
             - Color intensity represents the capacity C[i] (darker = higher capacity)
             - Points are arranged to show the terrain profile
 
-            Output format: A single integer (the count {mod_hint}).
+            Output the result modulo {mod_value}.
             """
         ).strip()
 

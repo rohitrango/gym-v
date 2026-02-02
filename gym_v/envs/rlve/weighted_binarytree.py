@@ -92,7 +92,7 @@ Example: `{all_node_sequence}` (do **NOT** include the backticks or quotes)."""
             2. The tree maximizes a specific score function
 
             The score is computed recursively:
-            - score(tree) = score(left_subtree) × score(right_subtree) + d_root
+            - score(tree) = score(left_subtree) * score(right_subtree) + d_root
             - Empty subtrees have score = 1
             - Leaf nodes have score = d_i
 
@@ -106,7 +106,10 @@ Example: `{all_node_sequence}` (do **NOT** include the backticks or quotes)."""
             Your task: Find the binary tree structure that maximizes the score, then
             output its pre-order traversal (visit root, then left subtree, then right subtree).
 
-            Output format: Space-separated node labels in pre-order (e.g., "3 1 0 2 5 4 6")
+            Output Format:
+            Your final answer should be a single line containing the node labels in
+            pre-order traversal, separated by spaces.
+            Example: 0 1 2 3 4 (do NOT include backticks or quotes).
             """
         ).strip()
 

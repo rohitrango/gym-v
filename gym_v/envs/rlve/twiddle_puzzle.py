@@ -88,8 +88,10 @@ Your goal is to transform it into the following grid:
             - RIGHT: Destination (goal) grid
             - The grid is {size_hint}
 
-            Output format: One action per line as 'i j' (space-separated row and column indices).
-            Each action rotates a K × K subgrid starting at position (i, j).
+            Output Format: Each action should be written on its own line as `i j`, \
+            where `i` and `j` are the row and column indices of the top-left corner \
+            of the rotated subgrid. Example: `0 1` (do NOT include backticks or \
+            quotes). Output one action per line in the order they should be performed.
             """
         ).strip()
 
