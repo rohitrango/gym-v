@@ -9,7 +9,6 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation
-from gym_v.envs.rlve.parameter_controllers import get_controller_for_env
 from gym_v.logger import get_logger
 
 logger = get_logger()
@@ -37,38 +36,20 @@ The matrix is given in **row-major order**, with each row represented as a strin
 
     def __init__(
         self,
-        max_n_m: int | None = None,
-        sparsity: float | None = None,
+        max_n_m: int = 4,
+        sparsity: float = 0.5,
         cell_px: int = 56,
         padding: int = 24,
         num_players: int = 1,
-        difficulty: int | None = None,
         **kwargs: Any,
     ):
-        super().__init__(difficulty=difficulty, **kwargs)
+        super().__init__(**kwargs)
+        self._max_n_m = max_n_m
+        self._sparsity = sparsity
         self._cell_px = cell_px
         self._padding = padding
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
-
-        # Check if explicit parameters or difficulty is provided
-        self._use_explicit_params = max_n_m is not None or sparsity is not None
-        self._use_difficulty = difficulty is not None
-
-        self._parameter_controller = get_controller_for_env(
-            self.__class__.__name__,
-            self._difficulty if self._difficulty is not None else 0,
-        )
-
-        if self._use_explicit_params:
-            self._max_n_m = max_n_m if max_n_m is not None else 4
-            self._sparsity = sparsity if sparsity is not None else 0.5
-        elif self._use_difficulty:
-            self._apply_difficulty_parameters()
-        else:
-            # Use original defaults (backward compatibility)
-            self._max_n_m = 4
-            self._sparsity = 0.5
 
         self._matrix: list[str] | None = None
         self._N: int | None = None
@@ -76,13 +57,6 @@ The matrix is given in **row-major order**, with each row represented as a strin
         self._prompt: str | None = None
         self._oracle_answer: str | None = None
         self._last_image: Image.Image | None = None
-
-    def _apply_difficulty_parameters(self) -> None:
-        """Apply parameters from the controller."""
-        if self._use_difficulty and self._parameter_controller is not None:
-            params = self._parameter_controller.get_parameters()
-            self._max_n_m = params.get("max_n_m", 4)
-            self._sparsity = params.get("sparsity", 0.5)
 
     @property
     def description(self) -> str:

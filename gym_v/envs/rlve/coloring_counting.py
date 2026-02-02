@@ -11,7 +11,6 @@ import networkx as nx
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation
-from gym_v.envs.rlve.parameter_controllers import get_controller_for_env
 from gym_v.logger import get_logger
 
 logger = get_logger()
@@ -42,8 +41,8 @@ The **value** of a valid coloring is the number of **distinct colors used** (i.e
 
     def __init__(
         self,
-        max_n: int | None = None,
-        edge_density: float | None = None,
+        max_n: int = 8,
+        edge_density: float = 0.5,
         node_radius: int = 20,
         image_size: int = 800,
         padding: int = 60,
@@ -51,10 +50,11 @@ The **value** of a valid coloring is the number of **distinct colors used** (i.e
         rewarding_strategy: str = "(min/max)^beta",
         rewarding_weight: float = 1.0,
         rewarding_beta: float = 10.0,
-        difficulty: int | None = None,
         **kwargs: Any,
     ):
-        super().__init__(difficulty=difficulty, **kwargs)
+        super().__init__(**kwargs)
+        self._max_n = max_n
+        self._edge_density = edge_density
         self._node_radius = node_radius
         self._image_size = image_size
         self._padding = padding
@@ -66,25 +66,6 @@ The **value** of a valid coloring is the number of **distinct colors used** (i.e
         self._rewarding_weight = rewarding_weight
         self._rewarding_beta = rewarding_beta
 
-        # Check if explicit parameters or difficulty is provided
-        self._use_explicit_params = max_n is not None or edge_density is not None
-        self._use_difficulty = difficulty is not None
-
-        self._parameter_controller = get_controller_for_env(
-            self.__class__.__name__,
-            self._difficulty if self._difficulty is not None else 0,
-        )
-
-        if self._use_explicit_params:
-            self._max_n = max_n if max_n is not None else 8
-            self._edge_density = edge_density if edge_density is not None else 0.5
-        elif self._use_difficulty:
-            self._apply_difficulty_parameters()
-        else:
-            # Use original defaults (backward compatibility)
-            self._max_n = 8
-            self._edge_density = 0.5
-
         # Environment state
         self._N: int | None = None
         self._edges: list[tuple[int, int]] | None = None
@@ -93,13 +74,6 @@ The **value** of a valid coloring is the number of **distinct colors used** (i.e
         self._prompt: str | None = None
         self._oracle_answer: int | None = None
         self._last_image: Image.Image | None = None
-
-    def _apply_difficulty_parameters(self) -> None:
-        """Apply parameters from the controller."""
-        if self._use_difficulty and self._parameter_controller is not None:
-            params = self._parameter_controller.get_parameters()
-            self._max_n = params.get("max_n", 8)
-            self._edge_density = params.get("edge_density", 0.5)
 
     @property
     def description(self) -> str:

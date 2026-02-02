@@ -15,7 +15,6 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation, get_logger
-from gym_v.envs.gamerl.parameter_controllers import get_controller_for_env
 from gym_v.envs.gamerl.utils import build_description
 
 logger = get_logger()
@@ -106,49 +105,22 @@ class GameRLSnakeQAEnv(Env):
     def __init__(
         self,
         question_type: int | None = None,
-        width: int | None = None,
-        height: int | None = None,
+        width: int = 10,
+        height: int = 10,
         initial_snake_length: tuple[int, int] = (10, 20),
         cell_size: int = 40,
         num_players: int = 1,
-        difficulty: int | None = None,
         **kwargs,
     ):
-        super().__init__(difficulty=difficulty, **kwargs)
+        super().__init__(**kwargs)
         self._question_type_param = question_type
+        self._width = width
+        self._height = height
         self._initial_snake_length = initial_snake_length
         self._cell_size = cell_size
         self._margin = 30  # Margin for coordinate labels
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
-
-        # Check if explicit params or difficulty is provided
-        self._use_explicit_params = width is not None or height is not None
-        self._use_difficulty = difficulty is not None
-
-        self._parameter_controller = get_controller_for_env(
-            self.__class__.__name__,
-            self._difficulty if self._difficulty is not None else 0,
-        )
-
-        # Initialize grid size based on priority
-        if self._use_explicit_params:
-            self._width = width if width is not None else 10
-            self._height = height if height is not None else 10
-        elif self._use_difficulty:
-            self._apply_difficulty_parameters()
-        else:
-            self._width = 10
-            self._height = 10
-
-    def _apply_difficulty_parameters(self) -> None:
-        """Apply parameters from the controller."""
-        if self._use_difficulty and self._parameter_controller is not None:
-            params = self._parameter_controller.get_parameters()
-            if "grid_size" in params:
-                grid_size = params["grid_size"]
-                self._width = grid_size
-                self._height = grid_size
 
         # Game state (initialized in reset)
         self._snake: list[tuple[int, int]] = []

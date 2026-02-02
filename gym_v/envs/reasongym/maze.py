@@ -10,7 +10,6 @@ from PIL import Image, ImageDraw, ImageFont
 from reasoning_gym.factory import create_dataset
 
 from gym_v import Env, Observation, get_logger
-from gym_v.envs.reasongym.parameter_controllers import get_controller_for_env
 
 logger = get_logger()
 
@@ -35,39 +34,22 @@ class ReasoningGymMazeEnv(Env):
         cell_px: int = 48,
         padding: int = 24,
         num_players: int = 1,
-        difficulty: int | None = None,
         **kwargs: Any,
     ):
-        super().__init__(difficulty=difficulty, **kwargs)
+        super().__init__(**kwargs)
+        self._dataset_kwargs = dataset_kwargs or {}
         self._cell_px = cell_px
         self._padding = padding
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
-        # Check if explicit params or difficulty is provided
-        self._use_explicit_params = dataset_kwargs is not None
-        self._use_difficulty = difficulty is not None
-
-        self._parameter_controller = get_controller_for_env(
-            self.__class__.__name__,
-            self._difficulty if self._difficulty is not None else 0,
-        )
-
-        # Initialize dataset_kwargs based on priority
-        if self._use_explicit_params:
-            self._dataset_kwargs = dataset_kwargs
-        elif self._use_difficulty:
-            self._apply_difficulty_parameters()
-        else:
-            self._dataset_kwargs = {}
-
-    def _apply_difficulty_parameters(self) -> None:
-        """Apply parameters from the controller."""
-        if self._use_difficulty and self._parameter_controller is not None:
-            params = self._parameter_controller.get_parameters()
-            self._dataset_kwargs = params.get("dataset_kwargs", {})
-        else:
-            self._dataset_kwargs = {}
+        self._seed: int | None = None
+        self._dataset = None
+        self._entry: dict[str, Any] | None = None
+        self._entry_idx: int | None = None
+        self._metadata: dict[str, Any] | None = None
+        self._grid: list[str] | None = None
+        self._oracle_answer: str | None = None
 
     @property
     def description(self) -> str:

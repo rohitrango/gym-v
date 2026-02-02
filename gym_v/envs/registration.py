@@ -10,7 +10,6 @@ from dataclasses import dataclass, field
 import difflib
 import importlib
 import importlib.metadata as metadata
-import inspect
 import json
 import re
 from types import ModuleType
@@ -207,77 +206,6 @@ class EnvSpec:
 # Global registry of environments. Meant to be accessed through `register` and `make`
 registry: dict[str, EnvSpec] = {}
 current_namespace: str | None = None
-
-
-_NATIVE_DIFFICULTY_ENVS = {
-    # RLVE
-    "RLVENumbrixEnv",
-    "RLVEBinarioNoAdjacencyRequirementEnv",
-    "RLVETreeCenterEnv",
-    "RLVEColoringCountingEnv",
-    "RLVEGridBFSEnv",
-    # GameRL
-    "GameRLMinesweeperQAEnv",
-    "GameRLSudokuQAEnv",
-    "GameRLMazeQAEnv",
-    "GameRLSnakeQAEnv",
-    "GameRLTetrisQAEnv",
-    "GameRLRubiksCubeQAEnv",
-    "GameRLSokobanQAEnv",
-    # ReasoningGym
-    "ReasoningGymSudokuEnv",
-    "ReasoningGymMazeEnv",
-    "ReasoningGymNQueensEnv",
-    "ReasoningGymTowerOfHanoiEnv",
-    "ReasoningGymGameOfLifeEnv",
-}
-
-
-def _get_env_class_name(entry_point: EnvCreator | str | None) -> str | None:
-    if not isinstance(entry_point, str):
-        return None
-    if ":" not in entry_point:
-        return None
-    return entry_point.split(":", maxsplit=1)[1]
-
-
-def _get_difficulty_controller(
-    namespace: str | None, env_class_name: str | None, difficulty: int
-) -> Any | None:
-    if namespace is None or env_class_name is None:
-        return None
-    module_map = {
-        "RLVE": "gym_v.envs.rlve.parameter_controllers",
-        "GameRL": "gym_v.envs.gamerl.parameter_controllers",
-        "ReasoningGym": "gym_v.envs.reasongym.parameter_controllers",
-        "Perception": "gym_v.envs.perception.parameter_controllers",
-        "Sphinx": "gym_v.envs.sphinx.parameter_controllers",
-        "VGRP": "gym_v.envs.vgrp.parameter_controllers",
-        "TextArena": "gym_v.envs.textarena.parameter_controllers",
-    }
-    module_path = module_map.get(namespace)
-    if module_path is None:
-        return None
-    module = importlib.import_module(module_path)
-    get_controller = getattr(module, "get_controller_for_env", None)
-    if get_controller is None:
-        return None
-    return get_controller(env_class_name, difficulty)
-
-
-def _get_accepted_kwargs(env_creator: EnvCreator, fallback_keys: set[str]) -> set[str]:
-    try:
-        signature = inspect.signature(env_creator)
-    except (TypeError, ValueError):
-        return fallback_keys
-
-    accepted = set()
-    for param in signature.parameters.values():
-        if param.name == "self":
-            continue
-        if param.kind in (param.POSITIONAL_OR_KEYWORD, param.KEYWORD_ONLY):
-            accepted.add(param.name)
-    return accepted
 
 
 def parse_env_id(env_id: str) -> tuple[str | None, str, int | None]:
@@ -681,7 +609,6 @@ def make(
     # Update the env spec kwargs with the `make` kwargs
     env_spec_kwargs = copy.deepcopy(env_spec.kwargs)
     env_spec_kwargs.update(kwargs)
-    explicit_keys = set(kwargs.keys())
 
     max_episode_steps = max_episode_steps or env_spec.max_episode_steps
 
@@ -693,42 +620,6 @@ def make(
     else:
         # Assume it's a string
         env_creator = load_env_creator(env_spec.entry_point)
-
-    env_class_name = _get_env_class_name(env_spec.entry_point)
-    accepted_keys = _get_accepted_kwargs(env_creator, set(env_spec_kwargs.keys()))
-    difficulty = env_spec_kwargs.get("difficulty")
-    if (
-        isinstance(difficulty, int)
-        and env_class_name is not None
-        and env_class_name not in _NATIVE_DIFFICULTY_ENVS
-    ):
-        controller = _get_difficulty_controller(
-            env_spec.namespace, env_class_name, difficulty
-        )
-        if controller is not None:
-            controller_params = controller.get_parameters()
-            for key, value in controller_params.items():
-                if key not in accepted_keys:
-                    continue
-                if key in explicit_keys and not (
-                    key == "difficulty"
-                    and isinstance(env_spec_kwargs.get("difficulty"), int)
-                ):
-                    continue
-                if key == "dataset_kwargs":
-                    existing = env_spec_kwargs.get("dataset_kwargs")
-                    if existing is None:
-                        env_spec_kwargs["dataset_kwargs"] = value
-                    else:
-                        env_spec_kwargs["dataset_kwargs"] = {
-                            **existing,
-                            **value,
-                        }
-                else:
-                    env_spec_kwargs[key] = value
-
-    if "difficulty" in env_spec_kwargs and "difficulty" not in accepted_keys:
-        env_spec_kwargs.pop("difficulty")
 
     try:
         env = env_creator(max_episode_steps=max_episode_steps, **env_spec_kwargs)

@@ -15,7 +15,6 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation, get_logger
-from gym_v.envs.gamerl.parameter_controllers import get_controller_for_env
 from gym_v.envs.gamerl.utils import build_description
 
 logger = get_logger()
@@ -118,53 +117,34 @@ class GameRLTetrisQAEnv(Env):
     def __init__(
         self,
         question_type: int | None = None,
-        rows: int | None = None,
-        cols: int | None = None,
+        rows: int = 12,
+        cols: int = 8,
         cell_size: int = 30,
         num_players: int = 1,
-        difficulty: int | None = None,
         **kwargs,
     ):
-        super().__init__(difficulty=difficulty, **kwargs)
+        super().__init__(**kwargs)
         self._question_type_param = question_type
+        self._rows = rows
+        self._cols = cols
         self._cell_size = cell_size
         self._padding = 35
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
-        # Check if explicit params or difficulty is provided
-        self._use_explicit_params = rows is not None or cols is not None
-        self._use_difficulty = difficulty is not None
+        # Game state
+        self._grid: np.ndarray = np.zeros((rows, cols), dtype=int)
+        self._current_piece: np.ndarray | None = None
+        self._current_piece_type: str = ""
+        self._current_pos: tuple[int, int] = (0, 0)
 
-        self._parameter_controller = get_controller_for_env(
-            self.__class__.__name__,
-            self._difficulty if self._difficulty is not None else 0,
-        )
-
-        # Initialize grid size based on priority
-        if self._use_explicit_params:
-            self._rows = rows if rows is not None else 12
-            self._cols = cols if cols is not None else 8
-        elif self._use_difficulty:
-            self._apply_difficulty_parameters()
-        else:
-            self._rows = 12
-            self._cols = 8
-
-    def _apply_difficulty_parameters(self) -> None:
-        """Apply parameters from the controller."""
-        if self._use_difficulty and self._parameter_controller is not None:
-            params = self._parameter_controller.get_parameters()
-            if "cols" in params:
-                self._cols = params["cols"]
-                # Adjust rows proportionally
-                self._rows = int(self._cols * 1.5)
-            else:
-                self._rows = 12
-                self._cols = 8
-        else:
-            self._rows = 12
-            self._cols = 8
+        # Q&A state
+        self._question_type_idx: int = 0
+        self._question: str = ""
+        self._oracle_answer: str = ""
+        self._options: list[str] | None = None
+        self._target_row: int = 0
+        self._action_direction: str = ""
 
     @property
     def description(self) -> str:

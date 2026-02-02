@@ -13,7 +13,6 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation, get_logger
-from gym_v.envs.gamerl.parameter_controllers import get_controller_for_env
 from gym_v.envs.gamerl.utils import build_description
 
 logger = get_logger()
@@ -41,9 +40,7 @@ class GameRLMinesweeperQAEnv(Env):
 
     Args:
         question_type: Question type ID (0-5). None for random selection.
-        game_difficulty: Game difficulty ('Easy', 'Medium', 'Hard'). None for random.
-        difficulty: Unified difficulty level (int). Controls game_difficulty if
-            game_difficulty is not explicitly set.
+        difficulty: Game difficulty ('Easy', 'Medium', 'Hard'). None for random.
         cell_size: Size of each cell in pixels for rendering (default 60)
     """
 
@@ -117,42 +114,24 @@ class GameRLMinesweeperQAEnv(Env):
     def __init__(
         self,
         question_type: int | None = None,
-        game_difficulty: str | None = None,
+        difficulty: str | None = None,
         cell_size: int = 60,
         num_players: int = 1,
-        difficulty: int | None = None,
         **kwargs,
     ):
-        super().__init__(difficulty=difficulty, **kwargs)
+        super().__init__(**kwargs)
         self._question_type_param = question_type
+        self._difficulty_override = difficulty
         self._cell_size = cell_size
         self._margin = 40
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
-        # Check if explicit game_difficulty or difficulty is provided
-        self._use_explicit_params = game_difficulty is not None
-        self._use_difficulty = difficulty is not None
-
-        self._parameter_controller = get_controller_for_env(
-            self.__class__.__name__,
-            self._difficulty if self._difficulty is not None else 0,
-        )
-
-        # Initialize game_difficulty_override
-        self._game_difficulty_override = None
-
-        if self._use_explicit_params:
-            self._game_difficulty_override = game_difficulty
-        elif self._use_difficulty:
-            self._apply_difficulty_parameters()
-        # else: use original defaults (random selection in reset)
-
         # Game state (initialized in reset)
         self._rows = 4
         self._cols = 4
         self._mines = 3
-        self._game_difficulty = "Easy"
+        self._difficulty = "Easy"
         self._board: list[list[int | str]] = []
         self._revealed: list[list[bool]] = []
         self._flagged: list[list[bool]] = []
@@ -163,13 +142,6 @@ class GameRLMinesweeperQAEnv(Env):
         self._oracle_answer: str = ""
         self._answer_format: str = ""
         self._options: list[str] = []
-
-    def _apply_difficulty_parameters(self) -> None:
-        """Apply parameters from the controller."""
-        if self._use_difficulty and self._parameter_controller is not None:
-            params = self._parameter_controller.get_parameters()
-            if "game_difficulty" in params:
-                self._game_difficulty_override = params["game_difficulty"]
 
     @property
     def description(self) -> str:
@@ -224,13 +196,13 @@ Grid (#=unrevealed, F=flagged, .=revealed empty, 1-8=numbers, M=mine):
         if seed is not None:
             random.seed(seed)
 
-        # Select game difficulty
-        if self._game_difficulty_override:
-            self._game_difficulty = self._game_difficulty_override
+        # Select difficulty
+        if self._difficulty_override:
+            self._difficulty = self._difficulty_override
         else:
-            self._game_difficulty = random.choice(list(self.DIFFICULTIES.keys()))
+            self._difficulty = random.choice(list(self.DIFFICULTIES.keys()))
 
-        config = self.DIFFICULTIES[self._game_difficulty]
+        config = self.DIFFICULTIES[self._difficulty]
         self._rows = config["rows"]
         self._cols = config["cols"]
         self._mines = config["mines"]
@@ -251,7 +223,7 @@ Grid (#=unrevealed, F=flagged, .=revealed empty, 1-8=numbers, M=mine):
 
         logger.info(
             f"Reset Minesweeper QA (type={self._question_type_idx}, "
-            f"game_difficulty={self._game_difficulty}, grid={self._rows}x{self._cols})."
+            f"difficulty={self._difficulty}, grid={self._rows}x{self._cols})."
         )
 
         text_state = self._get_state_text()
@@ -266,7 +238,7 @@ Grid (#=unrevealed, F=flagged, .=revealed empty, 1-8=numbers, M=mine):
                 "options": self._options,
                 "question_type": self.QUESTION_TYPES[self._question_type_idx]["name"],
                 "level": self.QUESTION_TYPES[self._question_type_idx]["level"],
-                "game_difficulty": self._game_difficulty,
+                "difficulty": self._difficulty,
             },
         )
         info = {

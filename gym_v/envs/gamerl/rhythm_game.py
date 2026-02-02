@@ -97,7 +97,7 @@ class GameRLRhythmGameQAEnv(Env):
     def __init__(
         self,
         grid_size: tuple[int, int] | None = None,
-        difficulty: str | int | None = None,
+        difficulty: str | None = None,
         cell_size: int = 40,
         question_type: int | None = None,
         num_players: int = 1,
@@ -107,14 +107,6 @@ class GameRLRhythmGameQAEnv(Env):
 
         if difficulty is None:
             difficulty = random.choice(["Easy", "Medium", "Hard"])
-        # Handle integer difficulty by mapping to string
-        elif isinstance(difficulty, int):
-            if difficulty <= 2:
-                difficulty = "Easy"
-            elif difficulty <= 5:
-                difficulty = "Medium"
-            else:
-                difficulty = "Hard"
         self._difficulty = difficulty
         self._grid_size = (
             grid_size if grid_size is not None else self.GRID_SIZES[difficulty]

@@ -13,7 +13,6 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation, get_logger
-from gym_v.envs.gamerl.parameter_controllers import get_controller_for_env
 from gym_v.envs.gamerl.utils import build_description
 
 logger = get_logger()
@@ -108,32 +107,15 @@ class GameRLSudokuQAEnv(Env):
         size: int | None = None,
         cell_size: int = 50,
         num_players: int = 1,
-        difficulty: int | None = None,
         **kwargs,
     ):
-        super().__init__(difficulty=difficulty, **kwargs)
+        super().__init__(**kwargs)
         self._question_type_param = question_type
+        self._size_override = size
         self._cell_size = cell_size
         self._margin = 30
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
-
-        # Check if explicit size or difficulty is provided
-        self._use_explicit_params = size is not None
-        self._use_difficulty = difficulty is not None
-
-        self._parameter_controller = get_controller_for_env(
-            self.__class__.__name__,
-            self._difficulty if self._difficulty is not None else 0,
-        )
-
-        # Initialize size_override based on priority
-        if self._use_explicit_params:
-            self._size_override = size
-        elif self._use_difficulty:
-            self._apply_difficulty_parameters()
-        else:
-            self._size_override = None
 
         # Game state (initialized in reset)
         self._size = 9
@@ -148,15 +130,6 @@ class GameRLSudokuQAEnv(Env):
         self._oracle_answer: str = ""
         self._answer_format: str = ""
         self._options: list[str] = []
-
-    def _apply_difficulty_parameters(self) -> None:
-        """Apply parameters from the controller."""
-        if self._use_difficulty and self._parameter_controller is not None:
-            params = self._parameter_controller.get_parameters()
-            if "game_difficulty" in params:
-                # Map game_difficulty to size: Easy=4, Medium/Hard=9
-                game_diff = params["game_difficulty"]
-                self._size_override = 4 if game_diff == "Easy" else 9
 
     @property
     def description(self) -> str:
