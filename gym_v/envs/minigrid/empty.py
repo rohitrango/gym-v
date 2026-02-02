@@ -49,6 +49,7 @@ class MinigridEmptyEnv(Env):
             if size == 8
             else f"MiniGrid-Empty-{size}x{size}-v0",
             render_mode="rgb_array",
+            agent_pov=True,
             agent_start_pos=agent_start_pos,
             max_steps=max_episode_steps,
             tile_size=tile_size,
@@ -70,7 +71,16 @@ class MinigridEmptyEnv(Env):
             You are in an empty grid world. Your goal is to reach the green goal square.
             The grid is empty, so you just need to navigate to the goal by turning and moving forward.
 
-            Available actions: left, right, forward, toggle, done
+            IMPORTANT: You can only see a 7x7 grid in front of you (first-person view).
+            You cannot see behind you or outside your field of view.
+            You need to explore by turning and moving to discover the environment.
+
+            Available actions:
+            - left: Turn left 90 degrees (stay in place, only change facing direction)
+            - right: Turn right 90 degrees (stay in place, only change facing direction)
+            - forward: Move forward one cell in the direction you're facing
+            - toggle: Interact with object in front (not needed in this environment)
+            - done: Declare task complete (optional, stepping on goal completes automatically)
 
             Output format: Simply output the action name.
             Examples:

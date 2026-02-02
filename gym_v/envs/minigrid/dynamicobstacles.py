@@ -47,6 +47,7 @@ class MinigridDynamicObstaclesEnv(Env):
         self._minigrid_env = gym.make(
             "MiniGrid-Dynamic-Obstacles-8x8-v0",
             render_mode="rgb_array",
+            agent_pov=True,
             max_steps=max_episode_steps,
             tile_size=tile_size,
         )
@@ -67,7 +68,16 @@ class MinigridDynamicObstaclesEnv(Env):
             You are in a grid with moving obstacles. Your goal is to reach the green goal square while avoiding the moving obstacles.
             Be careful! If you collide with an obstacle, you will fail.
 
-            Available actions: left, right, forward, toggle, done
+            IMPORTANT: You can only see a 7x7 grid in front of you (first-person view).
+            You cannot see behind you or outside your field of view.
+            Watch out for moving obstacles in your field of view - colliding with them will fail the task.
+
+            Available actions:
+            - left: Turn left 90 degrees (stay in place, only change facing direction)
+            - right: Turn right 90 degrees (stay in place, only change facing direction)
+            - forward: Move forward one cell in the direction you're facing (avoid obstacles!)
+            - toggle: Interact with object in front (not needed in this environment)
+            - done: Declare task complete (optional)
 
             Output format: Simply output the action name.
             Examples:

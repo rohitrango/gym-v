@@ -50,6 +50,7 @@ class MinigridMultiRoomEnv(Env):
         self._minigrid_env = gym.make(
             "MiniGrid-MultiRoom-N6-v0",
             render_mode="rgb_array",
+            agent_pov=True,
             max_steps=max_episode_steps,
             tile_size=tile_size,
         )
@@ -70,7 +71,18 @@ class MinigridMultiRoomEnv(Env):
             You are in a multi-room environment. Your goal is to navigate through multiple rooms to reach the goal.
             Some rooms may be connected by doors that you need to open or unlock.
 
-            Available actions: left, right, forward, pickup, drop, toggle, done
+            IMPORTANT: You can only see a 7x7 grid in front of you (first-person view).
+            Walls and closed doors block your vision. You cannot see behind you or outside your field of view.
+            You need to explore by turning and moving to find the rooms and the goal.
+
+            Available actions:
+            - left: Turn left 90 degrees (stay in place, only change facing direction)
+            - right: Turn right 90 degrees (stay in place, only change facing direction)
+            - forward: Move forward one cell in the direction you're facing
+            - pickup: Pick up objects like keys (use when facing an object)
+            - drop: Drop the object you're carrying (rarely needed)
+            - toggle: Interact with object in front (use on doors to unlock/open them)
+            - done: Declare task complete (optional)
 
             Output format: Simply output the action name.
             Examples:

@@ -42,6 +42,7 @@ class MinigridFourRoomsEnv(Env):
         self._minigrid_env = gym.make(
             "MiniGrid-FourRooms-v0",
             render_mode="rgb_array",
+            agent_pov=True,
             max_steps=max_episode_steps,
             tile_size=tile_size,
         )
@@ -62,7 +63,16 @@ class MinigridFourRoomsEnv(Env):
             You are in a classic four rooms environment. The rooms are connected by gaps in the walls.
             Your goal is to navigate through the rooms to reach the green goal square.
 
-            Available actions: left, right, forward, toggle, done
+            IMPORTANT: You can only see a 7x7 grid in front of you (first-person view).
+            Walls block your vision. You cannot see behind you or outside your field of view.
+            You need to explore by turning and moving to find the gaps and the goal.
+
+            Available actions:
+            - left: Turn left 90 degrees (stay in place, only change facing direction)
+            - right: Turn right 90 degrees (stay in place, only change facing direction)
+            - forward: Move forward one cell in the direction you're facing
+            - toggle: Interact with object in front (not needed in this environment)
+            - done: Declare task complete (optional)
 
             Output format: Simply output the action name.
             Examples:

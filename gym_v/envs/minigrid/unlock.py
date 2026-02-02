@@ -42,6 +42,7 @@ class MinigridUnlockEnv(Env):
         self._minigrid_env = gym.make(
             "MiniGrid-Unlock-v0",
             render_mode="rgb_array",
+            agent_pov=True,
             max_steps=max_episode_steps,
             tile_size=tile_size,
         )
@@ -61,7 +62,18 @@ class MinigridUnlockEnv(Env):
         return dedent("""
             You are in a simple room with a locked door. Your task is to unlock the door and reach the goal.
 
-            Available actions: left, right, forward, pickup, drop, toggle, done
+            IMPORTANT: You can only see a 7x7 grid in front of you (first-person view).
+            Walls and closed doors block your vision. You cannot see behind you or outside your field of view.
+            You need to explore by turning and moving to find the door and the goal.
+
+            Available actions:
+            - left: Turn left 90 degrees (stay in place, only change facing direction)
+            - right: Turn right 90 degrees (stay in place, only change facing direction)
+            - forward: Move forward one cell in the direction you're facing
+            - pickup: Pick up objects like keys (use when facing an object)
+            - drop: Drop the object you're carrying (rarely needed)
+            - toggle: Interact with object in front (use on door to unlock/open it)
+            - done: Declare task complete (optional)
 
             Output format: Simply output the action name.
             Examples:

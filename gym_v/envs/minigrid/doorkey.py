@@ -44,6 +44,7 @@ class MinigridDoorKeyEnv(Env):
         self._minigrid_env = gym.make(
             f"MiniGrid-DoorKey-{size}x{size}-v0",
             render_mode="rgb_array",
+            agent_pov=True,
             max_steps=max_episode_steps,
             tile_size=tile_size,
         )
@@ -67,7 +68,18 @@ class MinigridDoorKeyEnv(Env):
             3. Walk through the door
             4. Reach the green goal square
 
-            Available actions: left, right, forward, pickup, drop, toggle, done
+            IMPORTANT: You can only see a 7x7 grid in front of you (first-person view).
+            Walls and closed doors block your vision. You cannot see behind you or outside your field of view.
+            You need to explore by turning and moving to find the key and the door.
+
+            Available actions:
+            - left: Turn left 90 degrees (stay in place, only change facing direction)
+            - right: Turn right 90 degrees (stay in place, only change facing direction)
+            - forward: Move forward one cell in the direction you're facing
+            - pickup: Pick up the object in front of you (use this to pick up the key)
+            - drop: Drop the object you're carrying (rarely needed)
+            - toggle: Interact with object in front (use on door to unlock/open it when holding key)
+            - done: Declare task complete (optional)
 
             Output format: Simply output the action name.
             Examples:

@@ -44,6 +44,7 @@ class MinigridLavaGapEnv(Env):
         self._minigrid_env = gym.make(
             f"MiniGrid-LavaGapS{size}-v0",
             render_mode="rgb_array",
+            agent_pov=True,
             max_steps=max_episode_steps,
             tile_size=tile_size,
         )
@@ -64,7 +65,16 @@ class MinigridLavaGapEnv(Env):
             You are in a room with a gap filled with lava. Your goal is to cross the lava gap and reach the goal square.
             Be careful! If you step on lava, you will die and the episode will end.
 
-            Available actions: left, right, forward, toggle, done
+            IMPORTANT: You can only see a 7x7 grid in front of you (first-person view).
+            Walls block your vision. You cannot see behind you or outside your field of view.
+            Be careful of lava in your field of view - stepping on it will end the episode.
+
+            Available actions:
+            - left: Turn left 90 degrees (stay in place, only change facing direction)
+            - right: Turn right 90 degrees (stay in place, only change facing direction)
+            - forward: Move forward one cell in the direction you're facing (DO NOT step on lava!)
+            - toggle: Interact with object in front (not needed in this environment)
+            - done: Declare task complete (optional)
 
             Output format: Simply output the action name.
             Examples:
