@@ -10,6 +10,7 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation
+from gym_v.envs.rlve.parameter_controllers import get_controller_for_env
 
 
 class RLVEGridBFSEnv(Env):
@@ -30,18 +31,35 @@ The grid is given as follows:
 
     def __init__(
         self,
-        max_n_m: int = 8,
+        max_n_m: int | None = None,
         cell_px: int = 56,
         padding: int = 24,
         num_players: int = 1,
+        difficulty: int | None = None,
         **kwargs: Any,
     ):
-        super().__init__(**kwargs)
-        self._max_n_m = max_n_m
+        super().__init__(difficulty=difficulty, **kwargs)
         self._cell_px = cell_px
         self._padding = padding
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
+
+        # Check if explicit parameters or difficulty is provided
+        self._use_explicit_params = max_n_m is not None
+        self._use_difficulty = difficulty is not None
+
+        self._parameter_controller = get_controller_for_env(
+            self.__class__.__name__,
+            self._difficulty if self._difficulty is not None else 0,
+        )
+
+        if self._use_explicit_params:
+            self._max_n_m = max_n_m
+        elif self._use_difficulty:
+            self._apply_difficulty_parameters()
+        else:
+            # Use original defaults (backward compatibility)
+            self._max_n_m = 8
 
         self._grid: list[list[str]] | None = None
         self._distances: list[list[int]] | None = None
@@ -50,6 +68,12 @@ The grid is given as follows:
         self._prompt: str | None = None
         self._oracle_answer: str | None = None
         self._last_image: Image.Image | None = None
+
+    def _apply_difficulty_parameters(self) -> None:
+        """Apply parameters from the controller."""
+        if self._use_difficulty and self._parameter_controller is not None:
+            params = self._parameter_controller.get_parameters()
+            self._max_n_m = params.get("max_n_m", 8)
 
     @property
     def description(self) -> str:
@@ -233,7 +257,7 @@ The grid is given as follows:
         if not all(len(row) == self._M for row in distance):
             return 0.0
         correct_cells = sum(
-            sum(ans == gold for ans, gold in zip(answer_row, gold_row, strict=False))
+            sum(a == g for a, g in zip(answer_row, gold_row, strict=False))
             for answer_row, gold_row in zip(distance, self._distances, strict=False)
         )
         total_cells = self._N * self._M

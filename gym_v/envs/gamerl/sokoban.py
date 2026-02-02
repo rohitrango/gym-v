@@ -11,6 +11,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from gym_v import Env, Observation, get_logger
+from gym_v.envs.gamerl.parameter_controllers import get_controller_for_env
 from gym_v.envs.gamerl.utils import build_description, score_number_choice
 
 logger = get_logger()
@@ -72,9 +73,10 @@ class GameRLSokobanQAEnv(Env):
     def __init__(
         self,
         question_type: int | None = None,
-        size: int = 5,
+        size: int | None = None,
         num_boxes: int = 1,
         num_players: int = 1,
+        difficulty: int | None = None,
         **kwargs,
     ):
         """Initialize Sokoban QA environment.
@@ -83,26 +85,44 @@ class GameRLSokobanQAEnv(Env):
             question_type: Question type index (0-based, default: random)
             size: Board size (default: 5)
             num_boxes: Number of boxes (default: 1)
+            difficulty: Unified difficulty level (int).
         """
-        super().__init__(**kwargs)
+        super().__init__(difficulty=difficulty, **kwargs)
         self._question_type_param = question_type
         self._question_type_idx: int = 0
-        self._size = size
         self._num_boxes = num_boxes
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
-        # Game state
-        self._grid: np.ndarray = np.zeros((size, size), dtype=int)
-        self._player_x: int = 0
-        self._player_y: int = 0
+        # Check if explicit params or difficulty is provided
+        self._use_explicit_params = size is not None
+        self._use_difficulty = difficulty is not None
 
-        # Question data (standard QA variables)
-        self._question: str = ""
-        self._options: list[str] | None = None
-        self._oracle_answer: str = ""
-        self._analysis: str = ""
-        self._selected_question_type: str = ""
+        self._parameter_controller = get_controller_for_env(
+            self.__class__.__name__,
+            self._difficulty if self._difficulty is not None else 0,
+        )
+
+        # Initialize size based on priority
+        if self._use_explicit_params:
+            self._size = size
+        elif self._use_difficulty:
+            self._apply_difficulty_parameters()
+        else:
+            self._size = 5
+
+    def _apply_difficulty_parameters(self) -> None:
+        """Apply parameters from the controller."""
+        if self._use_difficulty and self._parameter_controller is not None:
+            params = self._parameter_controller.get_parameters()
+            if "level" in params:
+                # Map level to size: level 1-5 -> size 5, level 6-10 -> size 6, etc.
+                level = params["level"]
+                self._size = 5 + (level - 1) // 5
+            else:
+                self._size = 5
+        else:
+            self._size = 5
 
     GAME_RULES = dedent("""
         Sokoban Game Rules:

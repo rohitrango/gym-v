@@ -10,6 +10,7 @@ from PIL import Image, ImageDraw, ImageFont
 from reasoning_gym.factory import create_dataset
 
 from gym_v import Env, Observation, get_logger
+from gym_v.envs.reasongym.parameter_controllers import get_controller_for_env
 
 logger = get_logger()
 
@@ -50,22 +51,40 @@ class ReasoningGymTowerOfHanoiEnv(Env):
         peg_height: int = 250,
         padding: int = 40,
         num_players: int = 1,
+        difficulty: int | None = None,
         **kwargs: Any,
     ):
-        super().__init__(**kwargs)
-        self._dataset_kwargs = dataset_kwargs or {}
+        super().__init__(difficulty=difficulty, **kwargs)
         self._peg_width = peg_width
         self._peg_height = peg_height
         self._padding = padding
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
-        self._seed: int | None = None
-        self._dataset = None
-        self._entry: dict[str, Any] | None = None
-        self._entry_idx: int | None = None
-        self._metadata: dict[str, Any] | None = None
-        self._oracle_answer: str | None = None
+        # Check if explicit params or difficulty is provided
+        self._use_explicit_params = dataset_kwargs is not None
+        self._use_difficulty = difficulty is not None
+
+        self._parameter_controller = get_controller_for_env(
+            self.__class__.__name__,
+            self._difficulty if self._difficulty is not None else 0,
+        )
+
+        # Initialize dataset_kwargs based on priority
+        if self._use_explicit_params:
+            self._dataset_kwargs = dataset_kwargs
+        elif self._use_difficulty:
+            self._apply_difficulty_parameters()
+        else:
+            self._dataset_kwargs = {}
+
+    def _apply_difficulty_parameters(self) -> None:
+        """Apply parameters from the controller."""
+        if self._use_difficulty and self._parameter_controller is not None:
+            params = self._parameter_controller.get_parameters()
+            self._dataset_kwargs = params.get("dataset_kwargs", {})
+        else:
+            self._dataset_kwargs = {}
 
     @property
     def description(self) -> str:

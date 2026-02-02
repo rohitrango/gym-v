@@ -62,6 +62,10 @@ class Env:
     - reset(seed, options): Reset environment, return (observation, info)
     - render(): Render the environment
     - close(): Clean up resources
+
+    Difficulty control:
+    - difficulty: Property to get/set the current difficulty level
+    - set_difficulty(level): Set difficulty and trigger parameter updates
     """
 
     metadata: dict[str, Any] = dict()
@@ -72,13 +76,25 @@ class Env:
 
     _agent_ids: set[str] = {"agent_0"}
 
-    def __init__(self, max_episode_steps: int | None = None):
+    def __init__(
+        self,
+        max_episode_steps: int | None = None,
+        difficulty: int | None = None,
+    ):
         super().__init__()
+        if difficulty is not None and not isinstance(difficulty, int):
+            raise TypeError(
+                f"difficulty must be an int or None, got {type(difficulty).__name__}"
+            )
+        if difficulty is not None and difficulty < 0:
+            raise ValueError(f"Difficulty must be non-negative, got {difficulty}")
         if max_episode_steps is not None and max_episode_steps > 0:
             self._max_episode_steps = max_episode_steps
         else:
             self._max_episode_steps = float("inf")
         self._current_episode_steps = 0
+        self._difficulty = difficulty
+        self._parameter_controller = None
 
     @property
     def description(self) -> str:
@@ -179,6 +195,50 @@ class Env:
         self._np_random = value
         self._np_random_seed = -1
 
+    @property
+    def difficulty(self) -> int | None:
+        """Returns the environment's current difficulty level."""
+        return self._difficulty
+
+    def set_difficulty(self, difficulty: int) -> None:
+        """Set the difficulty level and update parameters.
+
+        Args:
+            difficulty: Non-negative integer difficulty level.
+
+        Raises:
+            ValueError: If difficulty is negative.
+        """
+        if difficulty < 0:
+            raise ValueError(f"Difficulty must be non-negative, got {difficulty}")
+        self._difficulty = difficulty
+        if hasattr(self, "_use_difficulty"):
+            self._use_difficulty = True
+        self._on_difficulty_changed(difficulty)
+
+    def _on_difficulty_changed(self, difficulty: int) -> None:
+        """Hook called when difficulty changes.
+
+        Updates the parameter controller if one is configured.
+        Subclasses can override for custom behavior.
+
+        Args:
+            difficulty: The new difficulty level.
+        """
+        if getattr(self, "_use_explicit_params", False):
+            return
+        if self._parameter_controller is not None:
+            self._parameter_controller.reset_to_difficulty(difficulty)
+            self._apply_difficulty_parameters()
+
+    def _apply_difficulty_parameters(self) -> None:
+        """Apply parameters from the controller to this environment.
+
+        Subclasses should override this to apply controller parameters
+        to their specific attributes.
+        """
+        pass
+
     def __str__(self) -> str:
         """Returns a string of the environment with `spec` id's if `spec."""
         if self.spec is None:
@@ -264,6 +324,15 @@ class Wrapper(Env):
     def np_random_seed(self) -> int | None:
         """Returns the base environment's `np_random_seed`."""
         return self.env.np_random_seed
+
+    @property
+    def difficulty(self) -> int | None:
+        """Returns the base environment's difficulty level."""
+        return self.env.difficulty
+
+    def set_difficulty(self, difficulty: int) -> None:
+        """Sets the difficulty level on the base environment."""
+        self.env.set_difficulty(difficulty)
 
     @property
     def unwrapped(self) -> Env:

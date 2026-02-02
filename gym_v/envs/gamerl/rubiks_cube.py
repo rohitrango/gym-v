@@ -11,6 +11,7 @@ import numpy as np
 from PIL import Image
 
 from gym_v import Env, Observation, get_logger
+from gym_v.envs.gamerl.parameter_controllers import get_controller_for_env
 from gym_v.envs.gamerl.utils import build_description, score_exact
 
 logger = get_logger()
@@ -88,34 +89,42 @@ class GameRLRubiksCubeQAEnv(Env):
         num_moves: int | None = None,
         question_type: int | None = None,
         num_players: int = 1,
+        difficulty: int | None = None,
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(difficulty=difficulty, **kwargs)
 
-        if num_moves is None:
-            num_moves = random.randint(1, 3)
-
-        self._num_moves = num_moves
         self._question_type_param = question_type
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
-        # Initialize cube - each face is 3x3 array
-        # U=yellow(0), D=white(1), L=orange(2), R=red(3), F=blue(4), B=green(5)
-        self._faces = {
-            "U": np.zeros((3, 3), dtype=int),
-            "D": np.ones((3, 3), dtype=int),
-            "L": np.full((3, 3), 2, dtype=int),
-            "R": np.full((3, 3), 3, dtype=int),
-            "F": np.full((3, 3), 4, dtype=int),
-            "B": np.full((3, 3), 5, dtype=int),
-        }
+        # Check if explicit params or difficulty is provided
+        self._use_explicit_params = num_moves is not None
+        self._use_difficulty = difficulty is not None
 
-        # Standard QA variables
-        self._question_type_idx: int = 0
-        self._question: str = ""
-        self._options: list[str] | None = None
-        self._oracle_answer: str = ""
+        self._parameter_controller = get_controller_for_env(
+            self.__class__.__name__,
+            self._difficulty if self._difficulty is not None else 0,
+        )
+
+        # Initialize num_moves based on priority
+        if self._use_explicit_params:
+            self._num_moves = num_moves
+        elif self._use_difficulty:
+            self._apply_difficulty_parameters()
+        else:
+            self._num_moves = random.randint(1, 3)
+
+    def _apply_difficulty_parameters(self) -> None:
+        """Apply parameters from the controller."""
+        if self._use_difficulty and self._parameter_controller is not None:
+            params = self._parameter_controller.get_parameters()
+            if "scramble_depth" in params:
+                self._num_moves = params["scramble_depth"]
+            else:
+                self._num_moves = random.randint(1, 3)
+        else:
+            self._num_moves = random.randint(1, 3)
 
     @property
     def description(self) -> str:
