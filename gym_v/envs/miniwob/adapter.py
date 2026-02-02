@@ -1,7 +1,4 @@
 """Minimal adapter for BrowserGym MiniWoB environments."""
-import base64
-from io import BytesIO
-
 import gymnasium as gym
 import browsergym.miniwob
 from browsergym.core.action.highlevel import HighLevelActionSet
@@ -133,9 +130,8 @@ Example action sequences:
         - text: List of all visible element IDs
         - metadata: Raw BrowserGym observation (includes goal)
         """
-        # Extract screenshot from base64 data URL
-        screenshot_b64 = bg_obs["screenshot"].split(",")[1]
-        image = Image.open(BytesIO(base64.b64decode(screenshot_b64)))
+        # Extract screenshot from numpy array
+        image = Image.fromarray(bg_obs["screenshot"])
 
         # Build observation text with ALL visible element IDs (no truncation)
         obs_text = ""
