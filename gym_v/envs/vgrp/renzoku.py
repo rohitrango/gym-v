@@ -253,8 +253,8 @@ Example output for a 9×9 puzzle:
             image=self.render(),
             text=None,
             metadata={
-                "text_prompt": self._prompt,
-                "state_text": self._board_to_text_with_hints(),
+                "text_prompt": None,
+                "state_text": None,
                 "size": self._size,
             },
         )
@@ -287,8 +287,8 @@ Example output for a 9×9 puzzle:
             image=self.render(),
             text=None,
             metadata={
-                "text_prompt": self._prompt,
-                "state_text": self._board_to_text_with_hints(),
+                "text_prompt": None,
+                "state_text": None,
                 "size": self._size,
             },
         )

@@ -139,7 +139,12 @@ class SphinxOddOneOutBaseEnv(Env):
         obs = Observation(
             image=self.render(),
             text=None,
-            metadata={"odd_idx": self._odd_idx, **self._get_metadata()},
+            metadata={
+                "text_prompt": None,
+                "state_text": None,
+                "odd_idx": self._odd_idx,
+                **self._get_metadata(),
+            },
         )
         info = {
             "oracle_answer": self._oracle_answer,
@@ -176,6 +181,8 @@ class SphinxOddOneOutBaseEnv(Env):
             image=self.render(),
             text=None,
             metadata={
+                "text_prompt": None,
+                "state_text": None,
                 "odd_idx": self._odd_idx,
                 "user_answer": single_action,
                 "correct": correct,

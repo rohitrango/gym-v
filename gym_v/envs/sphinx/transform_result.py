@@ -145,7 +145,12 @@ class SphinxTransformResultBaseEnv(Env):
         obs = Observation(
             image=self.render(),
             text=None,
-            metadata={"transform": self._correct_transform, **self._get_metadata()},
+            metadata={
+                "text_prompt": None,
+                "state_text": None,
+                "transform": self._correct_transform,
+                **self._get_metadata(),
+            },
         )
         info = {
             "oracle_answer": self._oracle_answer,
@@ -182,6 +187,8 @@ class SphinxTransformResultBaseEnv(Env):
             image=self.render(),
             text=None,
             metadata={
+                "text_prompt": None,
+                "state_text": None,
                 "transform": self._correct_transform,
                 "user_answer": single_action,
                 "correct": correct,

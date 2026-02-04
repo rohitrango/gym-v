@@ -185,6 +185,8 @@ class SphinxSequenceCompletionBaseEnv(Env):
             image=self.render(),
             text=None,
             metadata={
+                "text_prompt": None,
+                "state_text": None,
                 "pattern": self._current_pattern,
                 "correct_idx": self._correct_idx,
                 **self._get_metadata(),
@@ -226,6 +228,8 @@ class SphinxSequenceCompletionBaseEnv(Env):
             image=self.render(),
             text=None,
             metadata={
+                "text_prompt": None,
+                "state_text": None,
                 "pattern": self._current_pattern,
                 "user_answer": single_action,
                 "correct": correct,

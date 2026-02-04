@@ -163,7 +163,12 @@ class SphinxSymmetryFillBaseEnv(Env):
         obs = Observation(
             image=self.render(),
             text=None,
-            metadata={"hidden_idx": self._hidden_idx, **self._get_metadata()},
+            metadata={
+                "text_prompt": None,
+                "state_text": None,
+                "hidden_idx": self._hidden_idx,
+                **self._get_metadata(),
+            },
         )
         info = {
             "oracle_answer": self._oracle_answer,
@@ -200,6 +205,8 @@ class SphinxSymmetryFillBaseEnv(Env):
             image=self.render(),
             text=None,
             metadata={
+                "text_prompt": None,
+                "state_text": None,
                 "user_answer": single_action,
                 "correct": correct,
             },

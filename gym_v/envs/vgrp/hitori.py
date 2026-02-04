@@ -246,8 +246,8 @@ s e e e s e
             image=self.render(),
             text=None,
             metadata={
-                "text_prompt": self._prompt,
-                "state_text": self._board_to_text_numbers(),
+                "text_prompt": None,
+                "state_text": None,
                 "size": self._size,
             },
         )
@@ -280,8 +280,8 @@ s e e e s e
             image=self.render(),
             text=None,
             metadata={
-                "text_prompt": self._prompt,
-                "state_text": self._board_to_text_numbers(),
+                "text_prompt": None,
+                "state_text": None,
                 "size": self._size,
             },
         )

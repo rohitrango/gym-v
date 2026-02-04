@@ -244,8 +244,8 @@ b w w b
             image=self.render(),
             text=None,
             metadata={
-                "text_prompt": self._prompt,
-                "state_text": puzzle_text,
+                "text_prompt": None,
+                "state_text": None,
                 "size": self._size,
                 "num_hints": self._num_hints,
             },
@@ -280,8 +280,8 @@ b w w b
             image=self.render(),
             text=None,
             metadata={
-                "text_prompt": self._prompt,
-                "state_text": self._board_to_text(self._puzzle_board),
+                "text_prompt": None,
+                "state_text": None,
                 "size": self._size,
             },
         )
