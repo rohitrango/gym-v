@@ -1,1 +1,0 @@
-"""MiniWoB environments from BrowserGym."""

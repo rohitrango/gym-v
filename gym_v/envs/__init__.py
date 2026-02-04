@@ -2480,25 +2480,6 @@ register(
     kwargs=dict(),
 )
 
-# MiniWoB environments (from BrowserGym)
-# MiniWoB++ is a benchmark suite of 125 web interaction tasks
-# All tasks are registered automatically from the tasks configuration
-from gym_v.envs.miniwob.tasks import MINIWOB_TASKS
-
-for task_name, config in MINIWOB_TASKS.items():
-    # Convert task-name to TaskName format for environment ID
-    env_name = "".join(word.capitalize() for word in task_name.split("-"))
-    register(
-        id=f"MiniWoB/{env_name}-v0",
-        entry_point="gym_v.envs.miniwob.adapter:MiniWoBAdapter",
-        max_episode_steps=config["max_steps"],
-        kwargs=dict(
-            task_name=task_name,
-            action_subsets=config["actions"],
-            headless=True,
-            num_players=1,
-        ),
-    )
 
 # MiniWorld environments (3D navigation)
 # These require miniworld to be installed: uv sync --extra miniworld
