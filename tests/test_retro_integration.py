@@ -5,10 +5,12 @@ from __future__ import annotations
 from pathlib import Path
 import unittest
 
-import stable_retro
+import pytest
 
-import gym_v
-from gym_v.envs.stable_retro import RetroGymVEnv
+stable_retro = pytest.importorskip("stable_retro")
+
+import gym_v  # noqa: E402
+from gym_v.envs.multi_turn.temporal.retro_env import RetroGymVEnv  # noqa: E402
 
 
 def rom_available(game: str) -> bool:
@@ -34,7 +36,7 @@ class TestRetroModuleImport(unittest.TestCase):
 
     def test_env_registered(self) -> None:
         """Test that Retro environments are registered in gym_v."""
-        self.assertIn("Retro/Airstriker-v0", gym_v.registry)
+        self.assertIn("Temporal/Airstriker-v0", gym_v.registry)
 
 
 @unittest.skipUnless(ROM_AVAILABLE, f"ROM not available for {TEST_GAME}")
@@ -165,7 +167,7 @@ class TestRetroIntegration(unittest.TestCase):
 
     def test_retro_env_via_make(self) -> None:
         """Test creating environment via gym_v.make."""
-        env = gym_v.make("Retro/Airstriker-v0")
+        env = gym_v.make("Temporal/Airstriker-v0")
 
         obs_dict, _ = env.reset(seed=42)
         self.assertIn("agent_0", obs_dict)

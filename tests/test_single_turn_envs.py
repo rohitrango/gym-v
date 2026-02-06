@@ -1,7 +1,7 @@
 """Unified tests for all single-turn gym-v environments.
 
 This module consolidates tests for single-turn Q&A and puzzle environments across
-multiple benchmark suites: ReasoningGym, GameRL, Perception, VGRP, Sphinx, and RLVE.
+8 categories: Arc, Algorithmic, Cognition, Geometry, Graphs, Logic, Puzzles, Perception.
 
 All environments follow the multi-agent dictionary interface with max_episode_steps=1.
 Tests verify image generation, oracle answer validity, and reward grading for both
@@ -19,63 +19,146 @@ import unittest
 import gym_v
 from gym_v.core import Observation
 
-# Environment registries organized by benchmark suite
-REASONING_GYM_ENVS = {
-    "ReasoningGym/Arc1D-v0": "arc1_d",
-    "ReasoningGym/BinaryMatrix-v0": "binary_matrix",
-    "ReasoningGym/CircuitLogic-v0": "circuit_logic",
-    "ReasoningGym/GameOfLife-v0": "game_of_life",
-    "ReasoningGym/Kakurasu-v0": "kakurasu",
-    "ReasoningGym/KnightSwap-v0": "knight_swap",
-    "ReasoningGym/LargestIsland-v0": "largest_island",
-    "ReasoningGym/Maze-v0": "maze",
-    "ReasoningGym/MiniSudoku-v0": "mini_sudoku",
-    "ReasoningGym/NQueens-v0": "n_queens",
-    "ReasoningGym/RectangleCount-v0": "rectangle_count",
-    "ReasoningGym/RotateMatrix-v0": "rotate_matrix",
-    "ReasoningGym/RottenOranges-v0": "rotten_oranges",
-    "ReasoningGym/ShortestPath-v0": "shortest_path",
-    "ReasoningGym/SpiralMatrix-v0": "spiral_matrix",
-    "ReasoningGym/Sudoku-v0": "sudoku",
-    "ReasoningGym/Survo-v0": "survo",
-    "ReasoningGym/TowerOfHanoi-v0": "tower_of_hanoi",
-    "ReasoningGym/Tsumego-v0": "tsumego",
+# Environment IDs that were originally from RLVE
+# RLVE environments use unified reward scheme: correct=1.0, wrong=0.0
+RLVE_SOURCE_ENVS = {
+    # Algorithmic
+    "Algorithmic/AdditionTable-v0",
+    "Algorithmic/BinaryTreeLeafNumExpectation-v0",
+    "Algorithmic/CardColoringCounting-v0",
+    "Algorithmic/CirculatingGrid-v0",
+    "Algorithmic/CoinSquareGame-v0",
+    "Algorithmic/ColoringCounting-v0",
+    "Algorithmic/FaceRightWay-v0",
+    "Algorithmic/GraMinimaGame-v0",
+    "Algorithmic/GridBFS-v0",
+    "Algorithmic/GridLocalMinimumCounting-v0",
+    "Algorithmic/GridTriangleCounting-v0",
+    "Algorithmic/LandformGenerationCounting-v0",
+    "Algorithmic/MatrixPermutationBothDiagonalOne-v0",
+    "Algorithmic/MatrixPermutationMainDiagonalOne-v0",
+    "Algorithmic/MatrixPooling-v0",
+    "Algorithmic/MaxGridPathIntersection-v0",
+    "Algorithmic/MoneyChargingGame-v0",
+    "Algorithmic/MonochromeBlockCounting-v0",
+    "Algorithmic/NewNimGame-v0",
+    "Algorithmic/StoneGame-v0",
+    "Algorithmic/StoneIntervalsGame-v0",
+    "Algorithmic/WarehouseConstruction-v0",
+    "Algorithmic/WhackAMole-v0",
+    # Geometry
+    "Geometry/ConvexHull-v0",
+    "Geometry/LargestConvexPolygon-v0",
+    "Geometry/LargestRectangleAmongPoints-v0",
+    "Geometry/PipelineArrangement-v0",
+    "Geometry/SkaRockGarden-v0",
+    "Geometry/SmallestCircle-v0",
+    "Geometry/SumTriangleArea-v0",
+    "Geometry/VisibleLine-v0",
+    # Graphs
+    "Graphs/FbiBinaryTree-v0",
+    "Graphs/GraphContainTreeCounting-v0",
+    "Graphs/GraphIsomorphism-v0",
+    "Graphs/GridComponent-v0",
+    "Graphs/HamiltonianPath-v0",
+    "Graphs/HamiltonianPathExistence-v0",
+    "Graphs/LongestPath-v0",
+    "Graphs/MaximumAchromaticNumber-v0",
+    "Graphs/MaximumClique-v0",
+    "Graphs/MaximumIndependentSetGrid-v0",
+    "Graphs/MaximumIndependentSetTree-v0",
+    "Graphs/MaximumWeightMatching-v0",
+    "Graphs/MinimumChromaticNumber-v0",
+    "Graphs/MinimumDirectedSpanningTree-v0",
+    "Graphs/MinimumDominatingSetGrid-v0",
+    "Graphs/MinimumSpanningTreeCounting-v0",
+    "Graphs/MinimumWeightedSpanningTree-v0",
+    "Graphs/MixedGraphEulerianCircuit-v0",
+    "Graphs/Patrol-v0",
+    "Graphs/SpyNetwork-v0",
+    "Graphs/TreeAddOneEdgeDiameter-v0",
+    "Graphs/TreeCenter-v0",
+    "Graphs/TreeChangeOneEdgeDiameter-v0",
+    "Graphs/TreeColoring-v0",
+    "Graphs/TreeDistanceEqualTriadCounting-v0",
+    "Graphs/TreeEvenPartitioning-v0",
+    "Graphs/TreeTopologicalSequenceCounting-v0",
+    "Graphs/WeightedBinarytree-v0",
+    # Logic (constraint satisfaction, moved from Puzzles)
+    "Logic/BinarioNoAdjacencyRequirement-v0",
+    "Logic/CampsitePuzzle-v0",
+    "Logic/GridParityConstruction-v0",
+    "Logic/HitoriPuzzle-v0",
+    "Logic/MagicSquarePuzzle-v0",
+    "Logic/Numbrix-v0",
+    "Logic/SkyscraperPuzzle-v0",
+    "Logic/SkyscraperSumPuzzle-v0",
+    # Puzzles
+    "Puzzles/EightDigitPuzzle-v0",
+    "Puzzles/JugPuzzle-v0",
+    "Puzzles/KloBlocks-v0",
+    "Puzzles/NinePuzzle-v0",
+    "Puzzles/TetrisAttack-v0",
+    "Puzzles/TwiddlePuzzle-v0",
 }
 
-GAMERL_ENVS = {
-    "GameRL/3DReconstruction-QA-v0": "3_d_reconstruction_qa",
-    "GameRL/ChessRanger-QA-v0": "chess_ranger_qa",
-    "GameRL/Freecell-QA-v0": "freecell_qa",
-    "GameRL/Hue-QA-v0": "hue_qa",
-    "GameRL/Jewel2-QA-v0": "jewel2_qa",
-    "GameRL/Klondike-QA-v0": "klondike_qa",
-    "GameRL/LangtonAnt-QA-v0": "langton_ant_qa",
-    "GameRL/Lifegame-QA-v0": "lifegame_qa",
-    "GameRL/Maze-QA-v0": "maze_qa",
-    "GameRL/Maze3D-QA-v0": "maze3_d_qa",
-    "GameRL/Minecraft-QA-v0": "minecraft_qa",
-    "GameRL/Minesweeper-QA-v0": "minesweeper_qa",
-    "GameRL/Pacman-QA-v0": "pacman_qa",
-    "GameRL/PyramidChess-QA-v0": "pyramid_chess_qa",
-    "GameRL/RhythmGame-QA-v0": "rhythm_game_qa",
-    "GameRL/RubiksCube-QA-v0": "rubiks_cube_qa",
-    "GameRL/Snake-QA-v0": "snake_qa",
-    "GameRL/Sokoban-QA-v0": "sokoban_qa",
-    "GameRL/SpaceInvaders-QA-v0": "space_invaders_qa",
-    "GameRL/SpiderSolitaire-QA-v0": "spider_solitaire_qa",
-    "GameRL/StarBattle-QA-v0": "star_battle_qa",
-    "GameRL/Sudoku-QA-v0": "sudoku_qa",
-    "GameRL/Tangram-QA-v0": "tangram_qa",
-    "GameRL/Tents-QA-v0": "tents_qa",
-    "GameRL/Tetris-QA-v0": "tetris_qa",
-    "GameRL/TicTacToe-QA-v0": "tic_tac_toe_qa",
-    "GameRL/TuringMachine2d-QA-v0": "turing_machine2d_qa",
-    "GameRL/UltraTicTacToe-QA-v0": "ultra_tic_tac_toe_qa",
-    "GameRL/WordSearch-QA-v0": "word_search_qa",
-    "GameRL/Zuma-QA-v0": "zuma_qa",
+# Environments organized by source and new category
+
+# ReasoningGym sourced environments
+ENVS_FROM_RG = {
+    "Arc/Arc1D-v0": "arc_1d",
+    "Algorithmic/BinaryMatrix-v0": "binary_matrix",
+    "Algorithmic/GameOfLife-v0": "game_of_life",
+    "Algorithmic/RotateMatrix-v0": "rotate_matrix",
+    "Algorithmic/RottenOranges-v0": "rotten_oranges",
+    "Algorithmic/SpiralMatrix-v0": "spiral_matrix",
+    "Cognition/RectangleCount-v0": "rectangle_count",
+    "Graphs/LargestIsland-v0": "largest_island",
+    "Graphs/ShortestPath-v0": "shortest_path",
+    "Logic/CircuitLogic-v0": "circuit_logic",
+    "Logic/Kakurasu-v0": "kakurasu",
+    "Puzzles/KnightSwap-v0": "knight_swap",
+    "Puzzles/Maze-v0": "maze",
+    "Logic/MiniSudoku-v0": "mini_sudoku",
+    "Logic/NQueens-v0": "n_queens",
+    "Logic/Survo-v0": "survo",
+    "Puzzles/TowerOfHanoi-v0": "tower_of_hanoi",
+    "Puzzles/Tsumego-v0": "tsumego",
 }
 
-PERCEPTION_ENVS = {
+# GameRL sourced environments
+ENVS_FROM_GRL = {
+    "Algorithmic/LangtonAnt-QA-v0": "langton_ant_qa",
+    "Algorithmic/Lifegame-QA-v0": "lifegame_qa",
+    "Algorithmic/TuringMachine2d-QA-v0": "turing_machine2d_qa",
+    "Cognition/Hue-QA-v0": "hue_qa",
+    "Cognition/Maze3D-QA-v0": "maze3d_qa",
+    "Cognition/RubiksCube-QA-v0": "rubiks_cube_qa",
+    "Geometry/Tangram-QA-v0": "tangram_qa",
+    "Logic/StarBattle-QA-v0": "star_battle_qa",
+    "Logic/Tents-QA-v0": "tents_qa",
+    "Perception/3DReconstruction-QA-v0": "threed_reconstruction_qa",
+    "Puzzles/ChessRanger-QA-v0": "chess_ranger_qa",
+    "Puzzles/Freecell-QA-v0": "freecell_qa",
+    "Puzzles/Jewel2-QA-v0": "jewel2_qa",
+    "Puzzles/Klondike-QA-v0": "klondike_qa",
+    "Puzzles/Maze-QA-v0": "maze_qa",
+    "Puzzles/Pacman-QA-v0": "pacman_qa",
+    "Puzzles/PyramidChess-QA-v0": "pyramid_chess_qa",
+    "Puzzles/RhythmGame-QA-v0": "rhythm_game_qa",
+    "Puzzles/Snake-QA-v0": "snake_qa",
+    "Puzzles/Sokoban-QA-v0": "sokoban_qa",
+    "Puzzles/SpaceInvaders-QA-v0": "space_invaders_qa",
+    "Puzzles/SpiderSolitaire-QA-v0": "spider_solitaire_qa",
+    "Puzzles/Tetris-QA-v0": "tetris_qa",
+    "Puzzles/TicTacToe-QA-v0": "tic_tac_toe_qa",
+    "Puzzles/UltraTicTacToe-QA-v0": "ultra_tic_tac_toe_qa",
+    "Puzzles/WordSearch-QA-v0": "word_search_qa",
+    "Puzzles/Zuma-QA-v0": "zuma_qa",
+}
+
+# Perception dataset sourced environments
+ENVS_FROM_PERCEPTION = {
     "Perception/ChartToTable-v0": "chart_to_table",
     "Perception/ContourPlot-v0": "contour_plot",
     "Perception/DAGToTopoOrder-v0": "dag_to_topo_order",
@@ -89,229 +172,203 @@ PERCEPTION_ENVS = {
     "Perception/VectorField-v0": "vector_field",
 }
 
-VGRP_ENVS = {
-    "VGRP/Battleships-v0": "battleships",
-    "VGRP/Binairo-v0": "binairo",
-    "VGRP/Futoshiki-v0": "futoshiki",
-    "VGRP/Hitori-v0": "hitori",
-    "VGRP/Renzoku-v0": "renzoku",
-    "VGRP/StarBattle-v0": "star_battle",
-    "VGRP/Thermometers-v0": "thermometers",
+# VGRP sourced environments
+ENVS_FROM_VGRP = {
+    "Logic/Battleships-v0": "battleships",
+    "Logic/Binairo-v0": "binairo",
+    "Logic/Futoshiki-v0": "futoshiki",
+    "Logic/Hitori-v0": "hitori",
+    "Logic/Renzoku-v0": "renzoku",
+    "Logic/StarBattle-v0": "starbattle",
+    "Logic/Thermometers-v0": "thermometers",
 }
 
-SPHINX_ENVS = {
-    "Sphinx/OddOneOut-v0": "odd_one_out",
-    "Sphinx/OddOneOutPoly-v0": "odd_one_out_poly",
-    "Sphinx/SequenceCompletion-v0": "sequence_completion",
-    "Sphinx/SequenceCompletionPoly-v0": "sequence_completion_poly",
-    "Sphinx/SymmetryFill-v0": "symmetry_fill",
-    "Sphinx/SymmetryFillPoly-v0": "symmetry_fill_poly",
-    "Sphinx/TransformResult-v0": "transform_result",
-    "Sphinx/TransformResultPoly-v0": "transform_result_poly",
+# Sphinx sourced environments (now in Cognition)
+ENVS_FROM_SPHINX = {
+    "Cognition/OddOneOutPoly-v0": "odd_one_out_poly",
+    "Cognition/SequenceCompletionPoly-v0": "sequence_completion_poly",
+    "Cognition/SymmetryFillPoly-v0": "symmetry_fill_poly",
+    "Cognition/TransformResultPoly-v0": "transform_result_poly",
 }
 
-RLVE_ENVS = {
-    "RLVE/AdditionTable-v0": "addition_table",
-    "RLVE/BinaryTreeLeafNumExpectation-v0": "binary_tree_leaf_num_expectation",
-    "RLVE/BinarioNoAdjacencyRequirement-v0": "binario_no_adjacency_requirement",
-    "RLVE/FbiBinaryTree-v0": "fbi_binary_tree",
-    "RLVE/BlockImage-v0": "block_image",
-    "RLVE/CampsitePuzzle-v0": "campsite_puzzle",
-    "RLVE/CardColoringCounting-v0": "card_coloring_counting",
-    "RLVE/CirculatingGrid-v0": "circulating_grid",
-    "RLVE/CoinSquareGame-v0": "coin_square_game",
-    "RLVE/ColoringCounting-v0": "coloring_counting",
-    "RLVE/ConvexHull-v0": "convex_hull",
-    "RLVE/EightDigitPuzzle-v0": "eight_digit_puzzle",
-    "RLVE/FaceRightWay-v0": "face_right_way",
-    "RLVE/GraMinimaGame-v0": "gra_minima_game",
-    "RLVE/GraphContainTreeCounting-v0": "graph_contain_tree_counting",
-    "RLVE/GridBFS-v0": "grid_bfs",
-    "RLVE/GridComponent-v0": "grid_component",
-    "RLVE/GridLocalMinimumCounting-v0": "grid_local_minimum_counting",
-    "RLVE/GridParityConstruction-v0": "grid_parity_construction",
-    "RLVE/GridTriangleCounting-v0": "grid_triangle_counting",
-    "RLVE/HamiltonianPath-v0": "hamiltonian_path",
-    "RLVE/HamiltonianPathExistence-v0": "hamiltonian_path_existence",
-    "RLVE/HitoriPuzzle-v0": "hitori_puzzle",
-    "RLVE/JugPuzzle-v0": "jug_puzzle",
-    "RLVE/KloBlocks-v0": "klo_blocks",
-    "RLVE/LandformGenerationCounting-v0": "landform_generation_counting",
-    "RLVE/LargestConvexPolygon-v0": "largest_convex_polygon",
-    "RLVE/LargestRectangleAmongPoints-v0": "largest_rectangle_among_points",
-    "RLVE/SkyscraperPuzzle-v0": "skyscraper_puzzle",
-    "RLVE/SkyscraperSumPuzzle-v0": "skyscraper_sum_puzzle",
-    "RLVE/SumTriangleArea-v0": "sum_triangle_area",
-    "RLVE/SumManhattanCurvedSurface-v0": "sum_manhattan_curved_surface",
-    "RLVE/LongestPath-v0": "longest_path",
-    "RLVE/MaximumAchromaticNumber-v0": "maximum_achromatic_number",
-    "RLVE/MaximumIndependentSetGrid-v0": "maximum_independent_set_grid",
-    "RLVE/MaximumIndependentSetTree-v0": "maximum_independent_set_tree",
-    "RLVE/MaximumWeightMatching-v0": "maximum_weight_matching",
-    "RLVE/MinimumChromaticNumber-v0": "minimum_chromatic_number",
-    "RLVE/MinimumDirectedSpanningTree-v0": "minimum_directed_spanning_tree",
-    "RLVE/MinimumDominatingSetGrid-v0": "minimum_dominating_set_grid",
-    "RLVE/MinimumSpanningTreeCounting-v0": "minimum_spanning_tree_counting",
-    "RLVE/MinimumWeightedSpanningTree-v0": "minimum_weighted_spanning_tree",
-    "RLVE/MixedGraphEulerianCircuit-v0": "mixed_graph_eulerian_circuit",
-    "RLVE/MonochromeBlockCounting-v0": "monochrome_block_counting",
-    "RLVE/NinePuzzle-v0": "nine_puzzle",
-    "RLVE/Numbrix-v0": "numbrix",
-    "RLVE/PipelineArrangement-v0": "pipeline_arrangement",
-    "RLVE/MagicSquarePuzzle-v0": "magic_square_puzzle",
-    "RLVE/MatrixPermutationBothDiagonalOne-v0": "matrix_permutation_both_diagonal_one",
-    "RLVE/MatrixPermutationMainDiagonalOne-v0": "matrix_permutation_main_diagonal_one",
-    "RLVE/MatrixPooling-v0": "matrix_pooling",
-    "RLVE/MatrixRmqCounting-v0": "matrix_rmq_counting",
-    "RLVE/MaxGridPathIntersection-v0": "max_grid_path_intersection",
-    "RLVE/MoneyChargingGame-v0": "money_charging_game",
-    "RLVE/SmallestCircle-v0": "smallest_circle",
-    "RLVE/TreeCenter-v0": "tree_center",
-    "RLVE/TreeAddOneEdgeDiameter-v0": "tree_add_one_edge_diameter",
-    "RLVE/TreeChangeOneEdgeDiameter-v0": "tree_change_one_edge_diameter",
-    "RLVE/TreeColoring-v0": "tree_coloring",
-    "RLVE/TreeDistanceEqualTriadCounting-v0": "tree_distance_equal_triad_counting",
-    "RLVE/TreeEvenPartitioning-v0": "tree_even_partitioning",
-    "RLVE/TreeTopologicalSequenceCounting-v0": "tree_topological_sequence_counting",
-    "RLVE/TetrisAttack-v0": "tetris_attack",
-    "RLVE/TwiddlePuzzle-v0": "twiddle_puzzle",
-    "RLVE/WarehouseConstruction-v0": "warehouse_construction",
-    "RLVE/WeightedBinarytree-v0": "weighted_binarytree",
-    "RLVE/WhackAMole-v0": "whack_a_mole",
-    "RLVE/NewNimGame-v0": "new_nim_game",
-    "RLVE/Patrol-v0": "patrol",
-    "RLVE/StoneGame-v0": "stone_game",
-    "RLVE/StoneIntervalsGame-v0": "stone_intervals_game",
-    "RLVE/VisibleLine-v0": "visible_line",
-    "RLVE/SkaRockGarden-v0": "ska_rock_garden",
-    "RLVE/SpyNetwork-v0": "spy_network",
+# RLVE sourced environments
+ENVS_FROM_RLVE = {
+    # Algorithmic
+    "Algorithmic/AdditionTable-v0": "addition_table",
+    "Algorithmic/BinaryTreeLeafNumExpectation-v0": "binary_tree_leaf_num_expectation",
+    "Algorithmic/CardColoringCounting-v0": "card_coloring_counting",
+    "Algorithmic/CirculatingGrid-v0": "circulating_grid",
+    "Algorithmic/CoinSquareGame-v0": "coin_square_game",
+    "Algorithmic/ColoringCounting-v0": "coloring_counting",
+    "Algorithmic/FaceRightWay-v0": "face_right_way",
+    "Algorithmic/GraMinimaGame-v0": "gra_minima_game",
+    "Algorithmic/GridBFS-v0": "grid_bfs",
+    "Algorithmic/GridLocalMinimumCounting-v0": "grid_local_minimum_counting",
+    "Algorithmic/GridTriangleCounting-v0": "grid_triangle_counting",
+    "Algorithmic/LandformGenerationCounting-v0": "landform_generation_counting",
+    "Algorithmic/MatrixPermutationBothDiagonalOne-v0": "matrix_permutation_both_diagonal_one",
+    "Algorithmic/MatrixPermutationMainDiagonalOne-v0": "matrix_permutation_main_diagonal_one",
+    "Algorithmic/MatrixPooling-v0": "matrix_pooling",
+    "Algorithmic/MaxGridPathIntersection-v0": "max_grid_path_intersection",
+    "Algorithmic/MoneyChargingGame-v0": "money_charging_game",
+    "Algorithmic/MonochromeBlockCounting-v0": "monochrome_block_counting",
+    "Algorithmic/NewNimGame-v0": "new_nim_game",
+    "Algorithmic/StoneGame-v0": "stone_game",
+    "Algorithmic/StoneIntervalsGame-v0": "stone_intervals_game",
+    "Algorithmic/WarehouseConstruction-v0": "warehouse_construction",
+    "Algorithmic/WhackAMole-v0": "whack_a_mole",
+    # Geometry
+    "Geometry/ConvexHull-v0": "convex_hull",
+    "Geometry/LargestConvexPolygon-v0": "largest_convex_polygon",
+    "Geometry/LargestRectangleAmongPoints-v0": "largest_rectangle_among_points",
+    "Geometry/PipelineArrangement-v0": "pipeline_arrangement",
+    "Geometry/SkaRockGarden-v0": "ska_rock_garden",
+    "Geometry/SmallestCircle-v0": "smallest_circle",
+    "Geometry/SumTriangleArea-v0": "sum_triangle_area",
+    "Geometry/VisibleLine-v0": "visible_line",
+    # Graphs
+    "Graphs/GraphContainTreeCounting-v0": "graph_contain_tree_counting",
+    "Graphs/GraphIsomorphism-v0": "graph_isomorphism",
+    "Graphs/GridComponent-v0": "grid_component",
+    "Graphs/HamiltonianPath-v0": "hamiltonian_path",
+    "Graphs/HamiltonianPathExistence-v0": "hamiltonian_path_existence",
+    "Graphs/LongestPath-v0": "longest_path",
+    "Graphs/MaximumAchromaticNumber-v0": "maximum_achromatic_number",
+    "Graphs/MaximumClique-v0": "maximum_clique",
+    "Graphs/MaximumIndependentSetGrid-v0": "maximum_independent_set_grid",
+    "Graphs/MaximumIndependentSetTree-v0": "maximum_independent_set_tree",
+    "Graphs/MaximumWeightMatching-v0": "maximum_weight_matching",
+    "Graphs/MinimumChromaticNumber-v0": "minimum_chromatic_number",
+    "Graphs/MinimumDirectedSpanningTree-v0": "minimum_directed_spanning_tree",
+    "Graphs/MinimumDominatingSetGrid-v0": "minimum_dominating_set_grid",
+    "Graphs/MinimumSpanningTreeCounting-v0": "minimum_spanning_tree_counting",
+    "Graphs/MinimumWeightedSpanningTree-v0": "minimum_weighted_spanning_tree",
+    "Graphs/MixedGraphEulerianCircuit-v0": "mixed_graph_eulerian_circuit",
+    "Graphs/Patrol-v0": "patrol",
+    "Graphs/SpyNetwork-v0": "spy_network",
+    "Graphs/TreeAddOneEdgeDiameter-v0": "tree_add_one_edge_diameter",
+    "Graphs/TreeCenter-v0": "tree_center",
+    "Graphs/TreeChangeOneEdgeDiameter-v0": "tree_change_one_edge_diameter",
+    "Graphs/TreeColoring-v0": "tree_coloring",
+    "Graphs/TreeDistanceEqualTriadCounting-v0": "tree_distance_equal_triad_counting",
+    "Graphs/TreeEvenPartitioning-v0": "tree_even_partitioning",
+    "Graphs/TreeTopologicalSequenceCounting-v0": "tree_topological_sequence_counting",
+    "Graphs/FbiBinaryTree-v0": "fbi_binary_tree",
+    "Graphs/WeightedBinarytree-v0": "weighted_binarytree",
+    # Logic (constraint satisfaction, moved from Puzzles)
+    "Logic/BinarioNoAdjacencyRequirement-v0": "binario_no_adjacency_requirement",
+    "Logic/CampsitePuzzle-v0": "campsite_puzzle",
+    "Logic/GridParityConstruction-v0": "grid_parity_construction",
+    "Logic/HitoriPuzzle-v0": "hitori_puzzle",
+    "Logic/MagicSquarePuzzle-v0": "magic_square_puzzle",
+    "Logic/Numbrix-v0": "numbrix",
+    "Logic/SkyscraperPuzzle-v0": "skyscraper_puzzle",
+    "Logic/SkyscraperSumPuzzle-v0": "skyscraper_sum_puzzle",
+    # Puzzles
+    "Puzzles/EightDigitPuzzle-v0": "eight_digit_puzzle",
+    "Puzzles/JugPuzzle-v0": "jug_puzzle",
+    "Puzzles/KloBlocks-v0": "klo_blocks",
+    "Puzzles/NinePuzzle-v0": "nine_puzzle",
+    "Puzzles/TetrisAttack-v0": "tetris_attack",
+    "Puzzles/TwiddlePuzzle-v0": "twiddle_puzzle",
 }
 
-# Environments that use partial credit scoring (from reasoning-gym library)
-# These environments give partial scores based on correctness ratio, not strict 0/1
+# Environments that use partial credit scoring
 PARTIAL_CREDIT_ENVS = {
-    # Grid-based environments with cell-by-cell scoring
-    "ReasoningGym/MiniSudoku-v0": {
+    "Logic/MiniSudoku-v0": {
         "reason": "4x4 grid, scores by correct cells / 16",
-        "max_wrong_reward": 0.99,  # Allow up to 99% partial credit
-    },
-    "ReasoningGym/Sudoku-v0": {
-        "reason": "9x9 grid, scores by correct cells / 81 with constraint penalties",
         "max_wrong_reward": 0.99,
     },
-    # Substring matching environments
-    "ReasoningGym/RotateMatrix-v0": {
+    "Algorithmic/RotateMatrix-v0": {
         "reason": "Substring matching: len(correct) / len(answer)",
         "max_wrong_reward": 0.99,
     },
-    # Format-based partial credit
-    "ReasoningGym/Tsumego-v0": {
+    "Puzzles/Tsumego-v0": {
         "reason": "Go coordinates: 0.05 for valid format, 0.01 otherwise",
-        "max_wrong_reward": 0.1,  # Only allow small partial credit for format
+        "max_wrong_reward": 0.1,
     },
-    # Environments that accept multiple valid solutions
-    "VGRP/StarBattle-v0": {
-        "reason": "Accepts any solution satisfying constraints; invalid chars normalize to 'e'",
-        "max_wrong_reward": 1.0,  # Allow full credit for alternative valid solutions
+    "Logic/StarBattle-v0": {
+        "reason": "Accepts any solution satisfying constraints",
+        "max_wrong_reward": 1.0,
         "allow_alternative_solutions": True,
     },
-    "VGRP/Thermometers-v0": {
-        "reason": "Accepts any solution satisfying constraints; invalid chars normalize to 'e'",
-        "max_wrong_reward": 1.0,  # Allow full credit for alternative valid solutions
+    "Logic/Thermometers-v0": {
+        "reason": "Accepts any solution satisfying constraints",
+        "max_wrong_reward": 1.0,
         "allow_alternative_solutions": True,
     },
-    # RLVE puzzle with power-based scoring
-    "RLVE/TwiddlePuzzle-v0": {
+    "Puzzles/TwiddlePuzzle-v0": {
         "reason": "Grid transformation puzzle: scores by (matching_cells / total_cells)^5",
-        "max_wrong_reward": 0.99,  # Allow up to 99% partial credit
+        "max_wrong_reward": 0.99,
     },
-    # RLVE optimization problems with multiple valid solutions
-    "RLVE/CirculatingGrid-v0": {
-        "reason": "Optimization puzzle: minimizes cell changes to create circulation, scores by (gold/answer)^5",
-        "max_wrong_reward": 1.0,  # Allow full credit for any valid solution
+    "Algorithmic/CirculatingGrid-v0": {
+        "reason": "Optimization puzzle: minimizes cell changes",
+        "max_wrong_reward": 1.0,
         "allow_alternative_solutions": True,
     },
-    "RLVE/MinimumDominatingSetGrid-v0": {
-        "reason": "Optimization puzzle: minimizes total cost of dominating set, scores by (gold/answer)^5",
-        "max_wrong_reward": 1.0,  # Allow full credit for any valid optimal solution
+    "Graphs/MinimumDominatingSetGrid-v0": {
+        "reason": "Optimization puzzle: minimizes total cost of dominating set",
+        "max_wrong_reward": 1.0,
         "allow_alternative_solutions": True,
     },
-    "RLVE/LargestConvexPolygon-v0": {
-        "reason": "Optimization puzzle: maximizes convex polygon size, scores by (answer/gold)^5",
-        "max_wrong_reward": 1.0,  # Allow full credit for any valid optimal solution
+    "Geometry/LargestConvexPolygon-v0": {
+        "reason": "Optimization puzzle: maximizes convex polygon size",
+        "max_wrong_reward": 1.0,
         "allow_alternative_solutions": True,
     },
-    "RLVE/LargestRectangleAmongPoints-v0": {
-        "reason": "Optimization puzzle: maximizes rectangle area, scores by (answer/gold)^5",
-        "max_wrong_reward": 1.0,  # Allow full credit for any valid optimal solution
+    "Geometry/LargestRectangleAmongPoints-v0": {
+        "reason": "Optimization puzzle: maximizes rectangle area",
+        "max_wrong_reward": 1.0,
         "allow_alternative_solutions": True,
     },
-    "RLVE/MaximumIndependentSetTree-v0": {
-        "reason": "Optimization puzzle: maximizes total weight of independent set in tree, scores by (answer/gold)^3",
-        "max_wrong_reward": 1.0,  # Allow full credit for any valid optimal solution
+    "Graphs/MaximumIndependentSetTree-v0": {
+        "reason": "Optimization puzzle: maximizes total weight of independent set",
+        "max_wrong_reward": 1.0,
         "allow_alternative_solutions": True,
     },
-    "RLVE/MaximumWeightMatching-v0": {
-        "reason": "Optimization puzzle: maximizes total weight of matching, scores by (answer/gold)^5",
-        "max_wrong_reward": 1.0,  # Allow full credit for any valid optimal solution
+    "Graphs/MaximumWeightMatching-v0": {
+        "reason": "Optimization puzzle: maximizes total weight of matching",
+        "max_wrong_reward": 1.0,
         "allow_alternative_solutions": True,
     },
-    "RLVE/MinimumWeightedSpanningTree-v0": {
-        "reason": "Optimization puzzle: minimizes weighted depth of spanning tree, scores by (gold/answer)^5",
-        "max_wrong_reward": 1.0,  # Allow full credit for any valid optimal solution
+    "Graphs/MinimumWeightedSpanningTree-v0": {
+        "reason": "Optimization puzzle: minimizes weighted depth of spanning tree",
+        "max_wrong_reward": 1.0,
         "allow_alternative_solutions": True,
     },
-    "RLVE/TreeAddOneEdgeDiameter-v0": {
-        "reason": "Optimization puzzle: minimizes tree diameter by adding edge, scores by (gold/answer)^5",
-        "max_wrong_reward": 1.0,  # Allow full credit for any valid optimal solution
+    "Graphs/TreeAddOneEdgeDiameter-v0": {
+        "reason": "Optimization puzzle: minimizes tree diameter by adding edge",
+        "max_wrong_reward": 1.0,
         "allow_alternative_solutions": True,
     },
-    "RLVE/WarehouseConstruction-v0": {
-        "reason": "Optimization puzzle: minimizes warehouse + transport costs, scores by (gold/answer)^5",
-        "max_wrong_reward": 1.0,  # Allow full credit for any valid optimal solution
+    "Algorithmic/WarehouseConstruction-v0": {
+        "reason": "Optimization puzzle: minimizes warehouse + transport costs",
+        "max_wrong_reward": 1.0,
         "allow_alternative_solutions": True,
     },
-    "RLVE/WeightedBinarytree-v0": {
-        "reason": "Optimization puzzle: maximizes binary tree score, scores by (answer/gold)^5",
-        "max_wrong_reward": 1.0,  # Allow full credit for any valid optimal solution
+    "Graphs/WeightedBinarytree-v0": {
+        "reason": "Optimization puzzle: maximizes binary tree score",
+        "max_wrong_reward": 1.0,
         "allow_alternative_solutions": True,
     },
-    "RLVE/TetrisAttack-v0": {
-        "reason": "Optimization puzzle: minimizes swaps to clear array, scores by (gold/answer)^5",
-        "max_wrong_reward": 1.0,  # Allow full credit for any valid optimal solution
+    "Puzzles/TetrisAttack-v0": {
+        "reason": "Optimization puzzle: minimizes swaps to clear array",
+        "max_wrong_reward": 1.0,
         "allow_alternative_solutions": True,
     },
-    "RLVE/SpyNetwork-v0": {
-        "reason": "Optimization puzzle: minimizes vertex cover cost in directed graph, scores by (gold/answer)^3",
-        "max_wrong_reward": 1.0,  # Allow full credit for any valid optimal solution
+    "Graphs/SpyNetwork-v0": {
+        "reason": "Optimization puzzle: minimizes vertex cover cost",
+        "max_wrong_reward": 1.0,
         "allow_alternative_solutions": True,
     },
 }
 
 
 class TestSingleTurnEnvironments(unittest.TestCase):
-    """Unified test suite for all single-turn gym-v environments.
-
-    Tests verify:
-    1. Environment creation and reset
-    2. Image generation and saving
-    3. Oracle answer retrieval
-    4. Reward grading for correct answers (expect 1.0)
-    5. Reward grading for wrong answers:
-       - Empty string ""
-       - Perturbed correct answer
-    6. Multi-seed stability
-    """
+    """Unified test suite for all single-turn gym-v environments."""
 
     def _get_output_dir(self, env_id: str) -> Path:
-        """Get output directory for environment test artifacts.
-
-        Args:
-            env_id: Environment ID (e.g., "ReasoningGym/MMLU-v0")
-
-        Returns:
-            Path to output directory
-        """
+        """Get output directory for environment test artifacts."""
         suite, name = env_id.split("/")
         name_clean = name.replace("-v0", "")
         snake_name = "".join(
@@ -323,11 +380,7 @@ class TestSingleTurnEnvironments(unittest.TestCase):
         )
 
     def _setup_output_dir(self, output_dir: Path) -> None:
-        """Create or clean output directory.
-
-        Args:
-            output_dir: Directory to setup
-        """
+        """Create or clean output directory."""
         if output_dir.exists():
             for p in output_dir.glob("*"):
                 if p.is_file():
@@ -336,86 +389,70 @@ class TestSingleTurnEnvironments(unittest.TestCase):
             output_dir.mkdir(parents=True, exist_ok=True)
 
     def _get_oracle_answer(self, env: Any, info: dict[str, Any]) -> str:
-        """Retrieve oracle answer from environment or info dict.
+        """Retrieve oracle answer from environment or info dict."""
 
-        Different benchmark suites store oracle answers in different locations:
-        - ReasoningGym: env.get_wrapper_attr("_oracle_answer")
-        - RLVE: info["reference_answer"]
-        - Others: info["oracle_answer"]
+        def _normalize_oracle(value: Any) -> str | None:
+            if value is None:
+                return None
+            if isinstance(value, str):
+                return value
+            try:
+                import numpy as np
 
-        Args:
-            env: The gym environment
-            info: Info dictionary from reset/step
+                if isinstance(value, np.generic):
+                    return str(value.item())
+            except Exception:
+                pass
+            if isinstance(value, list | tuple):
+                if all(isinstance(row, list | tuple) for row in value):
+                    return "\n".join(" ".join(map(str, row)) for row in value)
+                return " ".join(map(str, value))
+            return str(value)
 
-        Returns:
-            Oracle answer string
-        """
-        # Try wrapper attribute first (ReasoningGym)
         try:
             oracle = env.get_wrapper_attr("_oracle_answer")
+            oracle = _normalize_oracle(oracle)
             if oracle:
                 return oracle
         except (AttributeError, KeyError):
             pass
 
-        # Try info dict (most common)
-        oracle = info.get("oracle_answer")
+        oracle = _normalize_oracle(info.get("oracle_answer"))
         if oracle:
             return oracle
 
-        # Try reference_answer (RLVE)
-        oracle = info.get("reference_answer")
+        oracle = _normalize_oracle(info.get("reference_answer"))
         if oracle:
             return oracle
 
         raise ValueError(f"Could not find oracle answer in env or info: {info.keys()}")
 
     def _perturb_answer(self, answer: str) -> str:
-        """Create a perturbed version of the correct answer.
-
-        Applies random perturbation to create an incorrect but non-empty answer:
-        - If multi-choice format like "(a)", change to different option
-        - Otherwise, randomly modify 1-3 characters
-
-        Args:
-            answer: Correct answer string
-
-        Returns:
-            Perturbed answer string
-        """
+        """Create a perturbed version of the correct answer."""
         if not answer:
             return "WRONG"
 
-        # Handle multi-choice format: (a), (b), etc.
         if len(answer) == 3 and answer[0] == "(" and answer[2] == ")":
             choices = ["(a)", "(b)", "(c)", "(d)", "(e)", "(f)", "(g)", "(h)"]
             other_choices = [c for c in choices if c != answer]
             return random.choice(other_choices)
 
-        # For other formats, randomly perturb the string
         answer_list = list(answer)
         num_changes = min(random.randint(1, 3), len(answer_list))
 
         for _ in range(num_changes):
             idx = random.randint(0, len(answer_list) - 1)
-            # Replace with random alphanumeric character
             answer_list[idx] = random.choice(string.ascii_letters + string.digits)
 
         perturbed = "".join(answer_list)
 
-        # Ensure it's actually different
         if perturbed == answer:
             return answer + "_WRONG"
 
         return perturbed
 
     def _test_env(self, env_id: str, env_name: str) -> None:
-        """Test a single environment comprehensively.
-
-        Args:
-            env_id: Environment ID for gym_v.make()
-            env_name: Human-readable environment name
-        """
+        """Test a single environment comprehensively."""
         output_dir = self._get_output_dir(env_id)
         self._setup_output_dir(output_dir)
 
@@ -424,10 +461,8 @@ class TestSingleTurnEnvironments(unittest.TestCase):
 
         env = gym_v.make(env_id)
 
-        # Reset environment
         obs_dict, info_dict = env.reset(seed=test_seed)
 
-        # Extract agent_0 data (all single-turn envs use agent_0)
         agent_id = "agent_0"
         self.assertIn(agent_id, obs_dict, f"{env_id}: agent_0 not in obs_dict")
         self.assertIn(agent_id, info_dict, f"{env_id}: agent_0 not in info_dict")
@@ -435,16 +470,13 @@ class TestSingleTurnEnvironments(unittest.TestCase):
         obs: Observation = obs_dict[agent_id]
         info = info_dict[agent_id]
 
-        # Test 1: Save image
         self.assertIsNotNone(obs.image, f"{env_id}: obs.image is None")
         obs.image.save(output_dir / "0_reset.png")
 
-        # Test 2: Get oracle answer
         oracle = self._get_oracle_answer(env, info)
         self.assertIsInstance(oracle, str, f"{env_id}: oracle is not string")
         self.assertGreater(len(oracle), 0, f"{env_id}: oracle is empty")
 
-        # Print diagnostic info
         print("\n" + "=" * 80)
         print(f"[{env_id}] SEED: {test_seed}")
         print(f"[{env_id}] DESCRIPTION:")
@@ -457,7 +489,6 @@ class TestSingleTurnEnvironments(unittest.TestCase):
         print(oracle[:300] + "..." if len(oracle) > 300 else oracle)
         print("=" * 80 + "\n")
 
-        # Test 3: Verify correct answer reward
         action_dict = {agent_id: oracle}
         _, reward_dict, terminated_dict, _, _ = env.step(action_dict)
 
@@ -468,9 +499,9 @@ class TestSingleTurnEnvironments(unittest.TestCase):
         )
         self.assertIsInstance(reward_dict[agent_id], float)
 
-        # For optimization environments with alternative solutions, skip exact reward check
-        if env_id in PARTIAL_CREDIT_ENVS and PARTIAL_CREDIT_ENVS[env_id].get("allow_alternative_solutions", False):
-            # Just verify reward is positive for valid solutions
+        if env_id in PARTIAL_CREDIT_ENVS and PARTIAL_CREDIT_ENVS[env_id].get(
+            "allow_alternative_solutions", False
+        ):
             self.assertGreater(
                 reward_dict[agent_id],
                 0.0,
@@ -484,7 +515,6 @@ class TestSingleTurnEnvironments(unittest.TestCase):
                 msg=f"{env_id}: Expected reward 1.0 for correct answer, got {reward_dict[agent_id]}",
             )
 
-        # Test 4: Verify empty string reward (should be 0.0 or negative)
         obs_dict, info_dict = env.reset(seed=test_seed)
         action_empty = {agent_id: ""}
         _, reward_empty, terminated_empty, _, _ = env.step(action_empty)
@@ -492,21 +522,13 @@ class TestSingleTurnEnvironments(unittest.TestCase):
         self.assertTrue(terminated_empty[agent_id])
         self.assertIsInstance(reward_empty[agent_id], float)
 
-        # RLVE environments return negative rewards for wrong answers
-        if "RLVE" in env_id:
-            self.assertLess(
-                reward_empty[agent_id],
-                0.0,
-                f"{env_id}: Expected negative reward for empty answer",
-            )
-        else:
-            self.assertEqual(
-                reward_empty[agent_id],
-                0.0,
-                f"{env_id}: Expected reward 0.0 for empty answer, got {reward_empty[agent_id]}",
-            )
+        # All environments (including RLVE) return 0.0 for wrong answers
+        self.assertEqual(
+            reward_empty[agent_id],
+            0.0,
+            f"{env_id}: Expected reward 0.0 for empty answer, got {reward_empty[agent_id]}",
+        )
 
-        # Test 5: Verify perturbed answer reward
         obs_dict, info_dict = env.reset(seed=test_seed)
         info_reset = info_dict[agent_id]
         oracle_reset = self._get_oracle_answer(env, info_reset)
@@ -518,25 +540,13 @@ class TestSingleTurnEnvironments(unittest.TestCase):
         self.assertTrue(terminated_perturbed[agent_id])
         self.assertIsInstance(reward_perturbed[agent_id], float)
 
-        # Check reward based on environment type
-        if "RLVE" in env_id:
-            # RLVE environments return negative rewards for wrong answers
-            self.assertLess(
-                reward_perturbed[agent_id],
-                0.0,
-                f"{env_id}: Expected negative reward for perturbed answer '{perturbed}'",
-            )
-        elif env_id in PARTIAL_CREDIT_ENVS:
-            # Partial credit environments from reasoning-gym
-            # These give scores based on correctness ratio, not strict 0/1
+        if env_id in PARTIAL_CREDIT_ENVS:
             config = PARTIAL_CREDIT_ENVS[env_id]
             max_allowed = config["max_wrong_reward"]
             allow_alternative_solutions = config.get(
                 "allow_alternative_solutions", False
             )
 
-            # For environments that don't accept alternative solutions,
-            # perturbed answer should not get full credit
             if not allow_alternative_solutions:
                 self.assertLess(
                     reward_perturbed[agent_id],
@@ -544,7 +554,6 @@ class TestSingleTurnEnvironments(unittest.TestCase):
                     f"{env_id}: Perturbed answer should not get full credit (got {reward_perturbed[agent_id]})",
                 )
 
-            # Should not exceed the maximum allowed partial credit
             self.assertLessEqual(
                 reward_perturbed[agent_id],
                 max_allowed,
@@ -552,14 +561,12 @@ class TestSingleTurnEnvironments(unittest.TestCase):
                 f"Reason: {config['reason']}. Perturbed: '{perturbed}'",
             )
         else:
-            # Standard environments expect 0.0 for wrong answers
             self.assertEqual(
                 reward_perturbed[agent_id],
                 0.0,
                 f"{env_id}: Expected reward 0.0 for perturbed answer '{perturbed}', got {reward_perturbed[agent_id]}",
             )
 
-        # Test 6: Multi-seed stability
         print(f"[{env_id}] Testing with 3 additional seeds...")
         for i in range(3):
             seed = random.randint(0, 9999)
@@ -568,19 +575,18 @@ class TestSingleTurnEnvironments(unittest.TestCase):
             obs_test = obs_test_dict[agent_id]
             info_test = info_test_dict[agent_id]
 
-            # Save image
             self.assertIsNotNone(obs_test.image, f"{env_id}: image None (seed={seed})")
             obs_test.image.save(output_dir / f"{i + 1}_seed_{seed}.png")
 
-            # Get oracle
             oracle_test = self._get_oracle_answer(env, info_test)
             self.assertIsNotNone(oracle_test, f"{env_id}: oracle None (seed={seed})")
             self.assertIsInstance(oracle_test, str)
             self.assertGreater(len(oracle_test), 0)
 
-            # Verify correct answer gives reward 1.0 (or positive for optimization envs)
             _, reward_test_dict, _, _, _ = env.step({agent_id: oracle_test})
-            if env_id in PARTIAL_CREDIT_ENVS and PARTIAL_CREDIT_ENVS[env_id].get("allow_alternative_solutions", False):
+            if env_id in PARTIAL_CREDIT_ENVS and PARTIAL_CREDIT_ENVS[env_id].get(
+                "allow_alternative_solutions", False
+            ):
                 self.assertGreater(
                     reward_test_dict[agent_id],
                     0.0,
@@ -594,22 +600,14 @@ class TestSingleTurnEnvironments(unittest.TestCase):
                     msg=f"{env_id}: Expected reward 1.0 (seed={seed})",
                 )
 
-            print(f"  ✓ Seed {seed}: Generated valid puzzle with oracle answer")
+            print(f"  Seed {seed}: Generated valid puzzle with oracle answer")
 
         env.close()
-        print(f"✅ {env_id}: All tests passed (primary_seed={test_seed})")
+        print(f"[{env_id}]: All tests passed (primary_seed={test_seed})")
 
 
 def _make_test_method(env_id: str, env_name: str):
-    """Factory function to dynamically create test methods.
-
-    Args:
-        env_id: Environment ID
-        env_name: Environment name for test method naming
-
-    Returns:
-        Test method function
-    """
+    """Factory function to dynamically create test methods."""
 
     def test_method(self):
         self._test_env(env_id, env_name)
@@ -619,14 +617,14 @@ def _make_test_method(env_id: str, env_name: str):
     return test_method
 
 
-# Dynamically generate test methods for all environments
+# Combine all environments
 ALL_ENVS = {
-    **REASONING_GYM_ENVS,
-    **GAMERL_ENVS,
-    **PERCEPTION_ENVS,
-    **VGRP_ENVS,
-    **SPHINX_ENVS,
-    **RLVE_ENVS,
+    **ENVS_FROM_RG,
+    **ENVS_FROM_GRL,
+    **ENVS_FROM_PERCEPTION,
+    **ENVS_FROM_VGRP,
+    **ENVS_FROM_SPHINX,
+    **ENVS_FROM_RLVE,
 }
 
 for _env_id, _env_name in ALL_ENVS.items():

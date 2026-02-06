@@ -28,29 +28,19 @@ include = ["gym_v", "gym_v.*"]
 vlmeval = [
     "vlmeval @ git+https://github.com/open-compass/VLMEvalKit.git@v0.2",
 ]
-textarena = [
-    "textarena>=0.7.4",
-]
 reasoning-gym = [
     "reasoning-gym>=0.1.24",
 ]
-minigrid = [
-    "minigrid>=2.5.0",
-]
-miniworld = [
-    "miniworld @ git+https://github.com/Farama-Foundation/Miniworld.git",
-]
-
-stable-retro = [
-    "stable-retro>=0.9.8",
-]
-pettingzoo = [
+games = [
+    "textarena>=0.7.4",
     "pettingzoo[classic]>=1.25.0",
 ]
-browsergym = [
-    "browsergym-core>=0.14.3",
-    "browsergym-miniwob>=0.14.3",
-    "playwright>=1.44.0",
+spatial = [
+    "minigrid>=2.5.0",
+    "miniworld @ git+https://github.com/Farama-Foundation/Miniworld.git",
+]
+temporal = [
+    "stable-retro>=0.9.8",
 ]
 
 [dependency-groups]
@@ -69,8 +59,10 @@ ignore = ["E203", "E501"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
-# Pre-existing issues in RLVE files
-"gym_v/envs/rlve/*.py" = ["B007", "B011", "B023", "E722", "E741", "F841"]
+# Pre-existing issues in files originally from RLVE
+"gym_v/envs/algorithmic/**/*.py" = ["B007", "B011", "B023", "E722", "E741", "F841"]
+"gym_v/envs/puzzles/**/*.py" = ["B007", "B011", "B023", "E722", "E741", "F841"]
+"gym_v/envs/perception/**/*.py" = ["B007", "B011", "B023", "E722", "E741", "F841"]
 
 [tool.ruff.lint.isort]
 combine-as-imports = true

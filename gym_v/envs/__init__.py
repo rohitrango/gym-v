@@ -2,226 +2,28 @@
 
 from gym_v.envs.registration import register
 
-# ReasoningGym environments
+# ============================================================
+# Single Turn
+# ============================================================
+
+# --- Arc (1 environment) ---
+
+# --- Algorithmic (33 environments) ---
+
 register(
-    id="ReasoningGym/Sudoku-v0",
-    entry_point="gym_v.envs.reasongym.sudoku:ReasoningGymSudokuEnv",
+    id="Algorithmic/AdditionTable-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.addition_table:AdditionTableEnv",
     max_episode_steps=1,
     kwargs=dict(
-        dataset_kwargs=dict(size=500),
-        cell_px=64,
-        padding=24,
+        min_n=3,
+        max_n=10,
         num_players=1,
     ),
 )
 
 register(
-    id="ReasoningGym/Maze-v0",
-    entry_point="gym_v.envs.reasongym.maze:ReasoningGymMazeEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        dataset_kwargs=dict(size=500),
-        cell_px=48,
-        padding=24,
-        num_players=1,
-    ),
-)
-
-register(
-    id="ReasoningGym/NQueens-v0",
-    entry_point="gym_v.envs.reasongym.n_queens:ReasoningGymNQueensEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        dataset_kwargs=dict(size=500),
-        cell_px=64,
-        padding=24,
-        num_players=1,
-    ),
-)
-
-register(
-    id="ReasoningGym/GameOfLife-v0",
-    entry_point="gym_v.envs.reasongym.game_of_life:ReasoningGymGameOfLifeEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        dataset_kwargs=dict(size=500),
-        cell_px=32,
-        padding=16,
-        num_players=1,
-    ),
-)
-
-register(
-    id="ReasoningGym/TowerOfHanoi-v0",
-    entry_point="gym_v.envs.reasongym.tower_of_hanoi:ReasoningGymTowerOfHanoiEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        dataset_kwargs=dict(size=500),
-        peg_width=150,
-        peg_height=250,
-        padding=40,
-        num_players=1,
-    ),
-)
-
-register(
-    id="ReasoningGym/KnightSwap-v0",
-    entry_point="gym_v.envs.reasongym.knight_swap:ReasoningGymKnightSwapEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        dataset_kwargs=dict(size=500),
-        cell_px=64,
-        padding=24,
-        num_players=1,
-    ),
-)
-
-register(
-    id="ReasoningGym/MiniSudoku-v0",
-    entry_point="gym_v.envs.reasongym.mini_sudoku:ReasoningGymMiniSudokuEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        dataset_kwargs=dict(size=500),
-        cell_px=80,
-        padding=24,
-        num_players=1,
-    ),
-)
-
-register(
-    id="ReasoningGym/Survo-v0",
-    entry_point="gym_v.envs.reasongym.survo:ReasoningGymSurvoEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        dataset_kwargs=dict(size=500),
-        cell_px=64,
-        padding=24,
-        num_players=1,
-    ),
-)
-
-register(
-    id="ReasoningGym/Kakurasu-v0",
-    entry_point="gym_v.envs.reasongym.kakurasu:ReasoningGymKakurasuEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        dataset_kwargs=dict(size=500),
-        cell_px=56,
-        padding=40,
-        num_players=1,
-    ),
-)
-
-register(
-    id="ReasoningGym/Tsumego-v0",
-    entry_point="gym_v.envs.reasongym.tsumego:ReasoningGymTsumegoEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        dataset_kwargs=dict(size=500),
-        cell_px=36,
-        padding=24,
-        num_players=1,
-    ),
-)
-
-register(
-    id="ReasoningGym/SpiralMatrix-v0",
-    entry_point="gym_v.envs.reasongym.spiral_matrix:ReasoningGymSpiralMatrixEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        dataset_kwargs=dict(size=500),
-        cell_px=48,
-        padding=24,
-        num_players=1,
-    ),
-)
-
-register(
-    id="ReasoningGym/RotateMatrix-v0",
-    entry_point="gym_v.envs.reasongym.rotate_matrix:ReasoningGymRotateMatrixEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        dataset_kwargs=dict(size=500),
-        cell_px=48,
-        padding=24,
-        num_players=1,
-    ),
-)
-
-register(
-    id="ReasoningGym/BinaryMatrix-v0",
-    entry_point="gym_v.envs.reasongym.binary_matrix:ReasoningGymBinaryMatrixEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        dataset_kwargs=dict(size=500),
-        cell_px=40,
-        padding=20,
-        num_players=1,
-    ),
-)
-
-register(
-    id="ReasoningGym/LargestIsland-v0",
-    entry_point="gym_v.envs.reasongym.largest_island:ReasoningGymLargestIslandEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        dataset_kwargs=dict(size=500),
-        cell_px=40,
-        padding=24,
-        num_players=1,
-    ),
-)
-
-register(
-    id="ReasoningGym/RottenOranges-v0",
-    entry_point="gym_v.envs.reasongym.rotten_oranges:ReasoningGymRottenOrangesEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        dataset_kwargs=dict(size=500),
-        cell_px=36,
-        padding=20,
-        num_players=1,
-    ),
-)
-
-register(
-    id="ReasoningGym/ShortestPath-v0",
-    entry_point="gym_v.envs.reasongym.shortest_path:ReasoningGymShortestPathEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        dataset_kwargs=dict(size=500),
-        cell_px=48,
-        padding=24,
-        num_players=1,
-    ),
-)
-
-register(
-    id="ReasoningGym/RectangleCount-v0",
-    entry_point="gym_v.envs.reasongym.rectangle_count:ReasoningGymRectangleCountEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        dataset_kwargs=dict(size=500),
-        cell_px=8,
-        padding=16,
-        num_players=1,
-    ),
-)
-
-register(
-    id="ReasoningGym/CircuitLogic-v0",
-    entry_point="gym_v.envs.reasongym.circuit_logic:ReasoningGymCircuitLogicEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        dataset_kwargs=dict(size=500),
-        padding=24,
-        num_players=1,
-    ),
-)
-
-register(
-    id="ReasoningGym/Arc1D-v0",
-    entry_point="gym_v.envs.reasongym.arc_1d:ReasoningGymArc1DEnv",
+    id="Arc/Arc1D-v0",
+    entry_point="gym_v.envs.single_turn.arc.arc_1d:Arc1DEnv",
     max_episode_steps=1,
     kwargs=dict(
         dataset_kwargs=dict(size=500),
@@ -231,458 +33,58 @@ register(
     ),
 )
 
-# TextArena environments
 register(
-    id="TextArena/Crosswords-v0",
-    entry_point="gym_v.envs.textarena.crosswords:TextArenaCrosswordsEnv",
-    max_episode_steps=100,
-    kwargs=dict(
-        hardcore=False,
-        num_words=5,
-        cell_size=48,
-        num_players=1,
-    ),
-)
-
-register(
-    id="TextArena/FifteenPuzzle-v0",
-    entry_point="gym_v.envs.textarena.fifteenpuzzle:TextArenaFifteenPuzzleEnv",
-    max_episode_steps=100,
-    kwargs=dict(
-        tile_size=80,
-        num_players=1,
-    ),
-)
-
-register(
-    id="TextArena/FrozenLake-v0",
-    entry_point="gym_v.envs.textarena.frozenlake:TextArenaFrozenLakeEnv",
-    max_episode_steps=100,
-    kwargs=dict(
-        size=4,
-        num_holes=3,
-        randomize_start_goal=False,
-        tile_size=64,
-        num_players=1,
-    ),
-)
-
-register(
-    id="TextArena/Game2048-v0",
-    entry_point="gym_v.envs.textarena.game2048:TextArenaGame2048Env",
-    max_episode_steps=100,
-    kwargs=dict(
-        target_tile=2048,
-        tile_size=100,
-        num_players=1,
-    ),
-)
-
-register(
-    id="TextArena/LightsOut-v0",
-    entry_point="gym_v.envs.textarena.lightsout:TextArenaLightsOutEnv",
-    max_episode_steps=100,
-    kwargs=dict(
-        size=5,
-        cell_size=80,
-        num_players=1,
-    ),
-)
-
-register(
-    id="TextArena/Minesweeper-v0",
-    entry_point="gym_v.envs.textarena.minesweeper:TextArenaMinesweeperEnv",
-    max_episode_steps=100,
-    kwargs=dict(
-        rows=8,
-        cols=8,
-        num_mines=10,
-        cell_size=64,
-        num_players=1,
-    ),
-)
-
-register(
-    id="TextArena/PegJump-v0",
-    entry_point="gym_v.envs.textarena.pegjump:TextArenaPegJumpEnv",
-    max_episode_steps=100,
-    kwargs=dict(
-        initial_empty=1,
-        peg_size=80,
-        num_players=1,
-    ),
-)
-
-register(
-    id="TextArena/RushHour-v0",
-    entry_point="gym_v.envs.textarena.rushhour:TextArenaRushHourEnv",
-    max_episode_steps=100,
-    kwargs=dict(
-        difficulty="easy",
-        cell_size=80,
-        num_players=1,
-    ),
-)
-
-register(
-    id="TextArena/Sokoban-v0",
-    entry_point="gym_v.envs.textarena.sokoban:TextArenaSokobanEnv",
-    max_episode_steps=100,
-    kwargs=dict(
-        dim_room=(6, 6),
-        num_boxes=3,
-        tile_size=48,
-        num_players=1,
-    ),
-)
-
-register(
-    id="TextArena/Sudoku-v0",
-    entry_point="gym_v.envs.textarena.sudoku:TextArenaSudokuEnv",
-    max_episode_steps=100,
-    kwargs=dict(
-        clues=30,
-        cell_size=50,
-        num_players=1,
-    ),
-)
-
-register(
-    id="TextArena/TowerOfHanoi-v0",
-    entry_point="gym_v.envs.textarena.towerofhanoi:TextArenaTowerOfHanoiEnv",
-    max_episode_steps=100,
-    kwargs=dict(
-        num_disks=3,
-    ),
-)
-
-register(
-    id="TextArena/Othello-v0",
-    entry_point="gym_v.envs.multi_players.textarena.othello:TextArenaOthello",
-    max_episode_steps=100,
-    kwargs=dict(
-        board_size=8,
-        show_valid=True,
-        tile_size=80,
-        num_players=2,
-    ),
-)
-
-register(
-    id="TextArena/ConnectFour-v0",
-    entry_point="gym_v.envs.multi_players.textarena.connectfour:TextArenaConnectFour",
-    max_episode_steps=100,
-    kwargs=dict(
-        num_rows=6,
-        num_cols=7,
-        tile_size=80,
-        num_players=2,
-    ),
-)
-
-register(
-    id="TextArena/Nim-v0",
-    entry_point="gym_v.envs.multi_players.textarena.nim:TextArenaNim",
-    max_episode_steps=50,
-    kwargs=dict(
-        piles=[3, 4, 5],
-        pile_width=100,
-        num_players=2,
-    ),
-)
-
-register(
-    id="TextArena/WildTicTacToe-v0",
-    entry_point="gym_v.envs.multi_players.textarena.wildtictactoe:TextArenaWildTicTacToe",
-    max_episode_steps=20,
-    kwargs=dict(
-        tile_size=120,
-        num_players=2,
-    ),
-)
-
-register(
-    id="TextArena/Breakthrough-v0",
-    entry_point="gym_v.envs.multi_players.textarena.breakthrough:TextArenaBreakthrough",
-    max_episode_steps=200,
-    kwargs=dict(
-        board_size=8,
-        tile_size=60,
-        num_players=2,
-    ),
-)
-
-register(
-    id="TextArena/Alquerque-v0",
-    entry_point="gym_v.envs.multi_players.textarena.alquerque:TextArenaAlquerque",
-    max_episode_steps=200,
-    kwargs=dict(
-        tile_size=80,
-        num_players=2,
-    ),
-)
-
-register(
-    id="TextArena/LinesOfAction-v0",
-    entry_point="gym_v.envs.multi_players.textarena.linesofaction:TextArenaLinesOfAction",
-    max_episode_steps=200,
-    kwargs=dict(
-        tile_size=60,
-        num_players=2,
-    ),
-)
-
-register(
-    id="TextArena/SimpleTak-v0",
-    entry_point="gym_v.envs.multi_players.textarena.simpletak:TextArenaSimpleTak",
-    max_episode_steps=50,
-    kwargs=dict(
-        board_size=5,
-        cell_size=80,
-        num_players=2,
-    ),
-)
-
-register(
-    id="TextArena/Crusade-v0",
-    entry_point="gym_v.envs.multi_players.textarena.crusade:TextArenaCrusade",
-    max_episode_steps=100,
-    kwargs=dict(
-        tile_size=60,
-        num_players=2,
-    ),
-)
-
-register(
-    id="TextArena/UltimateTicTacToe-v0",
-    entry_point="gym_v.envs.multi_players.textarena.ultimatetictactoe:TextArenaUltimateTicTacToe",
-    max_episode_steps=100,
-    kwargs=dict(
-        mini_board_size=200,
-        num_players=2,
-    ),
-)
-
-register(
-    id="TextArena/Wordle-v0",
-    entry_point="gym_v.envs.textarena.wordle:TextArenaWordleEnv",
-    max_episode_steps=100,
-    kwargs=dict(
-        word_length=5,
-        num_guesses=6,
-        hardcore=False,
-        cell_size=60,
-        num_players=1,
-    ),
-)
-
-register(
-    id="TextArena/WordSearch-v0",
-    entry_point="gym_v.envs.textarena.wordsearch:TextArenaWordSearchEnv",
-    max_episode_steps=100,
-    kwargs=dict(
-        hardcore=False,
-        cell_size=60,
-        num_players=1,
-    ),
-)
-
-# Minigrid environments
-register(
-    id="Minigrid/Empty-v0",
-    entry_point="gym_v.envs.minigrid.empty:MinigridEmptyEnv",
-    max_episode_steps=256,
-    kwargs=dict(
-        size=8,
-        agent_start_pos=(1, 1),
-        tile_size=32,
-        num_players=1,
-    ),
-)
-
-register(
-    id="Minigrid/DoorKey-v0",
-    entry_point="gym_v.envs.minigrid.doorkey:MinigridDoorKeyEnv",
-    max_episode_steps=640,
-    kwargs=dict(
-        size=8,
-        tile_size=32,
-        num_players=1,
-    ),
-)
-
-register(
-    id="Minigrid/FourRooms-v0",
-    entry_point="gym_v.envs.minigrid.fourrooms:MinigridFourRoomsEnv",
-    max_episode_steps=100,
-    kwargs=dict(
-        tile_size=32,
-        num_players=1,
-    ),
-)
-
-register(
-    id="Minigrid/Unlock-v0",
-    entry_point="gym_v.envs.minigrid.unlock:MinigridUnlockEnv",
-    max_episode_steps=100,
-    kwargs=dict(
-        tile_size=32,
-        num_players=1,
-    ),
-)
-
-register(
-    id="Minigrid/MultiRoom-v0",
-    entry_point="gym_v.envs.minigrid.multiroom:MinigridMultiRoomEnv",
-    max_episode_steps=100,
-    kwargs=dict(
-        min_num_rooms=6,
-        max_num_rooms=6,
-        max_room_size=10,
-        tile_size=32,
-        num_players=1,
-    ),
-)
-
-register(
-    id="Minigrid/DynamicObstacles-v0",
-    entry_point="gym_v.envs.minigrid.dynamicobstacles:MinigridDynamicObstaclesEnv",
-    max_episode_steps=256,
-    kwargs=dict(
-        size=8,
-        n_obstacles=4,
-        tile_size=32,
-        num_players=1,
-    ),
-)
-
-register(
-    id="Minigrid/LavaGap-v0",
-    entry_point="gym_v.envs.minigrid.lavagap:MinigridLavaGapEnv",
-    max_episode_steps=100,
-    kwargs=dict(
-        size=7,
-        tile_size=32,
-        num_players=1,
-    ),
-)
-
-# Offline datasets
-register(
-    id="Offline/SingleTurn-v0",
-    entry_point="gym_v.envs.offline.single_turn:OfflineSingleTurnEnv",
+    id="Arc/ArcAgi-v0",
+    entry_point="gym_v.envs.single_turn.arc.arc_agi:ArcAgiEnv",
     max_episode_steps=1,
     kwargs=dict(
-        grader="exact_match",
-        description=None,
-        shuffle=True,
-    ),
-)
-
-# VGRP-Bench environments
-register(
-    id="VGRP/Binairo-v0",
-    entry_point="gym_v.envs.vgrp.binairo:VGRPBinairoEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        size=6,
-        num_hints=12,
-        cell_px=60,
-        padding=24,
+        dataset_kwargs=dict(size=500),
+        cell_px=16,
+        padding=16,
         num_players=1,
     ),
 )
 
 register(
-    id="VGRP/Thermometers-v0",
-    entry_point="gym_v.envs.vgrp.thermometers:VGRPThermometersEnv",
+    id="Arc/ReArc-v0",
+    entry_point="gym_v.envs.single_turn.arc.rearc:ReArcEnv",
     max_episode_steps=1,
     kwargs=dict(
-        size=5,
-        num_hints=0,
-        cell_px=60,
-        padding=50,
+        dataset_kwargs=dict(size=500),
+        cell_px=16,
+        padding=16,
         num_players=1,
     ),
 )
 
 register(
-    id="VGRP/Battleships-v0",
-    entry_point="gym_v.envs.vgrp.battleships:VGRPBattleshipsEnv",
+    id="Algorithmic/BinaryMatrix-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.binary_matrix:BinaryMatrixEnv",
     max_episode_steps=1,
     kwargs=dict(
-        size=6,
-        num_hints=0,
-        cell_px=55,
-        padding=50,
-        num_players=1,
-    ),
-)
-
-register(
-    id="VGRP/Renzoku-v0",
-    entry_point="gym_v.envs.vgrp.renzoku:VGRPRenzokuEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        size=9,
-        cell_px=50,
-        padding=30,
-        num_players=1,
-    ),
-)
-
-register(
-    id="VGRP/Futoshiki-v0",
-    entry_point="gym_v.envs.vgrp.futoshiki:VGRPFutoshikiEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        size=5,
-        cell_px=60,
-        padding=30,
-        num_players=1,
-    ),
-)
-
-register(
-    id="VGRP/Hitori-v0",
-    entry_point="gym_v.envs.vgrp.hitori:VGRPHitoriEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        size=6,
-        cell_px=50,
+        dataset_kwargs=dict(size=500),
+        cell_px=40,
         padding=20,
         num_players=1,
     ),
 )
 
 register(
-    id="VGRP/StarBattle-v0",
-    entry_point="gym_v.envs.vgrp.starbattle:VGRPStarBattleEnv",
+    id="Algorithmic/BinaryTreeLeafNumExpectation-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.binary_tree_leaf_num_expectation:BinaryTreeLeafNumExpectationEnv",
     max_episode_steps=1,
     kwargs=dict(
-        size=8,
-        stars_per_group=1,
-        cell_px=50,
-        padding=20,
-        num_players=1,
-    ),
-)
-register(
-    id="RLVE/CampsitePuzzle-v0",
-    entry_point="gym_v.envs.rlve.campsite_puzzle:RLVECampsitePuzzleEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n_m=4,
-        sparsity=0.5,
-        cell_px=56,
-        padding=24,
+        max_n=15,
+        image_width=800,
+        image_height=600,
+        node_radius=20,
         num_players=1,
     ),
 )
 
 register(
-    id="RLVE/CardColoringCounting-v0",
-    entry_point="gym_v.envs.rlve.card_coloring_counting:RLVECardColoringCountingEnv",
+    id="Algorithmic/CardColoringCounting-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.card_coloring_counting:CardColoringCountingEnv",
     max_episode_steps=1,
     kwargs=dict(
         N=8,
@@ -692,8 +94,19 @@ register(
 )
 
 register(
-    id="RLVE/CirculatingGrid-v0",
-    entry_point="gym_v.envs.rlve.circulating_grid:RLVECirculatingGridEnv",
+    id="Logic/CircuitLogic-v0",
+    entry_point="gym_v.envs.single_turn.logic.circuit_logic:CircuitLogicEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Algorithmic/CirculatingGrid-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.circulating_grid:CirculatingGridEnv",
     max_episode_steps=1,
     kwargs=dict(
         max_r_c=5,
@@ -702,9 +115,10 @@ register(
         num_players=1,
     ),
 )
+
 register(
-    id="RLVE/CoinSquareGame-v0",
-    entry_point="gym_v.envs.rlve.coin_square_game:RLVECoinSquareGameEnv",
+    id="Algorithmic/CoinSquareGame-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.coin_square_game:CoinSquareGameEnv",
     max_episode_steps=1,
     kwargs=dict(
         max_n=10,
@@ -715,24 +129,33 @@ register(
     ),
 )
 
-
 register(
-    id="RLVE/EightDigitPuzzle-v0",
-    entry_point="gym_v.envs.rlve.eight_digit_puzzle:RLVEEightDigitPuzzleEnv",
+    id="Algorithmic/ColoringCounting-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.coloring_counting:ColoringCountingEnv",
     max_episode_steps=1,
     kwargs=dict(
-        n=3,
-        m=3,
-        steps=10,
-        cell_px=72,
-        padding=32,
+        max_n=8,
+        edge_density=0.5,
+        node_radius=20,
+        image_size=800,
+        padding=60,
         num_players=1,
     ),
 )
 
 register(
-    id="RLVE/FaceRightWay-v0",
-    entry_point="gym_v.envs.rlve.face_right_way:RLVEFaceRightWayEnv",
+    id="Geometry/ConvexHull-v0",
+    entry_point="gym_v.envs.single_turn.geometry.convex_hull:ConvexHullEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        N=10,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Algorithmic/FaceRightWay-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.face_right_way:FaceRightWayEnv",
     max_episode_steps=1,
     kwargs=dict(
         max_n=10,
@@ -743,11 +166,76 @@ register(
 )
 
 register(
-    id="RLVE/HitoriPuzzle-v0",
-    entry_point="gym_v.envs.rlve.hitori_puzzle:RLVEHitoriPuzzleEnv",
+    id="Graphs/FbiBinaryTree-v0",
+    entry_point="gym_v.envs.single_turn.graphs.fbi_binary_tree:FbiBinaryTreeEnv",
     max_episode_steps=1,
     kwargs=dict(
-        max_n_m=4,
+        max_n=4,
+        probability_same_as_before=0.7,
+        base_image_width=1000,
+        base_image_height=800,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Algorithmic/GameOfLife-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.game_of_life:GameOfLifeEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=32,
+        padding=16,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Algorithmic/GraMinimaGame-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.gra_minima_game:GraMinimaGameEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        n=8,
+        cell_px=70,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Graphs/GraphContainTreeCounting-v0",
+    entry_point="gym_v.envs.single_turn.graphs.graph_contain_tree_counting:GraphContainTreeCountingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=8,
+        edge_density=0.5,
+        node_radius=20,
+        image_size=800,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Graphs/GraphIsomorphism-v0",
+    entry_point="gym_v.envs.single_turn.graphs.graph_isomorphism:GraphIsomorphismEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=8,
+        edge_density=0.3,
+        node_radius=20,
+        image_size=800,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Algorithmic/GridBFS-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.grid_bfs:GridBFSEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=8,
         cell_px=56,
         padding=24,
         num_players=1,
@@ -755,34 +243,72 @@ register(
 )
 
 register(
-    id="RLVE/JugPuzzle-v0",
-    entry_point="gym_v.envs.rlve.jug_puzzle:RLVEJugPuzzleEnv",
+    id="Graphs/GridComponent-v0",
+    entry_point="gym_v.envs.single_turn.graphs.grid_component:GridComponentEnv",
     max_episode_steps=1,
     kwargs=dict(
-        max_capacity_multiple=10,
-        operation_probabilities=None,
-        jug_width=80,
-        jug_height=200,
-        padding=40,
+        max_n_m=8,
+        cell_px=56,
+        padding=24,
         num_players=1,
     ),
 )
 
 register(
-    id="RLVE/KloBlocks-v0",
-    entry_point="gym_v.envs.rlve.klo_blocks:RLVEKloBlocksEnv",
+    id="Algorithmic/GridLocalMinimumCounting-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.grid_local_minimum_counting:GridLocalMinimumCountingEnv",
     max_episode_steps=1,
     kwargs=dict(
-        N=10,
-        cell_px=60,
-        padding=30,
+        max_n_m=4,
+        cell_px=64,
+        padding=24,
         num_players=1,
     ),
 )
 
 register(
-    id="RLVE/LandformGenerationCounting-v0",
-    entry_point="gym_v.envs.rlve.landform_generation_counting:RLVELandformGenerationCountingEnv",
+    id="Algorithmic/GridTriangleCounting-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.grid_triangle_counting:GridTriangleCountingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=12,
+        cell_px=48,
+        padding=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Graphs/HamiltonianPath-v0",
+    entry_point="gym_v.envs.single_turn.graphs.hamiltonian_path:HamiltonianPathEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        edge_density=0.5,
+        node_radius=18,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Graphs/HamiltonianPathExistence-v0",
+    entry_point="gym_v.envs.single_turn.graphs.hamiltonian_path_existence:HamiltonianPathExistenceEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        edge_density=0.3,
+        node_radius=18,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Algorithmic/LandformGenerationCounting-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.landform_generation_counting:LandformGenerationCountingEnv",
     max_episode_steps=1,
     kwargs=dict(
         max_n=10,
@@ -794,57 +320,97 @@ register(
 )
 
 register(
-    id="RLVE/SkyscraperPuzzle-v0",
-    entry_point="gym_v.envs.rlve.skyscraper_puzzle:RLVESkyscraperPuzzleEnv",
+    id="Geometry/LargestConvexPolygon-v0",
+    entry_point="gym_v.envs.single_turn.geometry.largest_convex_polygon:LargestConvexPolygonEnv",
     max_episode_steps=1,
     kwargs=dict(
-        n=3,
-        cell_px=52,
-        padding=28,
+        n_points=10,
         num_players=1,
     ),
 )
 
 register(
-    id="RLVE/SkyscraperSumPuzzle-v0",
-    entry_point="gym_v.envs.rlve.skyscraper_sum_puzzle:RLVESkyscraperSumPuzzleEnv",
+    id="Graphs/LargestIsland-v0",
+    entry_point="gym_v.envs.single_turn.graphs.largest_island:LargestIslandEnv",
     max_episode_steps=1,
     kwargs=dict(
-        n=3,
-        cell_px=52,
-        padding=28,
+        dataset_kwargs=dict(size=500),
+        cell_px=40,
+        padding=24,
         num_players=1,
     ),
 )
 
 register(
-    id="RLVE/SumTriangleArea-v0",
-    entry_point="gym_v.envs.rlve.sum_triangle_area:RLVESumTriangleAreaEnv",
+    id="Geometry/LargestRectangleAmongPoints-v0",
+    entry_point="gym_v.envs.single_turn.geometry.largest_rectangle_among_points:LargestRectangleAmongPointsEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=15,
+        rewarding_strategy="(answer/gold)^beta",
+        rewarding_weight=1.0,
+        rewarding_beta=5.0,
+        fig_size=(8, 8),
+        num_players=1,
+    ),
+)
+
+register(
+    id="Graphs/LongestPath-v0",
+    entry_point="gym_v.envs.single_turn.graphs.longest_path:LongestPathEnv",
     max_episode_steps=1,
     kwargs=dict(
         max_n=10,
+        edge_density=0.5,
+        node_radius=18,
+        image_size=700,
+        padding=60,
         num_players=1,
     ),
 )
 
 register(
-    id="RLVE/SumManhattanCurvedSurface-v0",
-    entry_point="gym_v.envs.rlve.sum_manhattan_curved_surface:RLVESumManhattanCurvedSurfaceEnv",
+    id="Algorithmic/MatrixPermutationBothDiagonalOne-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.matrix_permutation_both_diagonal_one:MatrixPermutationBothDiagonalOneEnv",
     max_episode_steps=1,
     kwargs=dict(
-        max_a_b=100,
-        cell_px=80,
-        padding=32,
+        N=4,
+        cell_px=64,
+        padding=24,
         num_players=1,
     ),
 )
 
 register(
-    id="RLVE/GraMinimaGame-v0",
-    entry_point="gym_v.envs.rlve.gra_minima_game:RLVEGraMinimaGameEnv",
+    id="Algorithmic/MatrixPermutationMainDiagonalOne-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.matrix_permutation_main_diagonal_one:MatrixPermutationMainDiagonalOneEnv",
     max_episode_steps=1,
     kwargs=dict(
-        n=8,
+        N=4,
+        cell_px=64,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Algorithmic/MatrixPooling-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.matrix_pooling:MatrixPoolingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=7,
+        cell_px=56,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Algorithmic/MaxGridPathIntersection-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.max_grid_path_intersection:MaxGridPathIntersectionEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        n=5,
         cell_px=70,
         padding=24,
         num_players=1,
@@ -852,78 +418,8 @@ register(
 )
 
 register(
-    id="RLVE/GraphContainTreeCounting-v0",
-    entry_point="gym_v.envs.rlve.graph_contain_tree_counting:RLVEGraphContainTreeCountingEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n=8,
-        edge_density=0.5,
-        node_radius=20,
-        image_size=800,
-        padding=60,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/GraphIsomorphism-v0",
-    entry_point="gym_v.envs.rlve.graph_isomorphism:RLVEGraphIsomorphismEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n=8,
-        edge_density=0.3,
-        node_radius=20,
-        image_size=800,
-        padding=60,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/HamiltonianPath-v0",
-    entry_point="gym_v.envs.rlve.hamiltonian_path:RLVEHamiltonianPathEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n=10,
-        edge_density=0.5,
-        node_radius=18,
-        image_size=700,
-        padding=60,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/HamiltonianPathExistence-v0",
-    entry_point="gym_v.envs.rlve.hamiltonian_path_existence:RLVEHamiltonianPathExistenceEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n=10,
-        edge_density=0.3,
-        node_radius=18,
-        image_size=700,
-        padding=60,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/LongestPath-v0",
-    entry_point="gym_v.envs.rlve.longest_path:RLVELongestPathEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n=10,
-        edge_density=0.5,
-        node_radius=18,
-        image_size=700,
-        padding=60,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/MaximumAchromaticNumber-v0",
-    entry_point="gym_v.envs.rlve.maximum_achromatic_number:RLVEMaximumAchromaticNumberEnv",
+    id="Graphs/MaximumAchromaticNumber-v0",
+    entry_point="gym_v.envs.single_turn.graphs.maximum_achromatic_number:MaximumAchromaticNumberEnv",
     max_episode_steps=1,
     kwargs=dict(
         max_n=8,
@@ -939,8 +435,8 @@ register(
 )
 
 register(
-    id="RLVE/MaximumClique-v0",
-    entry_point="gym_v.envs.rlve.maximum_clique:RLVEMaximumCliqueEnv",
+    id="Graphs/MaximumClique-v0",
+    entry_point="gym_v.envs.single_turn.graphs.maximum_clique:MaximumCliqueEnv",
     max_episode_steps=1,
     kwargs=dict(
         max_n=12,
@@ -953,8 +449,8 @@ register(
 )
 
 register(
-    id="RLVE/MaximumIndependentSetGrid-v0",
-    entry_point="gym_v.envs.rlve.maximum_independent_set_grid:RLVEMaximumIndependentSetGridEnv",
+    id="Graphs/MaximumIndependentSetGrid-v0",
+    entry_point="gym_v.envs.single_turn.graphs.maximum_independent_set_grid:MaximumIndependentSetGridEnv",
     max_episode_steps=1,
     kwargs=dict(
         max_n_m=4,
@@ -966,9 +462,10 @@ register(
         rewarding_beta=3.0,
     ),
 )
+
 register(
-    id="RLVE/MaximumIndependentSetTree-v0",
-    entry_point="gym_v.envs.rlve.maximum_independent_set_tree:RLVEMaximumIndependentSetTreeEnv",
+    id="Graphs/MaximumIndependentSetTree-v0",
+    entry_point="gym_v.envs.single_turn.graphs.maximum_independent_set_tree:MaximumIndependentSetTreeEnv",
     max_episode_steps=1,
     kwargs=dict(
         max_n=10,
@@ -983,8 +480,8 @@ register(
 )
 
 register(
-    id="RLVE/MaximumWeightMatching-v0",
-    entry_point="gym_v.envs.rlve.maximum_weight_matching:RLVEMaximumWeightMatchingEnv",
+    id="Graphs/MaximumWeightMatching-v0",
+    entry_point="gym_v.envs.single_turn.graphs.maximum_weight_matching:MaximumWeightMatchingEnv",
     max_episode_steps=1,
     kwargs=dict(
         max_n=10,
@@ -997,8 +494,8 @@ register(
 )
 
 register(
-    id="RLVE/MinimumChromaticNumber-v0",
-    entry_point="gym_v.envs.rlve.minimum_chromatic_number:RLVEMinimumChromaticNumberEnv",
+    id="Graphs/MinimumChromaticNumber-v0",
+    entry_point="gym_v.envs.single_turn.graphs.minimum_chromatic_number:MinimumChromaticNumberEnv",
     max_episode_steps=1,
     kwargs=dict(
         max_n=10,
@@ -1011,8 +508,22 @@ register(
 )
 
 register(
-    id="RLVE/MinimumDominatingSetGrid-v0",
-    entry_point="gym_v.envs.rlve.minimum_dominating_set_grid:RLVEMinimumDominatingSetGridEnv",
+    id="Graphs/MinimumDirectedSpanningTree-v0",
+    entry_point="gym_v.envs.single_turn.graphs.minimum_directed_spanning_tree:MinimumDirectedSpanningTreeEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        edge_density=0.5,
+        node_radius=18,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Graphs/MinimumDominatingSetGrid-v0",
+    entry_point="gym_v.envs.single_turn.graphs.minimum_dominating_set_grid:MinimumDominatingSetGridEnv",
     max_episode_steps=1,
     kwargs=dict(
         max_n_m=4,
@@ -1023,162 +534,8 @@ register(
 )
 
 register(
-    id="RLVE/MonochromeBlockCounting-v0",
-    entry_point="gym_v.envs.rlve.monochrome_block_counting:RLVEMonochromeBlockCountingEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_a_b=10,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/TreeCenter-v0",
-    entry_point="gym_v.envs.rlve.tree_center:RLVETreeCenterEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n=10,
-        node_radius=22,
-        image_size=700,
-        padding=60,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/TreeAddOneEdgeDiameter-v0",
-    entry_point="gym_v.envs.rlve.tree_add_one_edge_diameter:RLVETreeAddOneEdgeDiameterEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n=10,
-        node_radius=20,
-        image_width=800,
-        image_height=700,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/TreeChangeOneEdgeDiameter-v0",
-    entry_point="gym_v.envs.rlve.tree_change_one_edge_diameter:RLVETreeChangeOneEdgeDiameterEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        N=8,
-        node_radius=22,
-        image_size=700,
-        padding=60,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/TreeColoring-v0",
-    entry_point="gym_v.envs.rlve.tree_coloring:RLVETreeColoringEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n=10,
-        node_radius=18,
-        image_size=700,
-        padding=60,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/TreeDistanceEqualTriadCounting-v0",
-    entry_point="gym_v.envs.rlve.tree_distance_equal_triad_counting:RLVETreeDistanceEqualTriadCountingEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n=10,
-        node_radius=22,
-        image_size=700,
-        padding=60,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/TreeEvenPartitioning-v0",
-    entry_point="gym_v.envs.rlve.tree_even_partitioning:RLVETreeEvenPartitioningEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n=4,
-        max_k=3,
-        node_radius=20,
-        image_size=800,
-        padding=80,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/TreeTopologicalSequenceCounting-v0",
-    entry_point="gym_v.envs.rlve.tree_topological_sequence_counting:RLVETreeTopologicalSequenceCountingEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n=10,
-        max_mod=1000000,
-        node_radius=22,
-        image_size=700,
-        padding=60,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/AdditionTable-v0",
-    entry_point="gym_v.envs.rlve.addition_table:RLVEAdditionTableEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        min_n=3,
-        max_n=10,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/BinaryTreeLeafNumExpectation-v0",
-    entry_point="gym_v.envs.rlve.binary_tree_leaf_num_expectation:RLVEBinaryTreeLeafNumExpectationEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n=15,
-        image_width=800,
-        image_height=600,
-        node_radius=20,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/FbiBinaryTree-v0",
-    entry_point="gym_v.envs.rlve.fbi_binary_tree:RLVEFbiBinaryTreeEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n=4,
-        probability_same_as_before=0.7,
-        base_image_width=1000,
-        base_image_height=800,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/MinimumDirectedSpanningTree-v0",
-    entry_point="gym_v.envs.rlve.minimum_directed_spanning_tree:RLVEMinimumDirectedSpanningTreeEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n=10,
-        edge_density=0.5,
-        node_radius=18,
-        image_size=700,
-        padding=60,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/MinimumSpanningTreeCounting-v0",
-    entry_point="gym_v.envs.rlve.minimum_spanning_tree_counting:RLVEMinimumSpanningTreeCountingEnv",
+    id="Graphs/MinimumSpanningTreeCounting-v0",
+    entry_point="gym_v.envs.single_turn.graphs.minimum_spanning_tree_counting:MinimumSpanningTreeCountingEnv",
     max_episode_steps=1,
     kwargs=dict(
         max_n=10,
@@ -1193,8 +550,8 @@ register(
 )
 
 register(
-    id="RLVE/MinimumWeightedSpanningTree-v0",
-    entry_point="gym_v.envs.rlve.minimum_weighted_spanning_tree:RLVEMinimumWeightedSpanningTreeEnv",
+    id="Graphs/MinimumWeightedSpanningTree-v0",
+    entry_point="gym_v.envs.single_turn.graphs.minimum_weighted_spanning_tree:MinimumWeightedSpanningTreeEnv",
     max_episode_steps=1,
     kwargs=dict(
         max_n=10,
@@ -1207,8 +564,8 @@ register(
 )
 
 register(
-    id="RLVE/MixedGraphEulerianCircuit-v0",
-    entry_point="gym_v.envs.rlve.mixed_graph_eulerian_circuit:RLVEMixedGraphEulerianCircuitEnv",
+    id="Graphs/MixedGraphEulerianCircuit-v0",
+    entry_point="gym_v.envs.single_turn.graphs.mixed_graph_eulerian_circuit:MixedGraphEulerianCircuitEnv",
     max_episode_steps=1,
     kwargs=dict(
         max_n=10,
@@ -1220,111 +577,8 @@ register(
 )
 
 register(
-    id="RLVE/Numbrix-v0",
-    entry_point="gym_v.envs.rlve.numbrix:RLVENumbrixEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n_m=4,
-        sparsity=0.5,
-        cell_px=56,
-        padding=24,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/PipelineArrangement-v0",
-    entry_point="gym_v.envs.rlve.pipeline_arrangement:RLVEPipelineArrangementEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n=8,
-        cell_height=60,
-        cell_width=100,
-        padding=40,
-        num_players=1,
-    ),
-)
-
-
-
-register(
-    id="RLVE/MagicSquarePuzzle-v0",
-    entry_point="gym_v.envs.rlve.magic_square_puzzle:RLVEMagicSquarePuzzleEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        min_n=3,
-        max_n=5,
-        sparsity=0.5,
-        cell_px=64,
-        padding=32,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/MatrixPermutationBothDiagonalOne-v0",
-    entry_point="gym_v.envs.rlve.matrix_permutation_both_diagonal_one:RLVEMatrixPermutationBothDiagonalOneEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        N=4,
-        cell_px=64,
-        padding=24,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/MatrixPermutationMainDiagonalOne-v0",
-    entry_point="gym_v.envs.rlve.matrix_permutation_main_diagonal_one:RLVEMatrixPermutationMainDiagonalOneEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        N=4,
-        cell_px=64,
-        padding=24,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/MatrixPooling-v0",
-    entry_point="gym_v.envs.rlve.matrix_pooling:RLVEMatrixPoolingEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n_m=7,
-        cell_px=56,
-        padding=24,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/MaxGridPathIntersection-v0",
-    entry_point="gym_v.envs.rlve.max_grid_path_intersection:RLVEMaxGridPathIntersectionEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        n=5,
-        cell_px=70,
-        padding=24,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/MatrixRmqCounting-v0",
-    entry_point="gym_v.envs.rlve.matrix_rmq_counting:RLVEMatrixRmqCountingEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        H_W_range=2,
-        max_MOD=1000000,
-        cell_px=48,
-        padding=24,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/MoneyChargingGame-v0",
-    entry_point="gym_v.envs.rlve.money_charging_game:RLVEMoneyChargingGameEnv",
+    id="Algorithmic/MoneyChargingGame-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.money_charging_game:MoneyChargingGameEnv",
     max_episode_steps=1,
     kwargs=dict(
         n=5,
@@ -1334,262 +588,19 @@ register(
     ),
 )
 
-
 register(
-    id="RLVE/BinarioNoAdjacencyRequirement-v0",
-    entry_point="gym_v.envs.rlve.binario_no_adjacency_requirement:RLVEBinarioNoAdjacencyRequirementEnv",
+    id="Algorithmic/MonochromeBlockCounting-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.monochrome_block_counting:MonochromeBlockCountingEnv",
     max_episode_steps=1,
     kwargs=dict(
-        max_n_m=4,
-        sparsity=0.5,
-        cell_px=56,
-        padding=24,
+        max_a_b=10,
         num_players=1,
     ),
 )
 
 register(
-    id="RLVE/BlockImage-v0",
-    entry_point="gym_v.envs.rlve.block_image:RLVEBlockImageEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_m_n=4,
-        max_height=5,
-        cell_px=48,
-        padding=32,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/ColoringCounting-v0",
-    entry_point="gym_v.envs.rlve.coloring_counting:RLVEColoringCountingEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n=8,
-        edge_density=0.5,
-        node_radius=20,
-        image_size=800,
-        padding=60,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/TwiddlePuzzle-v0",
-    entry_point="gym_v.envs.rlve.twiddle_puzzle:RLVETwiddlePuzzleEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n_m=4,
-        steps=3,
-        cell_px=56,
-        padding=24,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/NinePuzzle-v0",
-    entry_point="gym_v.envs.rlve.nine_puzzle:RLVENinePuzzleEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n_m=3,
-        steps=5,
-        cell_px=64,
-        padding=32,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/GridComponent-v0",
-    entry_point="gym_v.envs.rlve.grid_component:RLVEGridComponentEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n_m=8,
-        cell_px=56,
-        padding=24,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/GridBFS-v0",
-    entry_point="gym_v.envs.rlve.grid_bfs:RLVEGridBFSEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n_m=8,
-        cell_px=56,
-        padding=24,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/GridParityConstruction-v0",
-    entry_point="gym_v.envs.rlve.grid_parity_construction:RLVEGridParityConstructionEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n_m=8,
-        cell_px=56,
-        padding=24,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/GridLocalMinimumCounting-v0",
-    entry_point="gym_v.envs.rlve.grid_local_minimum_counting:RLVEGridLocalMinimumCountingEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n_m=4,
-        cell_px=64,
-        padding=24,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/GridTriangleCounting-v0",
-    entry_point="gym_v.envs.rlve.grid_triangle_counting:RLVEGridTriangleCountingEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n_m=12,
-        cell_px=48,
-        padding=32,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/ConvexHull-v0",
-    entry_point="gym_v.envs.rlve.convex_hull:RLVEConvexHullEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        N=10,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/SmallestCircle-v0",
-    entry_point="gym_v.envs.rlve.smallest_circle:RLVESmallestCircleEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        n_points=10,
-        rewarding_strategy="(gold/answer)^beta",
-        rewarding_weight=1.0,
-        rewarding_beta=10.0,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/LargestConvexPolygon-v0",
-    entry_point="gym_v.envs.rlve.largest_convex_polygon:RLVELargestConvexPolygonEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        n_points=10,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/LargestRectangleAmongPoints-v0",
-    entry_point="gym_v.envs.rlve.largest_rectangle_among_points:RLVELargestRectangleAmongPointsEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n=15,
-        rewarding_strategy="(answer/gold)^beta",
-        rewarding_weight=1.0,
-        rewarding_beta=5.0,
-        fig_size=(8, 8),
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/WeightedBinarytree-v0",
-    entry_point="gym_v.envs.rlve.weighted_binarytree:RLVEWeightedBinarytreeEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n=8,
-        max_score=10,
-        image_width=800,
-        image_height=600,
-        node_radius=25,
-        num_players=1,
-    ),
-)
-
-
-
-register(
-    id="RLVE/WarehouseConstruction-v0",
-    entry_point="gym_v.envs.rlve.warehouse_construction:RLVEWarehouseConstructionEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        n=6,
-        cell_height=80,
-        cell_width=120,
-        padding=40,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/TetrisAttack-v0",
-    entry_point="gym_v.envs.rlve.tetris_attack:RLVETetrisAttackEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n=8,
-        cell_px=60,
-        padding=24,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/WhackAMole-v0",
-    entry_point="gym_v.envs.rlve.whack_a_mole:RLVEWhackAMoleEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n_m=4,
-        max_beat=3,
-        cell_px=80,
-        padding=24,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/StoneGame-v0",
-    entry_point="gym_v.envs.rlve.stone_game:RLVEStoneGameEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_sum=30,
-        pile_width=60,
-        pile_max_height=200,
-        padding=24,
-        num_players=1,
-    ),
-)
-
-register(
-    id="RLVE/StoneIntervalsGame-v0",
-    entry_point="gym_v.envs.rlve.stone_intervals_game:RLVEStoneIntervalsGameEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n=10,
-        num_players=1,
-    ),
-)
-
-
-
-register(
-    id="RLVE/NewNimGame-v0",
-    entry_point="gym_v.envs.rlve.new_nim_game:RLVENewNimGameEnv",
+    id="Algorithmic/NewNimGame-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.new_nim_game:NewNimGameEnv",
     max_episode_steps=1,
     kwargs=dict(
         match_number_range_coefficient=2,
@@ -1607,8 +618,8 @@ register(
 )
 
 register(
-    id="RLVE/Patrol-v0",
-    entry_point="gym_v.envs.rlve.patrol:RLVEPatrolEnv",
+    id="Graphs/Patrol-v0",
+    entry_point="gym_v.envs.single_turn.graphs.patrol:PatrolEnv",
     max_episode_steps=1,
     kwargs=dict(
         max_n=10,
@@ -1620,21 +631,57 @@ register(
 )
 
 register(
-    id="RLVE/VisibleLine-v0",
-    entry_point="gym_v.envs.rlve.visible_line:RLVEVisibleLineEnv",
+    id="Geometry/PipelineArrangement-v0",
+    entry_point="gym_v.envs.single_turn.geometry.pipeline_arrangement:PipelineArrangementEnv",
     max_episode_steps=1,
     kwargs=dict(
-        max_n=10,
-        canvas_width=800,
-        canvas_height=600,
-        padding=60,
+        max_n=8,
+        cell_height=60,
+        cell_width=100,
+        padding=40,
         num_players=1,
     ),
 )
 
 register(
-    id="RLVE/SkaRockGarden-v0",
-    entry_point="gym_v.envs.rlve.ska_rock_garden:RLVESkaRockGardenEnv",
+    id="Cognition/RectangleCount-v0",
+    entry_point="gym_v.envs.single_turn.cognition.rectangle_count:RectangleCountEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=8,
+        padding=16,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Algorithmic/RottenOranges-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.rotten_oranges:RottenOrangesEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=36,
+        padding=20,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Graphs/ShortestPath-v0",
+    entry_point="gym_v.envs.single_turn.graphs.shortest_path:ShortestPathEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=48,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Geometry/SkaRockGarden-v0",
+    entry_point="gym_v.envs.single_turn.geometry.ska_rock_garden:SkaRockGardenEnv",
     max_episode_steps=1,
     kwargs=dict(
         max_n=10,
@@ -1645,8 +692,33 @@ register(
 )
 
 register(
-    id="RLVE/SpyNetwork-v0",
-    entry_point="gym_v.envs.rlve.spy_network:RLVESpyNetworkEnv",
+    id="Geometry/SmallestCircle-v0",
+    entry_point="gym_v.envs.single_turn.geometry.smallest_circle:SmallestCircleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        n_points=10,
+        rewarding_strategy="(gold/answer)^beta",
+        rewarding_weight=1.0,
+        rewarding_beta=10.0,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Algorithmic/SpiralMatrix-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.spiral_matrix:SpiralMatrixEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=48,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Graphs/SpyNetwork-v0",
+    entry_point="gym_v.envs.single_turn.graphs.spy_network:SpyNetworkEnv",
     max_episode_steps=1,
     kwargs=dict(
         max_n=10,
@@ -1663,10 +735,615 @@ register(
     ),
 )
 
-# Game-RL Q&A environments (single-turn)
 register(
-    id="GameRL/Snake-QA-v0",
-    entry_point="gym_v.envs.gamerl.snake:GameRLSnakeQAEnv",
+    id="Algorithmic/StoneGame-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.stone_game:StoneGameEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_sum=30,
+        pile_width=60,
+        pile_max_height=200,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Algorithmic/StoneIntervalsGame-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.stone_intervals_game:StoneIntervalsGameEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Geometry/SumTriangleArea-v0",
+    entry_point="gym_v.envs.single_turn.geometry.sum_triangle_area:SumTriangleAreaEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Graphs/TreeAddOneEdgeDiameter-v0",
+    entry_point="gym_v.envs.single_turn.graphs.tree_add_one_edge_diameter:TreeAddOneEdgeDiameterEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        node_radius=20,
+        image_width=800,
+        image_height=700,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Graphs/TreeCenter-v0",
+    entry_point="gym_v.envs.single_turn.graphs.tree_center:TreeCenterEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        node_radius=22,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Graphs/TreeChangeOneEdgeDiameter-v0",
+    entry_point="gym_v.envs.single_turn.graphs.tree_change_one_edge_diameter:TreeChangeOneEdgeDiameterEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        N=8,
+        node_radius=22,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Graphs/TreeColoring-v0",
+    entry_point="gym_v.envs.single_turn.graphs.tree_coloring:TreeColoringEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        node_radius=18,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Graphs/TreeDistanceEqualTriadCounting-v0",
+    entry_point="gym_v.envs.single_turn.graphs.tree_distance_equal_triad_counting:TreeDistanceEqualTriadCountingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        node_radius=22,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Graphs/TreeEvenPartitioning-v0",
+    entry_point="gym_v.envs.single_turn.graphs.tree_even_partitioning:TreeEvenPartitioningEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=4,
+        max_k=3,
+        node_radius=20,
+        image_size=800,
+        padding=80,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Graphs/TreeTopologicalSequenceCounting-v0",
+    entry_point="gym_v.envs.single_turn.graphs.tree_topological_sequence_counting:TreeTopologicalSequenceCountingEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        max_mod=1000000,
+        node_radius=22,
+        image_size=700,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Geometry/VisibleLine-v0",
+    entry_point="gym_v.envs.single_turn.geometry.visible_line:VisibleLineEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=10,
+        canvas_width=800,
+        canvas_height=600,
+        padding=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Algorithmic/WarehouseConstruction-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.warehouse_construction:WarehouseConstructionEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        n=6,
+        cell_height=80,
+        cell_width=120,
+        padding=40,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Graphs/WeightedBinarytree-v0",
+    entry_point="gym_v.envs.single_turn.graphs.weighted_binarytree:WeightedBinarytreeEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=8,
+        max_score=10,
+        image_width=800,
+        image_height=600,
+        node_radius=25,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Algorithmic/WhackAMole-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.whack_a_mole:WhackAMoleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=4,
+        max_beat=3,
+        cell_px=80,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+# --- Cognition (6 environments) ---
+
+# --- Geometry (9 environments) ---
+
+# --- Graphs (28 environments) ---
+
+# --- Logic (12 environments) ---
+
+# --- Puzzles (39 environments) ---
+
+register(
+    id="Logic/Battleships-v0",
+    entry_point="gym_v.envs.single_turn.logic.battleships:BattleshipsEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        size=6,
+        num_hints=0,
+        cell_px=55,
+        padding=50,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Logic/Binairo-v0",
+    entry_point="gym_v.envs.single_turn.logic.binairo:BinairoEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        size=6,
+        num_hints=12,
+        cell_px=60,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Logic/BinarioNoAdjacencyRequirement-v0",
+    entry_point="gym_v.envs.single_turn.logic.binario_no_adjacency_requirement:BinarioNoAdjacencyRequirementEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=4,
+        sparsity=0.5,
+        cell_px=56,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Logic/CampsitePuzzle-v0",
+    entry_point="gym_v.envs.single_turn.logic.campsite_puzzle:CampsitePuzzleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=4,
+        sparsity=0.5,
+        cell_px=56,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Puzzles/ChessRanger-QA-v0",
+    entry_point="gym_v.envs.single_turn.puzzles.chess_ranger:ChessRangerQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        num_pieces=6,
+        question_type=None,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Puzzles/EightDigitPuzzle-v0",
+    entry_point="gym_v.envs.single_turn.puzzles.eight_digit_puzzle:EightDigitPuzzleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        n=3,
+        m=3,
+        steps=10,
+        cell_px=72,
+        padding=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Puzzles/Freecell-QA-v0",
+    entry_point="gym_v.envs.single_turn.puzzles.freecell:FreecellQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        cascade_number=None,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Logic/Futoshiki-v0",
+    entry_point="gym_v.envs.single_turn.logic.futoshiki:FutoshikiEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        size=5,
+        cell_px=60,
+        padding=30,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Logic/GridParityConstruction-v0",
+    entry_point="gym_v.envs.single_turn.logic.grid_parity_construction:GridParityConstructionEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=8,
+        cell_px=56,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Logic/Hitori-v0",
+    entry_point="gym_v.envs.single_turn.logic.hitori:HitoriEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        size=6,
+        cell_px=50,
+        padding=20,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Logic/HitoriPuzzle-v0",
+    entry_point="gym_v.envs.single_turn.logic.hitori_puzzle:HitoriPuzzleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=4,
+        cell_px=56,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Cognition/Hue-QA-v0",
+    entry_point="gym_v.envs.single_turn.cognition.hue:HueQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        board_size=None,
+        num_lines=None,
+        cell_size=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Puzzles/Jewel2-QA-v0",
+    entry_point="gym_v.envs.single_turn.puzzles.jewel2:Jewel2QAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        size=5,
+        question_type=None,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Puzzles/JugPuzzle-v0",
+    entry_point="gym_v.envs.single_turn.puzzles.jug_puzzle:JugPuzzleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_capacity_multiple=10,
+        operation_probabilities=None,
+        jug_width=80,
+        jug_height=200,
+        padding=40,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Logic/Kakurasu-v0",
+    entry_point="gym_v.envs.single_turn.logic.kakurasu:KakurasuEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=56,
+        padding=40,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Puzzles/KloBlocks-v0",
+    entry_point="gym_v.envs.single_turn.puzzles.klo_blocks:KloBlocksEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        N=10,
+        cell_px=60,
+        padding=30,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Puzzles/Klondike-QA-v0",
+    entry_point="gym_v.envs.single_turn.puzzles.klondike:KlondikeQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Puzzles/KnightSwap-v0",
+    entry_point="gym_v.envs.single_turn.puzzles.knight_swap:KnightSwapEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=64,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Algorithmic/LangtonAnt-QA-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.langton_ant:LangtonAntQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        grid_size=None,
+        cell_size=30,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Algorithmic/Lifegame-QA-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.lifegame:LifegameQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        grid_size=None,
+        cell_size=30,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Logic/MagicSquarePuzzle-v0",
+    entry_point="gym_v.envs.single_turn.logic.magic_square_puzzle:MagicSquarePuzzleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        min_n=3,
+        max_n=5,
+        sparsity=0.5,
+        cell_px=64,
+        padding=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Puzzles/Maze-v0",
+    entry_point="gym_v.envs.single_turn.puzzles.maze:MazeEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=48,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Puzzles/Maze-QA-v0",
+    entry_point="gym_v.envs.single_turn.puzzles.maze_qa:MazeQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        size="small",
+        cell_size=40,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Logic/MiniSudoku-v0",
+    entry_point="gym_v.envs.single_turn.logic.mini_sudoku:MiniSudokuEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=80,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Logic/NQueens-v0",
+    entry_point="gym_v.envs.single_turn.logic.n_queens:NQueensEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=64,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Puzzles/NinePuzzle-v0",
+    entry_point="gym_v.envs.single_turn.puzzles.nine_puzzle:NinePuzzleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=3,
+        steps=5,
+        cell_px=64,
+        padding=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Logic/Numbrix-v0",
+    entry_point="gym_v.envs.single_turn.logic.numbrix:NumbrixEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=4,
+        sparsity=0.5,
+        cell_px=56,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Puzzles/Pacman-QA-v0",
+    entry_point="gym_v.envs.single_turn.puzzles.pacman:PacmanQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        grid_size=16,
+        wall_ratio=0.1,
+        cell_size=25,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Puzzles/PyramidChess-QA-v0",
+    entry_point="gym_v.envs.single_turn.puzzles.pyramidchess:PyramidChessQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        plot_level="Easy",
+        question_type=None,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Logic/Renzoku-v0",
+    entry_point="gym_v.envs.single_turn.logic.renzoku:RenzokuEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        size=9,
+        cell_px=50,
+        padding=30,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Puzzles/RhythmGame-QA-v0",
+    entry_point="gym_v.envs.single_turn.puzzles.rhythm_game:RhythmGameQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        grid_size=None,
+        difficulty=None,
+        cell_size=40,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Algorithmic/RotateMatrix-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.rotate_matrix:RotateMatrixEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=48,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Logic/SkyscraperPuzzle-v0",
+    entry_point="gym_v.envs.single_turn.logic.skyscraper_puzzle:SkyscraperPuzzleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        n=3,
+        cell_px=52,
+        padding=28,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Logic/SkyscraperSumPuzzle-v0",
+    entry_point="gym_v.envs.single_turn.logic.skyscraper_sum_puzzle:SkyscraperSumPuzzleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        n=3,
+        cell_px=52,
+        padding=28,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Puzzles/Snake-QA-v0",
+    entry_point="gym_v.envs.single_turn.puzzles.snake:SnakeQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
@@ -1679,151 +1356,8 @@ register(
 )
 
 register(
-    id="GameRL/Maze-QA-v0",
-    entry_point="gym_v.envs.gamerl.maze:GameRLMazeQAEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        question_type=None,
-        size="small",
-        cell_size=40,
-        num_players=1,
-    ),
-)
-
-register(
-    id="GameRL/Maze3D-QA-v0",
-    entry_point="gym_v.envs.gamerl.maze_3d:GameRL3dMazeQAEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        question_type=None,
-        grid_size=(8, 8, 7),
-        num_players=1,
-    ),
-)
-
-register(
-    id="GameRL/Lifegame-QA-v0",
-    entry_point="gym_v.envs.gamerl.lifegame:GameRLLifegameQAEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        question_type=None,
-        grid_size=None,
-        cell_size=30,
-        num_players=1,
-    ),
-)
-
-register(
-    id="GameRL/Freecell-QA-v0",
-    entry_point="gym_v.envs.gamerl.freecell:GameRLFreecellQAEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        question_type=None,
-        cascade_number=None,
-        num_players=1,
-    ),
-)
-
-register(
-    id="GameRL/Hue-QA-v0",
-    entry_point="gym_v.envs.gamerl.hue:GameRLHueQAEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        question_type=None,
-        board_size=None,
-        num_lines=None,
-        cell_size=60,
-        num_players=1,
-    ),
-)
-
-register(
-    id="GameRL/Jewel2-QA-v0",
-    entry_point="gym_v.envs.gamerl.jewel2:GameRLJewel2QAEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        size=5,
-        question_type=None,
-        num_players=1,
-    ),
-)
-
-register(
-    id="GameRL/LangtonAnt-QA-v0",
-    entry_point="gym_v.envs.gamerl.langton_ant:GameRLLangtonAntQAEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        question_type=None,
-        grid_size=None,
-        cell_size=30,
-        num_players=1,
-    ),
-)
-
-register(
-    id="GameRL/Minesweeper-QA-v0",
-    entry_point="gym_v.envs.gamerl.minesweeper:GameRLMinesweeperQAEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        question_type=None,
-        difficulty=None,
-        cell_size=60,
-        num_players=1,
-    ),
-)
-
-register(
-    id="GameRL/Sudoku-QA-v0",
-    entry_point="gym_v.envs.gamerl.sudoku:GameRLSudokuQAEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        question_type=None,
-        size=None,
-        cell_size=50,
-        num_players=1,
-    ),
-)
-
-register(
-    id="GameRL/Pacman-QA-v0",
-    entry_point="gym_v.envs.gamerl.pacman:GameRLPacmanQAEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        question_type=None,
-        grid_size=16,
-        wall_ratio=0.1,
-        cell_size=25,
-        num_players=1,
-    ),
-)
-
-register(
-    id="GameRL/RhythmGame-QA-v0",
-    entry_point="gym_v.envs.gamerl.rhythm_game:GameRLRhythmGameQAEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        question_type=None,
-        grid_size=None,
-        difficulty=None,
-        cell_size=40,
-        num_players=1,
-    ),
-)
-
-register(
-    id="GameRL/RubiksCube-QA-v0",
-    entry_point="gym_v.envs.gamerl.rubiks_cube:GameRLRubiksCubeQAEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        question_type=None,
-        num_moves=None,
-        num_players=1,
-    ),
-)
-
-register(
-    id="GameRL/Sokoban-QA-v0",
-    entry_point="gym_v.envs.gamerl.sokoban:GameRLSokobanQAEnv",
+    id="Puzzles/Sokoban-QA-v0",
+    entry_point="gym_v.envs.single_turn.puzzles.sokoban:SokobanQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
@@ -1834,96 +1368,8 @@ register(
 )
 
 register(
-    id="GameRL/SpiderSolitaire-QA-v0",
-    entry_point="gym_v.envs.gamerl.spider_solitaire:GameRLSpiderSolitaireQAEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        num_waste=10,
-        circular=False,
-        open=False,
-        question_type=None,
-        num_players=1,
-    ),
-)
-
-register(
-    id="GameRL/Tangram-QA-v0",
-    entry_point="gym_v.envs.gamerl.tangram:GameRLTangramQAEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        question_type=None,
-        grid_size=None,
-        num_seeds=None,
-        num_pieces_to_remove=None,
-        num_players=1,
-    ),
-)
-
-register(
-    id="GameRL/Tetris-QA-v0",
-    entry_point="gym_v.envs.gamerl.tetris:GameRLTetrisQAEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        question_type=None,
-        rows=12,
-        cols=8,
-        cell_size=30,
-        num_players=1,
-    ),
-)
-
-register(
-    id="GameRL/TicTacToe-QA-v0",
-    entry_point="gym_v.envs.gamerl.tictactoe:GameRLTicTacToeQAEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        question_type=None,
-        num_players=1,
-    ),
-)
-
-register(
-    id="GameRL/UltraTicTacToe-QA-v0",
-    entry_point="gym_v.envs.gamerl.ultra_tictactoe:GameRLUltraTicTacToeQAEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        plot_level="Easy",
-        question_type=None,
-        num_players=1,
-    ),
-)
-
-register(
-    id="GameRL/TuringMachine2d-QA-v0",
-    entry_point="gym_v.envs.gamerl.turing_machine_2d:GameRL2dTuringMachineQAEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        question_type=None,
-        grid_size=None,
-        num_states=2,
-        num_symbols=2,
-        max_steps=8,
-        cell_size=50,
-        num_players=1,
-    ),
-)
-
-register(
-    id="GameRL/Tents-QA-v0",
-    entry_point="gym_v.envs.gamerl.tents:GameRLTentsQAEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        question_type=None,
-        grid_size=None,
-        num_trees=None,
-        cell_size=50,
-        num_players=1,
-    ),
-)
-
-register(
-    id="GameRL/SpaceInvaders-QA-v0",
-    entry_point="gym_v.envs.gamerl.space_invaders:GameRLSpaceInvadersQAEnv",
+    id="Puzzles/SpaceInvaders-QA-v0",
+    entry_point="gym_v.envs.single_turn.puzzles.space_invaders:SpaceInvadersQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
@@ -1937,8 +1383,21 @@ register(
 )
 
 register(
-    id="GameRL/StarBattle-QA-v0",
-    entry_point="gym_v.envs.gamerl.star_battle:GameRLStarBattleQAEnv",
+    id="Puzzles/SpiderSolitaire-QA-v0",
+    entry_point="gym_v.envs.single_turn.puzzles.spider_solitaire:SpiderSolitaireQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        num_waste=10,
+        circular=False,
+        open=False,
+        question_type=None,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Logic/StarBattle-QA-v0",
+    entry_point="gym_v.envs.single_turn.logic.star_battle:StarBattleQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
@@ -1950,8 +1409,171 @@ register(
 )
 
 register(
-    id="GameRL/WordSearch-QA-v0",
-    entry_point="gym_v.envs.gamerl.word_search:GameRLWordSearchQAEnv",
+    id="Logic/StarBattle-v0",
+    entry_point="gym_v.envs.single_turn.logic.starbattle:StarBattleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        size=8,
+        stars_per_group=1,
+        cell_px=50,
+        padding=20,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Logic/Survo-v0",
+    entry_point="gym_v.envs.single_turn.logic.survo:SurvoEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=64,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Geometry/Tangram-QA-v0",
+    entry_point="gym_v.envs.single_turn.geometry.tangram:TangramQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        grid_size=None,
+        num_seeds=None,
+        num_pieces_to_remove=None,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Logic/Tents-QA-v0",
+    entry_point="gym_v.envs.single_turn.logic.tents:TentsQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        grid_size=None,
+        num_trees=None,
+        cell_size=50,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Puzzles/Tetris-QA-v0",
+    entry_point="gym_v.envs.single_turn.puzzles.tetris:TetrisQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        rows=12,
+        cols=8,
+        cell_size=30,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Puzzles/TetrisAttack-v0",
+    entry_point="gym_v.envs.single_turn.puzzles.tetris_attack:TetrisAttackEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n=8,
+        cell_px=60,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Logic/Thermometers-v0",
+    entry_point="gym_v.envs.single_turn.logic.thermometers:ThermometersEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        size=5,
+        num_hints=0,
+        cell_px=60,
+        padding=50,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Puzzles/TicTacToe-QA-v0",
+    entry_point="gym_v.envs.single_turn.puzzles.tictactoe:TicTacToeQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Puzzles/TowerOfHanoi-v0",
+    entry_point="gym_v.envs.single_turn.puzzles.tower_of_hanoi:TowerOfHanoiEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        peg_width=150,
+        peg_height=250,
+        padding=40,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Puzzles/Tsumego-v0",
+    entry_point="gym_v.envs.single_turn.puzzles.tsumego:TsumegoEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        dataset_kwargs=dict(size=500),
+        cell_px=36,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Algorithmic/TuringMachine2d-QA-v0",
+    entry_point="gym_v.envs.single_turn.algorithmic.turing_machine_2d:TuringMachineQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        grid_size=None,
+        num_states=2,
+        num_symbols=2,
+        max_steps=8,
+        cell_size=50,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Puzzles/TwiddlePuzzle-v0",
+    entry_point="gym_v.envs.single_turn.puzzles.twiddle_puzzle:TwiddlePuzzleEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        max_n_m=4,
+        steps=3,
+        cell_px=56,
+        padding=24,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Puzzles/UltraTicTacToe-QA-v0",
+    entry_point="gym_v.envs.single_turn.puzzles.ultra_tictactoe:UltraTicTacToeQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        plot_level="Easy",
+        question_type=None,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Puzzles/WordSearch-QA-v0",
+    entry_point="gym_v.envs.single_turn.puzzles.word_search:WordSearchQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
@@ -1962,8 +1584,8 @@ register(
 )
 
 register(
-    id="GameRL/Zuma-QA-v0",
-    entry_point="gym_v.envs.gamerl.zuma:GameRLZumaQAEnv",
+    id="Puzzles/Zuma-QA-v0",
+    entry_point="gym_v.envs.single_turn.puzzles.zuma:ZumaQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         question_type=None,
@@ -1974,9 +1596,11 @@ register(
     ),
 )
 
+# --- Perception (14 environments) ---
+
 register(
-    id="GameRL/3DReconstruction-QA-v0",
-    entry_point="gym_v.envs.gamerl.threed_reconstruction:GameRL3DReconstructionQAEnv",
+    id="Perception/3DReconstruction-QA-v0",
+    entry_point="gym_v.envs.single_turn.perception.threed_reconstruction:ReconstructionQAEnv",
     max_episode_steps=1,
     kwargs=dict(
         plot_level="Easy",
@@ -1986,106 +1610,100 @@ register(
 )
 
 register(
-    id="GameRL/ChessRanger-QA-v0",
-    entry_point="gym_v.envs.gamerl.chess_ranger:GameRLChessRangerQAEnv",
+    id="Perception/ChartToTable-v0",
+    entry_point="gym_v.envs.single_turn.perception.chart_to_table:ChartToTableEnv",
     max_episode_steps=1,
     kwargs=dict(
-        num_pieces=6,
-        question_type=None,
+        img_size=(640, 480),
+        max_categories=8,
         num_players=1,
     ),
 )
 
 register(
-    id="GameRL/PyramidChess-QA-v0",
-    entry_point="gym_v.envs.gamerl.pyramidchess:GameRLPyramidChessQAEnv",
+    id="Perception/ContourPlot-v0",
+    entry_point="gym_v.envs.single_turn.perception.contour_plot:ContourPlotEnv",
     max_episode_steps=1,
     kwargs=dict(
-        plot_level="Easy",
-        question_type=None,
+        img_size=(640, 480),
+        xy_range=(-3, 3),
         num_players=1,
     ),
 )
 
 register(
-    id="GameRL/Klondike-QA-v0",
-    entry_point="gym_v.envs.gamerl.klondike:GameRLKlondikeQAEnv",
+    id="Perception/DAGToTopoOrder-v0",
+    entry_point="gym_v.envs.single_turn.perception.dag_to_topo_order:DAGToTopoOrderEnv",
     max_episode_steps=1,
     kwargs=dict(
-        question_type=None,
+        img_size=(640, 480),
+        min_nodes=5,
+        max_nodes=9,
         num_players=1,
     ),
 )
 
-# Sphinx environments (procedurally generated) - Grid style (ARC-like)
 register(
-    id="Sphinx/TransformResult-v0",
-    entry_point="gym_v.envs.sphinx.transform_result:SphinxTransformResultEnv",
+    id="Perception/FlowNetwork-v0",
+    entry_point="gym_v.envs.single_turn.perception.flow_network:FlowNetworkEnv",
     max_episode_steps=1,
     kwargs=dict(
-        grid_size=5,
-        num_colors=4,
-        cell_size=40,
-        option_size=280,
-        padding=20,
+        img_size=(640, 480),
+        min_nodes=5,
+        max_nodes=8,
+        num_players=1,
     ),
 )
 
 register(
-    id="Sphinx/SymmetryFill-v0",
-    entry_point="gym_v.envs.sphinx.symmetry_fill:SphinxSymmetryFillEnv",
+    id="Perception/FunctionGraph-v0",
+    entry_point="gym_v.envs.single_turn.perception.function_graph:FunctionGraphEnv",
     max_episode_steps=1,
     kwargs=dict(
-        cell_grid_size=4,
-        num_colors=3,
-        cell_size=100,
-        option_size=200,
-        padding=15,
+        img_size=(640, 480),
+        x_range=(-5, 5),
+        num_players=1,
     ),
 )
 
 register(
-    id="Sphinx/TransformResultPoly-v0",
-    entry_point="gym_v.envs.sphinx.transform_result:SphinxTransformResultPolyEnv",
+    id="Perception/GraphToAdjacency-v0",
+    entry_point="gym_v.envs.single_turn.perception.graph_to_adjacency:GraphToAdjacencyEnv",
     max_episode_steps=1,
     kwargs=dict(
-        img_size=300,
-        num_points=8,
-        line_width=3,
-        grid_divisions=8,
-        option_size=280,
-        padding=20,
+        img_size=(640, 480),
+        min_nodes=4,
+        max_nodes=8,
+        num_players=1,
     ),
 )
 
 register(
-    id="Sphinx/SymmetryFillPoly-v0",
-    entry_point="gym_v.envs.sphinx.symmetry_fill:SphinxSymmetryFillPolyEnv",
+    id="Perception/GraphToMST-v0",
+    entry_point="gym_v.envs.single_turn.perception.graph_to_mst:GraphToMSTEnv",
     max_episode_steps=1,
     kwargs=dict(
-        cell_size=200,
-        line_width=4,
-        option_size=200,
-        padding=15,
+        img_size=(640, 480),
+        min_nodes=5,
+        max_nodes=8,
+        num_players=1,
     ),
 )
 
 register(
-    id="Sphinx/OddOneOut-v0",
-    entry_point="gym_v.envs.sphinx.odd_one_out:SphinxOddOneOutEnv",
+    id="Cognition/Maze3D-QA-v0",
+    entry_point="gym_v.envs.single_turn.cognition.maze_3d:MazeQAEnv",
     max_episode_steps=1,
     kwargs=dict(
-        grid_size=5,
-        num_colors=4,
-        cell_size=40,
-        option_size=200,
-        padding=15,
+        question_type=None,
+        grid_size=(8, 8, 7),
+        num_players=1,
     ),
 )
 
 register(
-    id="Sphinx/OddOneOutPoly-v0",
-    entry_point="gym_v.envs.sphinx.odd_one_out:SphinxOddOneOutPolyEnv",
+    id="Cognition/OddOneOutPoly-v0",
+    entry_point="gym_v.envs.single_turn.cognition.odd_one_out:OddOneOutPolyEnv",
     max_episode_steps=1,
     kwargs=dict(
         img_size=200,
@@ -2098,22 +1716,39 @@ register(
 )
 
 register(
-    id="Sphinx/SequenceCompletion-v0",
-    entry_point="gym_v.envs.sphinx.sequence_completion:SphinxSequenceCompletionEnv",
+    id="Perception/ParametricCurve-v0",
+    entry_point="gym_v.envs.single_turn.perception.parametric_curve:ParametricCurveEnv",
     max_episode_steps=1,
     kwargs=dict(
-        grid_size=4,
-        num_colors=3,
-        cell_size=35,
-        sequence_length=4,
-        option_size=150,
-        padding=10,
+        img_size=(640, 480),
+        num_players=1,
     ),
 )
 
 register(
-    id="Sphinx/SequenceCompletionPoly-v0",
-    entry_point="gym_v.envs.sphinx.sequence_completion:SphinxSequenceCompletionPolyEnv",
+    id="Perception/PolarPlot-v0",
+    entry_point="gym_v.envs.single_turn.perception.polar_plot:PolarPlotEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        img_size=(640, 480),
+        num_players=1,
+    ),
+)
+
+register(
+    id="Cognition/RubiksCube-QA-v0",
+    entry_point="gym_v.envs.single_turn.cognition.rubiks_cube:RubiksCubeQAEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        question_type=None,
+        num_moves=None,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Cognition/SequenceCompletionPoly-v0",
+    entry_point="gym_v.envs.single_turn.cognition.sequence_completion:SequenceCompletionPolyEnv",
     max_episode_steps=1,
     kwargs=dict(
         img_size=200,
@@ -2126,34 +1761,35 @@ register(
     ),
 )
 
-# Perception environments
 register(
-    id="Perception/ChartToTable-v0",
-    entry_point="gym_v.envs.perception.chart_to_table:PerceptionChartToTableEnv",
+    id="Cognition/SymmetryFillPoly-v0",
+    entry_point="gym_v.envs.single_turn.cognition.symmetry_fill:SymmetryFillPolyEnv",
     max_episode_steps=1,
     kwargs=dict(
-        img_size=(640, 480),
-        max_categories=8,
-        num_players=1,
+        cell_size=200,
+        line_width=4,
+        option_size=200,
+        padding=15,
     ),
 )
 
-# Graph Algorithm Perception environments
 register(
-    id="Perception/GraphToAdjacency-v0",
-    entry_point="gym_v.envs.perception.graph_to_adjacency:PerceptionGraphToAdjacencyEnv",
+    id="Cognition/TransformResultPoly-v0",
+    entry_point="gym_v.envs.single_turn.cognition.transform_result:TransformResultPolyEnv",
     max_episode_steps=1,
     kwargs=dict(
-        img_size=(640, 480),
-        min_nodes=4,
-        max_nodes=8,
-        num_players=1,
+        img_size=300,
+        num_points=8,
+        line_width=3,
+        grid_divisions=8,
+        option_size=280,
+        padding=20,
     ),
 )
 
 register(
     id="Perception/TreeToTraversal-v0",
-    entry_point="gym_v.envs.perception.tree_to_traversal:PerceptionTreeToTraversalEnv",
+    entry_point="gym_v.envs.single_turn.perception.tree_to_traversal:TreeToTraversalEnv",
     max_episode_steps=1,
     kwargs=dict(
         img_size=(640, 480),
@@ -2164,77 +1800,8 @@ register(
 )
 
 register(
-    id="Perception/DAGToTopoOrder-v0",
-    entry_point="gym_v.envs.perception.dag_to_topo_order:PerceptionDAGToTopoOrderEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        img_size=(640, 480),
-        min_nodes=5,
-        max_nodes=9,
-        num_players=1,
-    ),
-)
-
-register(
-    id="Perception/GraphToMST-v0",
-    entry_point="gym_v.envs.perception.graph_to_mst:PerceptionGraphToMSTEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        img_size=(640, 480),
-        min_nodes=5,
-        max_nodes=8,
-        num_players=1,
-    ),
-)
-
-register(
-    id="Perception/FlowNetwork-v0",
-    entry_point="gym_v.envs.perception.flow_network:PerceptionFlowNetworkEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        img_size=(640, 480),
-        min_nodes=5,
-        max_nodes=8,
-        num_players=1,
-    ),
-)
-
-# Mathematical Function Perception environments
-register(
-    id="Perception/FunctionGraph-v0",
-    entry_point="gym_v.envs.perception.function_graph:PerceptionFunctionGraphEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        img_size=(640, 480),
-        x_range=(-5, 5),
-        num_players=1,
-    ),
-)
-
-register(
-    id="Perception/ContourPlot-v0",
-    entry_point="gym_v.envs.perception.contour_plot:PerceptionContourPlotEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        img_size=(640, 480),
-        xy_range=(-3, 3),
-        num_players=1,
-    ),
-)
-
-register(
-    id="Perception/PolarPlot-v0",
-    entry_point="gym_v.envs.perception.polar_plot:PerceptionPolarPlotEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        img_size=(640, 480),
-        num_players=1,
-    ),
-)
-
-register(
     id="Perception/VectorField-v0",
-    entry_point="gym_v.envs.perception.vector_field:PerceptionVectorFieldEnv",
+    entry_point="gym_v.envs.single_turn.perception.vector_field:VectorFieldEnv",
     max_episode_steps=1,
     kwargs=dict(
         img_size=(640, 480),
@@ -2244,152 +1811,36 @@ register(
     ),
 )
 
-register(
-    id="Perception/ParametricCurve-v0",
-    entry_point="gym_v.envs.perception.parametric_curve:PerceptionParametricCurveEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        img_size=(640, 480),
-        num_players=1,
-    ),
-)
+# ============================================================
+# Multi Turn
+# ============================================================
 
-# Stable-Retro environments (optional dependency)
-# These require stable-retro to be installed: uv sync --extra stable-retro
+# --- Games (31 environments) ---
+
 register(
-    id="Retro/Airstriker-v0",
-    entry_point="gym_v.envs.stable_retro:RetroGymVEnv",
-    max_episode_steps=10000,
+    id="Games/Alquerque-v0",
+    entry_point="gym_v.envs.multi_turn.games.single_player.alquerque:AlquerqueEnv",
+    max_episode_steps=200,
     kwargs=dict(
-        game="Airstriker-Genesis",
-        num_players=1,
+        tile_size=80,
+        num_players=2,
     ),
 )
 
 register(
-    id="Retro/GoldenAxe-v0",
-    entry_point="gym_v.envs.stable_retro:RetroGymVEnv",
-    max_episode_steps=10000,
+    id="Games/Breakthrough-v0",
+    entry_point="gym_v.envs.multi_turn.games.single_player.breakthrough:BreakthroughEnv",
+    max_episode_steps=200,
     kwargs=dict(
-        game="GoldenAxe-Genesis-v0",
-        num_players=1,
+        board_size=8,
+        tile_size=60,
+        num_players=2,
     ),
 )
 
 register(
-    id="Retro/StreetsOfRage2-v0",
-    entry_point="gym_v.envs.stable_retro:RetroGymVEnv",
-    max_episode_steps=10000,
-    kwargs=dict(
-        game="StreetsOfRage2-Genesis-v0",
-        num_players=1,
-    ),
-)
-
-register(
-    id="Retro/MortalKombatII-v0",
-    entry_point="gym_v.envs.stable_retro:RetroGymVEnv",
-    max_episode_steps=10000,
-    kwargs=dict(
-        game="MortalKombatII-Genesis-v0",
-        num_players=1,
-    ),
-)
-
-register(
-    id="Retro/Strider-v0",
-    entry_point="gym_v.envs.stable_retro:RetroGymVEnv",
-    max_episode_steps=10000,
-    kwargs=dict(
-        game="Strider-Genesis-v0",
-        num_players=1,
-    ),
-)
-
-register(
-    id="Retro/CastleOfIllusion-v0",
-    entry_point="gym_v.envs.stable_retro:RetroGymVEnv",
-    max_episode_steps=10000,
-    kwargs=dict(
-        game="CastleOfIllusion-Genesis-v0",
-        num_players=1,
-    ),
-)
-
-register(
-    id="Retro/CastlevaniaBloodlines-v0",
-    entry_point="gym_v.envs.stable_retro:RetroGymVEnv",
-    max_episode_steps=10000,
-    kwargs=dict(
-        game="CastlevaniaBloodlines-Genesis-v0",
-        num_players=1,
-    ),
-)
-
-register(
-    id="Retro/Columns-v0",
-    entry_point="gym_v.envs.stable_retro:RetroGymVEnv",
-    max_episode_steps=10000,
-    kwargs=dict(
-        game="Columns-Genesis-v0",
-        num_players=1,
-    ),
-)
-
-register(
-    id="Retro/ThunderForceIII-v0",
-    entry_point="gym_v.envs.stable_retro:RetroGymVEnv",
-    max_episode_steps=10000,
-    kwargs=dict(
-        game="ThunderForceIII-Genesis-v0",
-        num_players=1,
-    ),
-)
-
-register(
-    id="Retro/SpaceHarrierII-v0",
-    entry_point="gym_v.envs.stable_retro:RetroGymVEnv",
-    max_episode_steps=10000,
-    kwargs=dict(
-        game="SpaceHarrierII-Genesis-v0",
-        num_players=1,
-    ),
-)
-
-register(
-    id="Retro/AlteredBeast-v0",
-    entry_point="gym_v.envs.stable_retro:RetroGymVEnv",
-    max_episode_steps=10000,
-    kwargs=dict(
-        game="AlteredBeast-Genesis-v0",
-        num_players=1,
-    ),
-)
-
-register(
-    id="Retro/DynamiteHeaddy-v0",
-    entry_point="gym_v.envs.stable_retro:RetroGymVEnv",
-    max_episode_steps=10000,
-    kwargs=dict(
-        game="DynamiteHeaddy-Genesis-v0",
-        num_players=1,
-    ),
-)
-
-register(
-    id="Retro/KidChameleon-v0",
-    entry_point="gym_v.envs.stable_retro:RetroGymVEnv",
-    max_episode_steps=10000,
-    kwargs=dict(
-        game="KidChameleon-Genesis-v0",
-        num_players=1,
-    ),
-)
-
-# PettingZoo environments
-register(
-    id="PettingZoo/Chess-v0",
-    entry_point="gym_v.envs.multi_players.pettingzoo.chess:PettingZooChess",
+    id="Games/Chess-v0",
+    entry_point="gym_v.envs.multi_turn.games.multi_player.chess:ChessEnv",
     max_episode_steps=500,
     kwargs=dict(
         num_players=2,
@@ -2397,8 +1848,20 @@ register(
 )
 
 register(
-    id="PettingZoo/ConnectFour-v0",
-    entry_point="gym_v.envs.multi_players.pettingzoo.connectfour:PettingZooConnectFour",
+    id="Games/ConnectFour-v0",
+    entry_point="gym_v.envs.multi_turn.games.single_player.connectfour:ConnectFourEnv",
+    max_episode_steps=100,
+    kwargs=dict(
+        num_rows=6,
+        num_cols=7,
+        tile_size=80,
+        num_players=2,
+    ),
+)
+
+register(
+    id="Games/ConnectFourMultiAgent-v0",
+    entry_point="gym_v.envs.multi_turn.games.multi_player.connectfour:ConnectFourMultiAgentEnv",
     max_episode_steps=100,
     kwargs=dict(
         num_players=2,
@@ -2406,8 +1869,64 @@ register(
 )
 
 register(
-    id="PettingZoo/GinRummy-v0",
-    entry_point="gym_v.envs.multi_players.pettingzoo.gin_rummy:PettingZooGinRummy",
+    id="Games/Crosswords-v0",
+    entry_point="gym_v.envs.multi_turn.games.single_player.crosswords:CrosswordsEnv",
+    max_episode_steps=100,
+    kwargs=dict(
+        hardcore=False,
+        num_words=5,
+        cell_size=48,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Games/Crusade-v0",
+    entry_point="gym_v.envs.multi_turn.games.single_player.crusade:CrusadeEnv",
+    max_episode_steps=100,
+    kwargs=dict(
+        tile_size=60,
+        num_players=2,
+    ),
+)
+
+register(
+    id="Games/FifteenPuzzle-v0",
+    entry_point="gym_v.envs.multi_turn.games.single_player.fifteenpuzzle:FifteenPuzzleEnv",
+    max_episode_steps=100,
+    kwargs=dict(
+        tile_size=80,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Games/FrozenLake-v0",
+    entry_point="gym_v.envs.multi_turn.games.single_player.frozenlake:FrozenLakeEnv",
+    max_episode_steps=100,
+    kwargs=dict(
+        size=4,
+        num_holes=3,
+        randomize_start_goal=False,
+        tile_size=64,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Games/Game2048-v0",
+    entry_point="gym_v.envs.multi_turn.games.single_player.game2048:Game2048Env",
+    max_episode_steps=100,
+    kwargs=dict(
+        target_tile=2048,
+        tile_size=100,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Games/GinRummy-v0",
+    entry_point="gym_v.envs.multi_turn.games.multi_player.gin_rummy:GinRummyEnv",
     max_episode_steps=200,
     kwargs=dict(
         num_players=2,
@@ -2418,8 +1937,8 @@ register(
 )
 
 register(
-    id="PettingZoo/Go-v0",
-    entry_point="gym_v.envs.multi_players.pettingzoo.go:PettingZooGo",
+    id="Games/Go-v0",
+    entry_point="gym_v.envs.multi_turn.games.multi_player.go:GoEnv",
     max_episode_steps=1000,
     kwargs=dict(
         num_players=2,
@@ -2429,8 +1948,8 @@ register(
 )
 
 register(
-    id="PettingZoo/LeducHoldem-v0",
-    entry_point="gym_v.envs.multi_players.pettingzoo.leduc_holdem:PettingZooLeducHoldem",
+    id="Games/LeducHoldem-v0",
+    entry_point="gym_v.envs.multi_turn.games.multi_player.leduc_holdem:LeducHoldemEnv",
     max_episode_steps=100,
     kwargs=dict(
         num_players=2,
@@ -2438,8 +1957,121 @@ register(
 )
 
 register(
-    id="PettingZoo/TexasHoldem-v0",
-    entry_point="gym_v.envs.multi_players.pettingzoo.texas_holdem:PettingZooTexasHoldem",
+    id="Games/LightsOut-v0",
+    entry_point="gym_v.envs.multi_turn.games.single_player.lightsout:LightsOutEnv",
+    max_episode_steps=100,
+    kwargs=dict(
+        size=5,
+        cell_size=80,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Games/LinesOfAction-v0",
+    entry_point="gym_v.envs.multi_turn.games.single_player.linesofaction:LinesOfActionEnv",
+    max_episode_steps=200,
+    kwargs=dict(
+        tile_size=60,
+        num_players=2,
+    ),
+)
+
+register(
+    id="Games/Minesweeper-v0",
+    entry_point="gym_v.envs.multi_turn.games.single_player.minesweeper:MinesweeperEnv",
+    max_episode_steps=100,
+    kwargs=dict(
+        rows=8,
+        cols=8,
+        num_mines=10,
+        cell_size=64,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Games/Nim-v0",
+    entry_point="gym_v.envs.multi_turn.games.single_player.nim:NimEnv",
+    max_episode_steps=50,
+    kwargs=dict(
+        piles=[3, 4, 5],
+        pile_width=100,
+        num_players=2,
+    ),
+)
+
+register(
+    id="Games/Othello-v0",
+    entry_point="gym_v.envs.multi_turn.games.single_player.othello:OthelloEnv",
+    max_episode_steps=100,
+    kwargs=dict(
+        board_size=8,
+        show_valid=True,
+        tile_size=80,
+        num_players=2,
+    ),
+)
+
+register(
+    id="Games/PegJump-v0",
+    entry_point="gym_v.envs.multi_turn.games.single_player.pegjump:PegJumpEnv",
+    max_episode_steps=100,
+    kwargs=dict(
+        initial_empty=1,
+        peg_size=80,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Games/RushHour-v0",
+    entry_point="gym_v.envs.multi_turn.games.single_player.rushhour:RushHourEnv",
+    max_episode_steps=100,
+    kwargs=dict(
+        difficulty="easy",
+        cell_size=80,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Games/SimpleTak-v0",
+    entry_point="gym_v.envs.multi_turn.games.single_player.simpletak:SimpleTakEnv",
+    max_episode_steps=50,
+    kwargs=dict(
+        board_size=5,
+        cell_size=80,
+        num_players=2,
+    ),
+)
+
+register(
+    id="Games/Sokoban-v0",
+    entry_point="gym_v.envs.multi_turn.games.single_player.sokoban:SokobanEnv",
+    max_episode_steps=100,
+    kwargs=dict(
+        dim_room=(6, 6),
+        num_boxes=3,
+        tile_size=48,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Games/Sudoku-v0",
+    entry_point="gym_v.envs.multi_turn.games.single_player.sudoku:SudokuEnv",
+    max_episode_steps=100,
+    kwargs=dict(
+        clues=30,
+        cell_size=50,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Games/TexasHoldem-v0",
+    entry_point="gym_v.envs.multi_turn.games.multi_player.texas_holdem:TexasHoldemEnv",
     max_episode_steps=200,
     kwargs=dict(
         num_players=2,
@@ -2447,8 +2079,8 @@ register(
 )
 
 register(
-    id="PettingZoo/TexasHoldemNoLimit-v0",
-    entry_point="gym_v.envs.multi_players.pettingzoo.texas_holdem_no_limit:PettingZooTexasHoldemNoLimit",
+    id="Games/TexasHoldemNoLimit-v0",
+    entry_point="gym_v.envs.multi_turn.games.multi_player.texas_holdem_no_limit:TexasHoldemNoLimitEnv",
     max_episode_steps=200,
     kwargs=dict(
         num_players=2,
@@ -2456,15 +2088,456 @@ register(
 )
 
 register(
-    id="PettingZoo/TicTacToe-v0",
-    entry_point="gym_v.envs.multi_players.pettingzoo.tictactoe:PettingZooTicTacToe",
+    id="Games/TicTacToe-v0",
+    entry_point="gym_v.envs.multi_turn.games.multi_player.tictactoe:TicTacToeEnv",
     max_episode_steps=20,
     kwargs=dict(
         num_players=2,
     ),
 )
 
-# VLMEvalKit environment
+register(
+    id="Games/TowerOfHanoiMultiTurn-v0",
+    entry_point="gym_v.envs.multi_turn.games.single_player.towerofhanoi:TowerOfHanoiEnv",
+    max_episode_steps=100,
+    kwargs=dict(
+        num_disks=3,
+    ),
+)
+
+register(
+    id="Games/UltimateTicTacToe-v0",
+    entry_point="gym_v.envs.multi_turn.games.single_player.ultimatetictactoe:UltimateTicTacToeEnv",
+    max_episode_steps=100,
+    kwargs=dict(
+        mini_board_size=200,
+        num_players=2,
+    ),
+)
+
+register(
+    id="Games/WildTicTacToe-v0",
+    entry_point="gym_v.envs.multi_turn.games.single_player.wildtictactoe:WildTicTacToeEnv",
+    max_episode_steps=20,
+    kwargs=dict(
+        tile_size=120,
+        num_players=2,
+    ),
+)
+
+register(
+    id="Games/WordSearch-v0",
+    entry_point="gym_v.envs.multi_turn.games.single_player.wordsearch:WordSearchEnv",
+    max_episode_steps=100,
+    kwargs=dict(
+        hardcore=False,
+        cell_size=60,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Games/Wordle-v0",
+    entry_point="gym_v.envs.multi_turn.games.single_player.wordle:WordleEnv",
+    max_episode_steps=100,
+    kwargs=dict(
+        word_length=5,
+        num_guesses=6,
+        hardcore=False,
+        cell_size=60,
+        num_players=1,
+    ),
+)
+
+# --- Spatial (30 environments) ---
+
+register(
+    id="Spatial/CollectHealth-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.3d.collecthealth:CollectHealthEnv",
+    max_episode_steps=1000,
+    kwargs=dict(num_players=1),
+)
+
+register(
+    id="Spatial/DoorKey-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.2d.doorkey:DoorKeyEnv",
+    max_episode_steps=640,
+    kwargs=dict(
+        size=8,
+        tile_size=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Spatial/DynamicObstacles-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.2d.dynamicobstacles:DynamicObstaclesEnv",
+    max_episode_steps=256,
+    kwargs=dict(
+        size=8,
+        n_obstacles=4,
+        tile_size=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Spatial/Empty-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.2d.empty:EmptyEnv",
+    max_episode_steps=256,
+    kwargs=dict(
+        size=8,
+        agent_start_pos=(1, 1),
+        tile_size=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Spatial/FourRooms2D-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.2d.fourrooms:FourRoomsEnv",
+    max_episode_steps=100,
+    kwargs=dict(
+        tile_size=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Spatial/FourRooms3D-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.3d.rooms:FourRoomsEnv",
+    max_episode_steps=1000,
+    kwargs=dict(num_players=1),
+)
+
+register(
+    id="Spatial/Hallway-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.3d.hallway:HallwayEnv",
+    max_episode_steps=400,
+    kwargs=dict(num_players=1),
+)
+
+register(
+    id="Spatial/LavaGap-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.2d.lavagap:LavaGapEnv",
+    max_episode_steps=100,
+    kwargs=dict(
+        size=7,
+        tile_size=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Spatial/Maze-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.3d.maze:MazeEnv",
+    max_episode_steps=1000,
+    kwargs=dict(num_players=1),
+)
+
+register(
+    id="Spatial/MazeS2-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.3d.maze:MazeS2Env",
+    max_episode_steps=500,
+    kwargs=dict(num_players=1),
+)
+
+register(
+    id="Spatial/MazeS3-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.3d.maze:MazeS3Env",
+    max_episode_steps=800,
+    kwargs=dict(num_players=1),
+)
+
+register(
+    id="Spatial/MazeS3Fast-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.3d.maze:MazeS3FastEnv",
+    max_episode_steps=600,
+    kwargs=dict(num_players=1),
+)
+
+register(
+    id="Spatial/MultiRoom-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.2d.multiroom:MultiRoomEnv",
+    max_episode_steps=100,
+    kwargs=dict(
+        min_num_rooms=6,
+        max_num_rooms=6,
+        max_room_size=10,
+        tile_size=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Spatial/OneRoom-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.3d.oneroom:OneRoomEnv",
+    max_episode_steps=400,
+    kwargs=dict(num_players=1),
+)
+
+register(
+    id="Spatial/OneRoomS6-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.3d.oneroom:OneRoomS6Env",
+    max_episode_steps=600,
+    kwargs=dict(num_players=1),
+)
+
+register(
+    id="Spatial/OneRoomS6Fast-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.3d.oneroom:OneRoomS6FastEnv",
+    max_episode_steps=400,
+    kwargs=dict(num_players=1),
+)
+
+register(
+    id="Spatial/PickupObjects-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.3d.pickup:PickupObjectsEnv",
+    max_episode_steps=1000,
+    kwargs=dict(num_players=1),
+)
+
+register(
+    id="Spatial/PutNext-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.3d.putnext:PutNextEnv",
+    max_episode_steps=1000,
+    kwargs=dict(num_players=1),
+)
+
+register(
+    id="Spatial/RoomObjects-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.3d.rooms:RoomObjectsEnv",
+    max_episode_steps=800,
+    kwargs=dict(num_players=1),
+)
+
+register(
+    id="Spatial/Sidewalk-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.3d.sidewalk:SidewalkEnv",
+    max_episode_steps=800,
+    kwargs=dict(num_players=1),
+)
+
+register(
+    id="Spatial/Sign-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.3d.sign:SignEnv",
+    max_episode_steps=600,
+    kwargs=dict(num_players=1),
+)
+
+register(
+    id="Spatial/TMaze-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.3d.tmaze:TMazeEnv",
+    max_episode_steps=500,
+    kwargs=dict(num_players=1),
+)
+
+register(
+    id="Spatial/TMazeLeft-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.3d.tmaze:TMazeLeftEnv",
+    max_episode_steps=500,
+    kwargs=dict(num_players=1),
+)
+
+register(
+    id="Spatial/TMazeRight-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.3d.tmaze:TMazeRightEnv",
+    max_episode_steps=500,
+    kwargs=dict(num_players=1),
+)
+
+register(
+    id="Spatial/ThreeRooms-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.3d.rooms:ThreeRoomsEnv",
+    max_episode_steps=800,
+    kwargs=dict(num_players=1),
+)
+
+register(
+    id="Spatial/Unlock-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.2d.unlock:UnlockEnv",
+    max_episode_steps=100,
+    kwargs=dict(
+        tile_size=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Spatial/WallGap-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.3d.wallgap:WallGapEnv",
+    max_episode_steps=400,
+    kwargs=dict(num_players=1),
+)
+
+register(
+    id="Spatial/YMaze-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.3d.ymaze:YMazeEnv",
+    max_episode_steps=500,
+    kwargs=dict(num_players=1),
+)
+
+register(
+    id="Spatial/YMazeLeft-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.3d.ymaze:YMazeLeftEnv",
+    max_episode_steps=500,
+    kwargs=dict(num_players=1),
+)
+
+register(
+    id="Spatial/YMazeRight-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.3d.ymaze:YMazeRightEnv",
+    max_episode_steps=500,
+    kwargs=dict(num_players=1),
+)
+
+# --- Temporal (13 environments) ---
+
+register(
+    id="Temporal/Airstriker-v0",
+    entry_point="gym_v.envs.multi_turn.temporal.retro_env:RetroGymVEnv",
+    max_episode_steps=10000,
+    kwargs=dict(
+        game="Airstriker-Genesis",
+        num_players=1,
+    ),
+)
+
+register(
+    id="Temporal/AlteredBeast-v0",
+    entry_point="gym_v.envs.multi_turn.temporal.retro_env:RetroGymVEnv",
+    max_episode_steps=10000,
+    kwargs=dict(
+        game="AlteredBeast-Genesis-v0",
+        num_players=1,
+    ),
+)
+
+register(
+    id="Temporal/CastleOfIllusion-v0",
+    entry_point="gym_v.envs.multi_turn.temporal.retro_env:RetroGymVEnv",
+    max_episode_steps=10000,
+    kwargs=dict(
+        game="CastleOfIllusion-Genesis-v0",
+        num_players=1,
+    ),
+)
+
+register(
+    id="Temporal/CastlevaniaBloodlines-v0",
+    entry_point="gym_v.envs.multi_turn.temporal.retro_env:RetroGymVEnv",
+    max_episode_steps=10000,
+    kwargs=dict(
+        game="CastlevaniaBloodlines-Genesis-v0",
+        num_players=1,
+    ),
+)
+
+register(
+    id="Temporal/Columns-v0",
+    entry_point="gym_v.envs.multi_turn.temporal.retro_env:RetroGymVEnv",
+    max_episode_steps=10000,
+    kwargs=dict(
+        game="Columns-Genesis-v0",
+        num_players=1,
+    ),
+)
+
+register(
+    id="Temporal/DynamiteHeaddy-v0",
+    entry_point="gym_v.envs.multi_turn.temporal.retro_env:RetroGymVEnv",
+    max_episode_steps=10000,
+    kwargs=dict(
+        game="DynamiteHeaddy-Genesis-v0",
+        num_players=1,
+    ),
+)
+
+register(
+    id="Temporal/GoldenAxe-v0",
+    entry_point="gym_v.envs.multi_turn.temporal.retro_env:RetroGymVEnv",
+    max_episode_steps=10000,
+    kwargs=dict(
+        game="GoldenAxe-Genesis-v0",
+        num_players=1,
+    ),
+)
+
+register(
+    id="Temporal/KidChameleon-v0",
+    entry_point="gym_v.envs.multi_turn.temporal.retro_env:RetroGymVEnv",
+    max_episode_steps=10000,
+    kwargs=dict(
+        game="KidChameleon-Genesis-v0",
+        num_players=1,
+    ),
+)
+
+register(
+    id="Temporal/MortalKombatII-v0",
+    entry_point="gym_v.envs.multi_turn.temporal.retro_env:RetroGymVEnv",
+    max_episode_steps=10000,
+    kwargs=dict(
+        game="MortalKombatII-Genesis-v0",
+        num_players=1,
+    ),
+)
+
+register(
+    id="Temporal/SpaceHarrierII-v0",
+    entry_point="gym_v.envs.multi_turn.temporal.retro_env:RetroGymVEnv",
+    max_episode_steps=10000,
+    kwargs=dict(
+        game="SpaceHarrierII-Genesis-v0",
+        num_players=1,
+    ),
+)
+
+register(
+    id="Temporal/StreetsOfRage2-v0",
+    entry_point="gym_v.envs.multi_turn.temporal.retro_env:RetroGymVEnv",
+    max_episode_steps=10000,
+    kwargs=dict(
+        game="StreetsOfRage2-Genesis-v0",
+        num_players=1,
+    ),
+)
+
+register(
+    id="Temporal/Strider-v0",
+    entry_point="gym_v.envs.multi_turn.temporal.retro_env:RetroGymVEnv",
+    max_episode_steps=10000,
+    kwargs=dict(
+        game="Strider-Genesis-v0",
+        num_players=1,
+    ),
+)
+
+register(
+    id="Temporal/ThunderForceIII-v0",
+    entry_point="gym_v.envs.multi_turn.temporal.retro_env:RetroGymVEnv",
+    max_episode_steps=10000,
+    kwargs=dict(
+        game="ThunderForceIII-Genesis-v0",
+        num_players=1,
+    ),
+)
+
+# ============================================================
+# Uncategorized
+# ============================================================
+
+register(
+    id="Offline/SingleTurn-v0",
+    entry_point="gym_v.envs.offline.single_turn:OfflineSingleTurnEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        grader="exact_match",
+        description=None,
+        shuffle=True,
+    ),
+)
+
 register(
     id="VLMEval-Base-v0",
     entry_point="gym_v.envs.eval.vlmeval:VLMEvalEnv",
@@ -2472,174 +2545,9 @@ register(
     kwargs={},
 )
 
-# GenEval T2I environment
 register(
     id="GenEval-v0",
     entry_point="gym_v.envs.eval.t2ieval:GenevalEnv",
     max_episode_steps=1,
     kwargs=dict(),
-)
-
-
-# MiniWorld environments (3D navigation)
-# These require miniworld to be installed: uv sync --extra miniworld
-register(
-    id="MiniWorld/Hallway-v0",
-    entry_point="gym_v.envs.miniworld.hallway:MiniWorldHallwayEnv",
-    max_episode_steps=400,
-    kwargs=dict(num_players=1),
-)
-
-register(
-    id="MiniWorld/Maze-v0",
-    entry_point="gym_v.envs.miniworld.maze:MiniWorldMazeEnv",
-    max_episode_steps=1000,
-    kwargs=dict(num_players=1),
-)
-
-register(
-    id="MiniWorld/MazeS2-v0",
-    entry_point="gym_v.envs.miniworld.maze:MiniWorldMazeS2Env",
-    max_episode_steps=500,
-    kwargs=dict(num_players=1),
-)
-
-register(
-    id="MiniWorld/MazeS3-v0",
-    entry_point="gym_v.envs.miniworld.maze:MiniWorldMazeS3Env",
-    max_episode_steps=800,
-    kwargs=dict(num_players=1),
-)
-
-register(
-    id="MiniWorld/MazeS3Fast-v0",
-    entry_point="gym_v.envs.miniworld.maze:MiniWorldMazeS3FastEnv",
-    max_episode_steps=600,
-    kwargs=dict(num_players=1),
-)
-
-register(
-    id="MiniWorld/OneRoom-v0",
-    entry_point="gym_v.envs.miniworld.oneroom:MiniWorldOneRoomEnv",
-    max_episode_steps=400,
-    kwargs=dict(num_players=1),
-)
-
-register(
-    id="MiniWorld/OneRoomS6-v0",
-    entry_point="gym_v.envs.miniworld.oneroom:MiniWorldOneRoomS6Env",
-    max_episode_steps=600,
-    kwargs=dict(num_players=1),
-)
-
-register(
-    id="MiniWorld/OneRoomS6Fast-v0",
-    entry_point="gym_v.envs.miniworld.oneroom:MiniWorldOneRoomS6FastEnv",
-    max_episode_steps=400,
-    kwargs=dict(num_players=1),
-)
-
-register(
-    id="MiniWorld/PickupObjects-v0",
-    entry_point="gym_v.envs.miniworld.pickup:MiniWorldPickupObjectsEnv",
-    max_episode_steps=1000,
-    kwargs=dict(num_players=1),
-)
-
-register(
-    id="MiniWorld/PutNext-v0",
-    entry_point="gym_v.envs.miniworld.putnext:MiniWorldPutNextEnv",
-    max_episode_steps=1000,
-    kwargs=dict(num_players=1),
-)
-
-register(
-    id="MiniWorld/CollectHealth-v0",
-    entry_point="gym_v.envs.miniworld.collecthealth:MiniWorldCollectHealthEnv",
-    max_episode_steps=1000,
-    kwargs=dict(num_players=1),
-)
-
-register(
-    id="MiniWorld/FourRooms-v0",
-    entry_point="gym_v.envs.miniworld.rooms:MiniWorldFourRoomsEnv",
-    max_episode_steps=1000,
-    kwargs=dict(num_players=1),
-)
-
-register(
-    id="MiniWorld/ThreeRooms-v0",
-    entry_point="gym_v.envs.miniworld.rooms:MiniWorldThreeRoomsEnv",
-    max_episode_steps=800,
-    kwargs=dict(num_players=1),
-)
-
-register(
-    id="MiniWorld/RoomObjects-v0",
-    entry_point="gym_v.envs.miniworld.rooms:MiniWorldRoomObjectsEnv",
-    max_episode_steps=800,
-    kwargs=dict(num_players=1),
-)
-
-register(
-    id="MiniWorld/TMaze-v0",
-    entry_point="gym_v.envs.miniworld.tmaze:MiniWorldTMazeEnv",
-    max_episode_steps=500,
-    kwargs=dict(num_players=1),
-)
-
-register(
-    id="MiniWorld/TMazeLeft-v0",
-    entry_point="gym_v.envs.miniworld.tmaze:MiniWorldTMazeLeftEnv",
-    max_episode_steps=500,
-    kwargs=dict(num_players=1),
-)
-
-register(
-    id="MiniWorld/TMazeRight-v0",
-    entry_point="gym_v.envs.miniworld.tmaze:MiniWorldTMazeRightEnv",
-    max_episode_steps=500,
-    kwargs=dict(num_players=1),
-)
-
-register(
-    id="MiniWorld/YMaze-v0",
-    entry_point="gym_v.envs.miniworld.ymaze:MiniWorldYMazeEnv",
-    max_episode_steps=500,
-    kwargs=dict(num_players=1),
-)
-
-register(
-    id="MiniWorld/YMazeLeft-v0",
-    entry_point="gym_v.envs.miniworld.ymaze:MiniWorldYMazeLeftEnv",
-    max_episode_steps=500,
-    kwargs=dict(num_players=1),
-)
-
-register(
-    id="MiniWorld/YMazeRight-v0",
-    entry_point="gym_v.envs.miniworld.ymaze:MiniWorldYMazeRightEnv",
-    max_episode_steps=500,
-    kwargs=dict(num_players=1),
-)
-
-register(
-    id="MiniWorld/Sidewalk-v0",
-    entry_point="gym_v.envs.miniworld.sidewalk:MiniWorldSidewalkEnv",
-    max_episode_steps=800,
-    kwargs=dict(num_players=1),
-)
-
-register(
-    id="MiniWorld/Sign-v0",
-    entry_point="gym_v.envs.miniworld.sign:MiniWorldSignEnv",
-    max_episode_steps=600,
-    kwargs=dict(num_players=1),
-)
-
-register(
-    id="MiniWorld/WallGap-v0",
-    entry_point="gym_v.envs.miniworld.wallgap:MiniWorldWallGapEnv",
-    max_episode_steps=400,
-    kwargs=dict(num_players=1),
 )

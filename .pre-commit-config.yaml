@@ -11,6 +11,7 @@ repos:
       - id: check-ast
       - id: check-added-large-files
         args: [--maxkb=1024]
+        exclude: tests/env_report_v2\.html
       - id: check-merge-conflict
       - id: check-executables-have-shebangs
       - id: check-shebang-scripts-are-executable
@@ -23,7 +24,7 @@ repos:
       - id: codespell
         args:
           - --ignore-words-list=reacher,ure,referenc,wile,ontact,manuel,sitl,astroid,ore,rouge,ans,nd,childrens,maked
-          - --skip=gym_v/envs/gamerl/assets/words.txt
+          - --skip=gym_v/envs/assets/gamerl/words.txt,tests/env_report_v2.html
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.8.4

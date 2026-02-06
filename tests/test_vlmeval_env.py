@@ -16,7 +16,7 @@ class TestVLMEvalEnv(unittest.TestCase):
         load_dotenv()
 
     def _run_consistency_test(self, dataset_name):
-        print(f"\n{'='*20}\nTesting dataset: {dataset_name}\n{'='*20}")
+        print(f"\n{'=' * 20}\nTesting dataset: {dataset_name}\n{'=' * 20}")
 
         # Force exact matching to avoid API calls and ensure deterministic comparison
         test_judge_kwargs = {"model": "exact_matching"}
