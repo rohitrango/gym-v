@@ -70,19 +70,6 @@ register(
 )
 
 register(
-    id="Algorithmic/BinaryTreeLeafNumExpectation-v0",
-    entry_point="gym_v.envs.single_turn.algorithmic.binary_tree_leaf_num_expectation:BinaryTreeLeafNumExpectationEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n=15,
-        image_width=800,
-        image_height=600,
-        node_radius=20,
-        num_players=1,
-    ),
-)
-
-register(
     id="Logic/CircuitLogic-v0",
     entry_point="gym_v.envs.single_turn.logic.circuit_logic:CircuitLogicEnv",
     max_episode_steps=1,
@@ -248,20 +235,6 @@ register(
     kwargs=dict(
         max_n=10,
         edge_density=0.5,
-        node_radius=18,
-        image_size=700,
-        padding=60,
-        num_players=1,
-    ),
-)
-
-register(
-    id="Graphs/HamiltonianPathExistence-v0",
-    entry_point="gym_v.envs.single_turn.graphs.hamiltonian_path_existence:HamiltonianPathExistenceEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n=10,
-        edge_density=0.3,
         node_radius=18,
         image_size=700,
         padding=60,
@@ -570,19 +543,6 @@ register(
 )
 
 register(
-    id="Geometry/PipelineArrangement-v0",
-    entry_point="gym_v.envs.single_turn.geometry.pipeline_arrangement:PipelineArrangementEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n=8,
-        cell_height=60,
-        cell_width=100,
-        padding=40,
-        num_players=1,
-    ),
-)
-
-register(
     id="Cognition/RectangleCount-v0",
     entry_point="gym_v.envs.single_turn.cognition.rectangle_count:RectangleCountEnv",
     max_episode_steps=1,
@@ -650,38 +610,6 @@ register(
     kwargs=dict(
         dataset_kwargs=dict(size=500),
         cell_px=48,
-        padding=24,
-        num_players=1,
-    ),
-)
-
-register(
-    id="Graphs/SpyNetwork-v0",
-    entry_point="gym_v.envs.single_turn.graphs.spy_network:SpyNetworkEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n=10,
-        edge_density=0.3,
-        dominated_probability=0.5,
-        wrong_format=-1.0,
-        invalid_solution=-0.5,
-        unsuccessful_solution=-0.3,
-        rewarding_strategy="(gold/answer)^beta",
-        rewarding_weight=1.0,
-        rewarding_beta=3.0,
-        padding=40,
-        num_players=1,
-    ),
-)
-
-register(
-    id="Algorithmic/StoneGame-v0",
-    entry_point="gym_v.envs.single_turn.algorithmic.stone_game:StoneGameEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_sum=30,
-        pile_width=60,
-        pile_max_height=200,
         padding=24,
         num_players=1,
     ),
@@ -936,18 +864,6 @@ register(
 )
 
 register(
-    id="Logic/HitoriPuzzle-v0",
-    entry_point="gym_v.envs.single_turn.logic.hitori_puzzle:HitoriPuzzleEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n_m=4,
-        cell_px=56,
-        padding=24,
-        num_players=1,
-    ),
-)
-
-register(
     id="Cognition/Hue-QA-v0",
     entry_point="gym_v.envs.single_turn.cognition.hue:HueQAEnv",
     max_episode_steps=1,
@@ -995,15 +911,6 @@ register(
     ),
 )
 
-register(
-    id="Puzzles/Klondike-QA-v0",
-    entry_point="gym_v.envs.single_turn.puzzles.klondike:KlondikeQAEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        question_type=None,
-        num_players=1,
-    ),
-)
 
 register(
     id="Puzzles/KnightSwap-v0",
@@ -1181,18 +1088,6 @@ register(
 register(
     id="Logic/SkyscraperPuzzle-v0",
     entry_point="gym_v.envs.single_turn.logic.skyscraper_puzzle:SkyscraperPuzzleEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        n=3,
-        cell_px=52,
-        padding=28,
-        num_players=1,
-    ),
-)
-
-register(
-    id="Logic/SkyscraperSumPuzzle-v0",
-    entry_point="gym_v.envs.single_turn.logic.skyscraper_sum_puzzle:SkyscraperSumPuzzleEnv",
     max_episode_steps=1,
     kwargs=dict(
         n=3,

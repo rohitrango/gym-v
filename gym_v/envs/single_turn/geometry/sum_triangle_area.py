@@ -156,7 +156,7 @@ Please compute the **sum of the areas of all triangles** that can be formed by a
         if self._max_n < 3:
             raise ValueError("max_n must be >= 3")
 
-        self._n = int(self.np_random.integers(3, self._max_n + 1))
+        self._n = int(self.np_random.integers(5, self._max_n + 1))
         N = self._n
 
         # Sample N distinct points from a grid

@@ -156,7 +156,7 @@ Assuming both players play optimally to maximize their own total number of colle
 
         Ports generation logic from RLVE using self.np_random.
         """
-        N = int(self.np_random.integers(3, self._max_n + 1))
+        N = int(self.np_random.integers(5, self._max_n + 1))
 
         A = [int(self.np_random.integers(1, N * 2 + 1)) for _ in range(N)]
         zero_count = int(self.np_random.integers(1, N - 1))

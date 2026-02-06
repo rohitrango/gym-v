@@ -173,7 +173,7 @@ X, Y, and M are given as follows:
 
         Ports generation logic from RLVE using self.np_random.
         """
-        N = int(self.np_random.integers(3, self._max_n + 1))
+        N = int(self.np_random.integers(5, self._max_n + 1))
 
         X = [int(self.np_random.integers(0, 2 * N + 1)) for _ in range(N)]
         Y = [int(self.np_random.integers(0, 2 * N + 1)) for _ in range(N)]

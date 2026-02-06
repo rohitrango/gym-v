@@ -152,7 +152,7 @@ Please compute **the number of such minimum spanning trees** modulo {MOD}."""
 
     def _generate(self) -> None:
         """Generate problem instance - ported from RLVE."""
-        N = int(self.np_random.integers(3, self._max_n + 1))
+        N = int(self.np_random.integers(6, self._max_n + 1))
         self._N = N
 
         weight_range = (

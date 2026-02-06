@@ -169,7 +169,7 @@ Example: `0 1 0 2 2 3` (do **NOT** include the backticks or quotes); this means 
 
     def _generate(self) -> None:
         """Generate problem instance - ported from RLVE."""
-        N = int(self.np_random.integers(3, self._max_n + 1))
+        N = int(self.np_random.integers(6, self._max_n + 1))
         self._N = N
 
         # Keep generating until we get a valid instance

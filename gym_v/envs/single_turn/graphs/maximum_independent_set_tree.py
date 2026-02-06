@@ -170,7 +170,7 @@ Example: `0 1 {N_minus_1}` (do **NOT** include the backticks or quotes); this me
 
     def _generate(self) -> None:
         """Generate a random tree with weights and compute maximum independent set."""
-        N = int(self.np_random.integers(3, self._max_n + 1))
+        N = int(self.np_random.integers(6, self._max_n + 1))
         self._N = N
 
         # Generate tree structure

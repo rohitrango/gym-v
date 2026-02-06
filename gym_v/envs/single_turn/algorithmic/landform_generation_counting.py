@@ -180,7 +180,7 @@ Please count the number of **distinct sequences** `H[p[0]], H[p[1]], ..., H[p[{N
         if self._max_n < 3:
             raise ValueError("max_n must be >= 3")
 
-        N = int(self.np_random.integers(3, self._max_n + 1))
+        N = int(self.np_random.integers(5, self._max_n + 1))
 
         # Generate example heights
         example_H = [int(self.np_random.integers(1, N + 1)) for _ in range(N)]

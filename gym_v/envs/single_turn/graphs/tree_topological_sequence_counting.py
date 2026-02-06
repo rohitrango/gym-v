@@ -143,7 +143,7 @@ You should output the number of valid permutations modulo {MOD}."""
 
     def _generate(self) -> None:
         """Generate tree topological sequence counting problem instance."""
-        N = int(self.np_random.integers(3, self._max_n + 1))
+        N = int(self.np_random.integers(6, self._max_n + 1))
         self._N = N
 
         MOD = int(self.np_random.integers(2, self._max_mod + 1))

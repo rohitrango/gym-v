@@ -180,7 +180,7 @@ Example: `{all_node_sequence}` (do **NOT** include the backticks or quotes)."""
 
     def _generate(self) -> None:
         """Generate problem instance - ported from RLVE."""
-        N = int(self.np_random.integers(3, self._max_n + 1))
+        N = int(self.np_random.integers(6, self._max_n + 1))
         self._N = N
 
         # Generate random node scores

@@ -153,7 +153,7 @@ Example: `{first_K_vertices}` (do **NOT** include the backticks or quotes)."""
         )
 
     def _generate(self) -> None:
-        N = int(self.np_random.integers(3, self._max_n + 1))
+        N = int(self.np_random.integers(6, self._max_n + 1))
         self._N = N
 
         K = int(self.np_random.integers(1, N))

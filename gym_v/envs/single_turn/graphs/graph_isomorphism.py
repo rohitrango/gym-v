@@ -169,7 +169,7 @@ Your task is to find a **bijection** (i.e., a permutation) `p` from the vertices
         )
 
     def _generate(self) -> None:
-        N = int(self.np_random.integers(3, self._max_n + 1))
+        N = int(self.np_random.integers(6, self._max_n + 1))
         self._N = N
 
         num_edges = max(1, int(self._edge_density * N * (N - 1) / 2))
