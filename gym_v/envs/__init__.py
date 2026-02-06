@@ -8,7 +8,7 @@ from gym_v.envs.registration import register
 
 # --- Arc (1 environment) ---
 
-# --- Algorithmic (33 environments) ---
+# --- Algorithmic (24 environments) ---
 
 register(
     id="Algorithmic/AdditionTable-v0",
@@ -83,17 +83,6 @@ register(
 )
 
 register(
-    id="Algorithmic/CardColoringCounting-v0",
-    entry_point="gym_v.envs.single_turn.algorithmic.card_coloring_counting:CardColoringCountingEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        N=8,
-        K=2,
-        num_players=1,
-    ),
-)
-
-register(
     id="Logic/CircuitLogic-v0",
     entry_point="gym_v.envs.single_turn.logic.circuit_logic:CircuitLogicEnv",
     max_episode_steps=1,
@@ -125,20 +114,6 @@ register(
         weight_multiple=2,
         cell_px=70,
         padding=24,
-        num_players=1,
-    ),
-)
-
-register(
-    id="Algorithmic/ColoringCounting-v0",
-    entry_point="gym_v.envs.single_turn.algorithmic.coloring_counting:ColoringCountingEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n=8,
-        edge_density=0.5,
-        node_radius=20,
-        image_size=800,
-        padding=60,
         num_players=1,
     ),
 )
@@ -267,18 +242,6 @@ register(
 )
 
 register(
-    id="Algorithmic/GridTriangleCounting-v0",
-    entry_point="gym_v.envs.single_turn.algorithmic.grid_triangle_counting:GridTriangleCountingEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n_m=12,
-        cell_px=48,
-        padding=32,
-        num_players=1,
-    ),
-)
-
-register(
     id="Graphs/HamiltonianPath-v0",
     entry_point="gym_v.envs.single_turn.graphs.hamiltonian_path:HamiltonianPathEnv",
     max_episode_steps=1,
@@ -388,18 +351,6 @@ register(
     kwargs=dict(
         N=4,
         cell_px=64,
-        padding=24,
-        num_players=1,
-    ),
-)
-
-register(
-    id="Algorithmic/MatrixPooling-v0",
-    entry_point="gym_v.envs.single_turn.algorithmic.matrix_pooling:MatrixPoolingEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n_m=7,
-        cell_px=56,
         padding=24,
         num_players=1,
     ),
@@ -572,18 +523,6 @@ register(
         image_size=800,
         padding=80,
         node_radius=20,
-        num_players=1,
-    ),
-)
-
-register(
-    id="Algorithmic/MoneyChargingGame-v0",
-    entry_point="gym_v.envs.single_turn.algorithmic.money_charging_game:MoneyChargingGameEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        n=5,
-        cell_px=60,
-        padding=32,
         num_players=1,
     ),
 )
@@ -769,19 +708,6 @@ register(
 )
 
 register(
-    id="Graphs/TreeAddOneEdgeDiameter-v0",
-    entry_point="gym_v.envs.single_turn.graphs.tree_add_one_edge_diameter:TreeAddOneEdgeDiameterEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n=10,
-        node_radius=20,
-        image_width=800,
-        image_height=700,
-        num_players=1,
-    ),
-)
-
-register(
     id="Graphs/TreeCenter-v0",
     entry_point="gym_v.envs.single_turn.graphs.tree_center:TreeCenterEnv",
     max_episode_steps=1,
@@ -875,19 +801,6 @@ register(
 )
 
 register(
-    id="Algorithmic/WarehouseConstruction-v0",
-    entry_point="gym_v.envs.single_turn.algorithmic.warehouse_construction:WarehouseConstructionEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        n=6,
-        cell_height=80,
-        cell_width=120,
-        padding=40,
-        num_players=1,
-    ),
-)
-
-register(
     id="Graphs/WeightedBinarytree-v0",
     entry_point="gym_v.envs.single_turn.graphs.weighted_binarytree:WeightedBinarytreeEnv",
     max_episode_steps=1,
@@ -901,41 +814,15 @@ register(
     ),
 )
 
-register(
-    id="Algorithmic/WhackAMole-v0",
-    entry_point="gym_v.envs.single_turn.algorithmic.whack_a_mole:WhackAMoleEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n_m=4,
-        max_beat=3,
-        cell_px=80,
-        padding=24,
-        num_players=1,
-    ),
-)
-
-# --- Cognition (6 environments) ---
+# --- Cognition (8 environments) ---
 
 # --- Geometry (9 environments) ---
 
-# --- Graphs (28 environments) ---
+# --- Graphs (29 environments) ---
 
-# --- Logic (12 environments) ---
+# --- Logic (20 environments) ---
 
-# --- Puzzles (39 environments) ---
-
-register(
-    id="Logic/Battleships-v0",
-    entry_point="gym_v.envs.single_turn.logic.battleships:BattleshipsEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        size=6,
-        num_hints=0,
-        cell_px=55,
-        padding=50,
-        num_players=1,
-    ),
-)
+# --- Puzzles (24 environments) ---
 
 register(
     id="Logic/Binairo-v0",
@@ -1085,20 +972,6 @@ register(
 )
 
 register(
-    id="Puzzles/JugPuzzle-v0",
-    entry_point="gym_v.envs.single_turn.puzzles.jug_puzzle:JugPuzzleEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_capacity_multiple=10,
-        operation_probabilities=None,
-        jug_width=80,
-        jug_height=200,
-        padding=40,
-        num_players=1,
-    ),
-)
-
-register(
     id="Logic/Kakurasu-v0",
     entry_point="gym_v.envs.single_turn.logic.kakurasu:KakurasuEnv",
     max_episode_steps=1,
@@ -1178,18 +1051,6 @@ register(
         sparsity=0.5,
         cell_px=64,
         padding=32,
-        num_players=1,
-    ),
-)
-
-register(
-    id="Puzzles/Maze-v0",
-    entry_point="gym_v.envs.single_turn.puzzles.maze:MazeEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        dataset_kwargs=dict(size=500),
-        cell_px=48,
-        padding=24,
         num_players=1,
     ),
 )
@@ -1356,18 +1217,6 @@ register(
 )
 
 register(
-    id="Puzzles/Sokoban-QA-v0",
-    entry_point="gym_v.envs.single_turn.puzzles.sokoban:SokobanQAEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        question_type=None,
-        size=5,
-        num_boxes=1,
-        num_players=1,
-    ),
-)
-
-register(
     id="Puzzles/SpaceInvaders-QA-v0",
     entry_point="gym_v.envs.single_turn.puzzles.space_invaders:SpaceInvadersQAEnv",
     max_episode_steps=1,
@@ -1404,19 +1253,6 @@ register(
         grid_size=6,
         stars_per_region=1,
         cell_size=50,
-        num_players=1,
-    ),
-)
-
-register(
-    id="Logic/StarBattle-v0",
-    entry_point="gym_v.envs.single_turn.logic.starbattle:StarBattleEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        size=8,
-        stars_per_group=1,
-        cell_px=50,
-        padding=20,
         num_players=1,
     ),
 )
@@ -1596,7 +1432,7 @@ register(
     ),
 )
 
-# --- Perception (14 environments) ---
+# --- Perception (12 environments) ---
 
 register(
     id="Perception/3DReconstruction-QA-v0",
