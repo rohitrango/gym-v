@@ -37,7 +37,6 @@ ENVS_ALGORITHMIC = {
     "Algorithmic/MatrixPermutationMainDiagonalOne-v0": "matrix_permutation_main_diagonal_one",
     "Algorithmic/MaxGridPathIntersection-v0": "max_grid_path_intersection",
     "Algorithmic/MonochromeBlockCounting-v0": "monochrome_block_counting",
-    "Algorithmic/NewNimGame-v0": "new_nim_game",
     "Algorithmic/RotateMatrix-v0": "rotate_matrix",
     "Algorithmic/RottenOranges-v0": "rotten_oranges",
     "Algorithmic/SpiralMatrix-v0": "spiral_matrix",
@@ -64,7 +63,6 @@ ENVS_COGNITION = {
 
 ENVS_GEOMETRY = {
     "Geometry/ConvexHull-v0": "convex_hull",
-    "Geometry/LargestConvexPolygon-v0": "largest_convex_polygon",
     "Geometry/LargestRectangleAmongPoints-v0": "largest_rectangle_among_points",
     "Geometry/SkaRockGarden-v0": "ska_rock_garden",
     "Geometry/SmallestCircle-v0": "smallest_circle",
@@ -88,9 +86,7 @@ ENVS_GRAPHS = {
     "Graphs/MaximumWeightMatching-v0": "maximum_weight_matching",
     "Graphs/MinimumChromaticNumber-v0": "minimum_chromatic_number",
     "Graphs/MinimumDirectedSpanningTree-v0": "minimum_directed_spanning_tree",
-    "Graphs/MinimumDominatingSetGrid-v0": "minimum_dominating_set_grid",
     "Graphs/MinimumSpanningTreeCounting-v0": "minimum_spanning_tree_counting",
-    "Graphs/MinimumWeightedSpanningTree-v0": "minimum_weighted_spanning_tree",
     "Graphs/MixedGraphEulerianCircuit-v0": "mixed_graph_eulerian_circuit",
     "Graphs/Patrol-v0": "patrol",
     "Graphs/ShortestPath-v0": "shortest_path",
@@ -110,7 +106,6 @@ ENVS_LOGIC = {
     "Logic/CircuitLogic-v0": "circuit_logic",
     "Logic/Futoshiki-v0": "futoshiki",
     "Logic/GridParityConstruction-v0": "grid_parity_construction",
-    "Logic/Hitori-v0": "hitori",
     "Logic/Kakurasu-v0": "kakurasu",
     "Logic/MagicSquarePuzzle-v0": "magic_square_puzzle",
     "Logic/MiniSudoku-v0": "mini_sudoku",
@@ -258,16 +253,6 @@ PARTIAL_CREDIT_ENVS = {
         "max_wrong_reward": 1.0,
         "allow_alternative_solutions": True,
     },
-    "Graphs/MinimumDominatingSetGrid-v0": {
-        "reason": "Optimization puzzle: minimizes total cost of dominating set",
-        "max_wrong_reward": 1.0,
-        "allow_alternative_solutions": True,
-    },
-    "Geometry/LargestConvexPolygon-v0": {
-        "reason": "Optimization puzzle: maximizes convex polygon size",
-        "max_wrong_reward": 1.0,
-        "allow_alternative_solutions": True,
-    },
     "Geometry/LargestRectangleAmongPoints-v0": {
         "reason": "Optimization puzzle: maximizes rectangle area",
         "max_wrong_reward": 1.0,
@@ -280,11 +265,6 @@ PARTIAL_CREDIT_ENVS = {
     },
     "Graphs/MaximumWeightMatching-v0": {
         "reason": "Optimization puzzle: maximizes total weight of matching",
-        "max_wrong_reward": 1.0,
-        "allow_alternative_solutions": True,
-    },
-    "Graphs/MinimumWeightedSpanningTree-v0": {
-        "reason": "Optimization puzzle: minimizes weighted depth of spanning tree",
         "max_wrong_reward": 1.0,
         "allow_alternative_solutions": True,
     },

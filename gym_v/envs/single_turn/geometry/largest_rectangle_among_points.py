@@ -388,10 +388,22 @@ Your task is to find four **distinct** points such that they form a rectangle (N
         # Convert to PIL Image
         fig.tight_layout()
         fig.canvas.draw()
-        w, h = fig.canvas.get_width_height()
-        buf = np.frombuffer(fig.canvas.buffer_rgba(), dtype=np.uint8)
-        buf = buf.reshape((h, w, 4))
-        img = Image.fromarray(buf[:, :, :3])  # Drop alpha channel
+
+        # Get the buffer from the canvas
+        buf = fig.canvas.buffer_rgba()
+
+        # Convert buffer to numpy array
+        # Note: On high-DPI screens, the buffer size might be larger than width*height*4
+        # We need to use the actual shape from the buffer
+        img_array = np.asarray(buf)
+
+        # Convert to PIL Image directly
+        img = Image.fromarray(img_array)
+
+        # Convert to RGB (drop alpha channel if present)
+        if img.mode == "RGBA":
+            img = img.convert("RGB")
+
         plt.close(fig)
 
         return img

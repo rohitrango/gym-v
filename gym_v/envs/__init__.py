@@ -256,16 +256,6 @@ register(
 )
 
 register(
-    id="Geometry/LargestConvexPolygon-v0",
-    entry_point="gym_v.envs.single_turn.geometry.largest_convex_polygon:LargestConvexPolygonEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        n_points=10,
-        num_players=1,
-    ),
-)
-
-register(
     id="Graphs/LargestIsland-v0",
     entry_point="gym_v.envs.single_turn.graphs.largest_island:LargestIslandEnv",
     max_episode_steps=1,
@@ -446,18 +436,6 @@ register(
 )
 
 register(
-    id="Graphs/MinimumDominatingSetGrid-v0",
-    entry_point="gym_v.envs.single_turn.graphs.minimum_dominating_set_grid:MinimumDominatingSetGridEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n_m=4,
-        cell_px=60,
-        padding=24,
-        num_players=1,
-    ),
-)
-
-register(
     id="Graphs/MinimumSpanningTreeCounting-v0",
     entry_point="gym_v.envs.single_turn.graphs.minimum_spanning_tree_counting:MinimumSpanningTreeCountingEnv",
     max_episode_steps=1,
@@ -466,20 +444,6 @@ register(
         edge_ratio=2.0,
         max_mod=10000,
         weight_range_divisor=10,
-        node_radius=18,
-        image_size=700,
-        padding=60,
-        num_players=1,
-    ),
-)
-
-register(
-    id="Graphs/MinimumWeightedSpanningTree-v0",
-    entry_point="gym_v.envs.single_turn.graphs.minimum_weighted_spanning_tree:MinimumWeightedSpanningTreeEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n=10,
-        edge_density=0.5,
         node_radius=18,
         image_size=700,
         padding=60,
@@ -510,24 +474,7 @@ register(
     ),
 )
 
-register(
-    id="Algorithmic/NewNimGame-v0",
-    entry_point="gym_v.envs.single_turn.algorithmic.new_nim_game:NewNimGameEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        match_number_range_coefficient=2,
-        wrong_format=-1.0,
-        invalid_solution=-0.5,
-        unsuccessful_solution=-0.2,
-        rewarding_strategy="(gold/answer)^beta",
-        rewarding_weight=1.0,
-        rewarding_beta=3.0,
-        pile_width=100,
-        pile_height=300,
-        padding=40,
-        num_players=1,
-    ),
-)
+
 
 register(
     id="Graphs/Patrol-v0",
@@ -847,18 +794,6 @@ register(
         max_n_m=8,
         cell_px=56,
         padding=24,
-        num_players=1,
-    ),
-)
-
-register(
-    id="Logic/Hitori-v0",
-    entry_point="gym_v.envs.single_turn.logic.hitori:HitoriEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        size=6,
-        cell_px=50,
-        padding=20,
         num_players=1,
     ),
 )

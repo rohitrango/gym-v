@@ -4,15 +4,15 @@
 
 ## 已接入环境列表
 
-**总计: 206 个环境**
+**总计: 202 个环境**
 
-- Single Turn (单轮): 129 个
+- Single Turn (单轮): 125 个
 - Multi Turn (多轮): 74 个
 - 其他: 3 个
 
 ---
 
-## Single Turn 环境 (129 个)
+## Single Turn 环境 (125 个)
 
 单轮环境仅需一步交互，智能体观察图像后给出答案，环境返回奖励。
 
@@ -49,7 +49,6 @@ ARC (Abstraction and Reasoning Corpus) 抽象推理任务。
 | `Algorithmic/MatrixPermutationMainDiagonalOne-v0` | 矩阵排列使主对角线均为 1 的方案计数 |
 | `Algorithmic/MaxGridPathIntersection-v0` | 网格路径最大交叉点数 |
 | `Algorithmic/MonochromeBlockCounting-v0` | 单色块计数 |
-| `Algorithmic/NewNimGame-v0` | 新型 Nim 博弈，给出最优取石策略 |
 | `Algorithmic/RotateMatrix-v0` | 矩阵旋转，输出旋转后的矩阵 |
 | `Algorithmic/RottenOranges-v0` | 腐烂橘子扩散模拟，计算全部腐烂所需时间 |
 | `Algorithmic/SpiralMatrix-v0` | 螺旋矩阵遍历，按螺旋顺序输出元素 |
@@ -72,14 +71,13 @@ ARC (Abstraction and Reasoning Corpus) 抽象推理任务。
 | `Cognition/SymmetryFillPoly-v0` | 对称填充，补全对称图形 |
 | `Cognition/TransformResultPoly-v0` | 变换结果预测，推断几何变换后的图形 |
 
-### Geometry (9 个)
+### Geometry (8 个)
 
 计算几何任务，涉及凸包、面积、最小圆等经典问题。
 
 | 环境 ID | 简介 |
 |---------|------|
 | `Geometry/ConvexHull-v0` | 凸包计算，找出点集的凸包顶点 |
-| `Geometry/LargestConvexPolygon-v0` | 最大凸多边形，从点集中选取最大凸多边形 |
 | `Geometry/LargestRectangleAmongPoints-v0` | 点集中最大矩形面积 |
 | `Geometry/PipelineArrangement-v0` | 管道排列优化 |
 | `Geometry/SkaRockGarden-v0` | 枯山水庭院布局问题 |
@@ -88,7 +86,7 @@ ARC (Abstraction and Reasoning Corpus) 抽象推理任务。
 | `Geometry/Tangram-QA-v0` | 七巧板拼图问答 |
 | `Geometry/VisibleLine-v0` | 可见线段计算，判断从上方可见的线段 |
 
-### Graphs (29 个)
+### Graphs (27 个)
 
 图论任务，涵盖最短路、生成树、着色、匹配、同构等经典问题。
 
@@ -109,9 +107,7 @@ ARC (Abstraction and Reasoning Corpus) 抽象推理任务。
 | `Graphs/MaximumWeightMatching-v0` | 最大权匹配 |
 | `Graphs/MinimumChromaticNumber-v0` | 最小色数（图着色） |
 | `Graphs/MinimumDirectedSpanningTree-v0` | 最小有向生成树 |
-| `Graphs/MinimumDominatingSetGrid-v0` | 网格图最小支配集 |
 | `Graphs/MinimumSpanningTreeCounting-v0` | 最小生成树计数 |
-| `Graphs/MinimumWeightedSpanningTree-v0` | 最小权生成树 |
 | `Graphs/MixedGraphEulerianCircuit-v0` | 混合图欧拉回路判定 |
 | `Graphs/Patrol-v0` | 巡逻路径规划 |
 | `Graphs/ShortestPath-v0` | 加权图最短路径 |
@@ -124,7 +120,7 @@ ARC (Abstraction and Reasoning Corpus) 抽象推理任务。
 | `Graphs/TreeTopologicalSequenceCounting-v0` | 树拓扑序列计数 |
 | `Graphs/WeightedBinarytree-v0` | 加权二叉树最大分值 |
 
-### Logic (20 个)
+### Logic (19 个)
 
 逻辑推理与约束满足类谜题。
 
@@ -136,7 +132,6 @@ ARC (Abstraction and Reasoning Corpus) 抽象推理任务。
 | `Logic/CircuitLogic-v0` | 电路逻辑门求解 |
 | `Logic/Futoshiki-v0` | 不等号数独 |
 | `Logic/GridParityConstruction-v0` | 网格奇偶性构造 |
-| `Logic/Hitori-v0` | Hitori 消除谜题 |
 | `Logic/HitoriPuzzle-v0` | Hitori 谜题变体 |
 | `Logic/Kakurasu-v0` | Kakurasu 加法逻辑谜题 |
 | `Logic/MagicSquarePuzzle-v0` | 幻方填数 |
