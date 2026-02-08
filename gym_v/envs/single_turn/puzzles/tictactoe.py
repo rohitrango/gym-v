@@ -356,7 +356,7 @@ Grid (O=first player, X=second player, .=empty):
         if self._question_type_param is not None:
             self._question_type_idx = self._question_type_param
         else:
-            self._question_type_idx = random.randint(0, 2)
+            self._question_type_idx = int(self.np_random.integers(0, 3))
         q_type = self.QUESTION_TYPES[self._question_type_idx]
 
         # Generate question - sets _question, _options, _oracle_answer

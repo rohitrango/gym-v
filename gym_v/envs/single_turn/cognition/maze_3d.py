@@ -208,7 +208,7 @@ Goal: ({self._goal_pos.x if self._goal_pos else "N/A"}, {self._goal_pos.y if sel
 
         # Select question type (convert 0-based index to question type ID)
         if self._question_type_param is None:
-            self._question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
+            self._question_type_idx = int(self.np_random.integers(0, len(self.QUESTION_TYPES)))
         else:
             # Validate question type index
             if not (0 <= self._question_type_param < len(self.QUESTION_TYPES)):

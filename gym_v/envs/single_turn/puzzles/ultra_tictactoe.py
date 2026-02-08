@@ -537,7 +537,7 @@ class UltraTicTacToeQAEnv(Env):
 
         # Generate question
         if self._question_type_param is None:
-            self._question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
+            self._question_type_idx = int(self.np_random.integers(0, len(self.QUESTION_TYPES)))
         else:
             self._question_type_idx = self._question_type_param
 

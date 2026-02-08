@@ -1,554 +1,429 @@
-"""Unified tests for all single-turn gym-v environments.
+"""Tests for all single-turn gym-v environments.
 
-All environments follow the multi-agent dictionary interface with max_episode_steps=1.
-Tests verify image generation, oracle answer validity, and reward grading for both
-correct and incorrect answers. Rewards must be in [0, 1].
+For every registered single-turn environment and 5 random seeds:
+  1. oracle (ground truth) answer  → reward == 1.0
+  2. empty answer ("")             → reward == 0.0
+  3. perturbed answer              → reward < 1.0
+Images are saved to tests/test_images/<env_id>/.
 """
 
 from __future__ import annotations
 
-from pathlib import Path
+import json
 import random
+import re
 import string
-from typing import Any
-import unittest
+from pathlib import Path
+
+import pytest
 
 import gym_v
-from gym_v.core import Observation
 
 # ---------------------------------------------------------------------------
-# Environment registry – organised by category (matches directory structure)
+# All single-turn environment IDs
 # ---------------------------------------------------------------------------
 
-ENVS_ALGORITHMIC = {
-    "Algorithmic/AdditionTable-v0": "addition_table",
-    "Algorithmic/BinaryMatrix-v0": "binary_matrix",
-    "Algorithmic/CirculatingGrid-v0": "circulating_grid",
-    "Algorithmic/CoinSquareGame-v0": "coin_square_game",
-    "Algorithmic/FaceRightWay-v0": "face_right_way",
-    "Algorithmic/GameOfLife-v0": "game_of_life",
-    "Algorithmic/GraMinimaGame-v0": "gra_minima_game",
-    "Algorithmic/GridBFS-v0": "grid_bfs",
-    "Algorithmic/GridLocalMinimumCounting-v0": "grid_local_minimum_counting",
-    "Algorithmic/LandformGenerationCounting-v0": "landform_generation_counting",
-    "Algorithmic/LangtonAnt-QA-v0": "langton_ant",
-    "Algorithmic/Lifegame-QA-v0": "lifegame",
-    "Algorithmic/MatrixPermutationBothDiagonalOne-v0": "matrix_permutation_both_diagonal_one",
-    "Algorithmic/MatrixPermutationMainDiagonalOne-v0": "matrix_permutation_main_diagonal_one",
-    "Algorithmic/MaxGridPathIntersection-v0": "max_grid_path_intersection",
-    "Algorithmic/MonochromeBlockCounting-v0": "monochrome_block_counting",
-    "Algorithmic/RotateMatrix-v0": "rotate_matrix",
-    "Algorithmic/RottenOranges-v0": "rotten_oranges",
-    "Algorithmic/SpiralMatrix-v0": "spiral_matrix",
-    "Algorithmic/StoneIntervalsGame-v0": "stone_intervals_game",
-    "Algorithmic/TuringMachine2d-QA-v0": "turing_machine_2d",
-}
+ALL_ENV_IDS = [
+    # Algorithmic
+    "Algorithmic/AdditionTable-v0",
+    "Algorithmic/BinaryMatrix-v0",
+    "Algorithmic/CirculatingGrid-v0",
+    "Algorithmic/CoinSquareGame-v0",
+    "Algorithmic/FaceRightWay-v0",
+    "Algorithmic/GameOfLife-v0",
+    "Algorithmic/GraMinimaGame-v0",
+    "Algorithmic/GridBFS-v0",
+    "Algorithmic/GridLocalMinimumCounting-v0",
+    "Algorithmic/LandformGenerationCounting-v0",
+    "Algorithmic/LangtonAnt-QA-v0",
+    "Algorithmic/Lifegame-QA-v0",
+    "Algorithmic/MatrixPermutationBothDiagonalOne-v0",
+    "Algorithmic/MatrixPermutationMainDiagonalOne-v0",
+    "Algorithmic/MaxGridPathIntersection-v0",
+    "Algorithmic/MonochromeBlockCounting-v0",
+    "Algorithmic/RotateMatrix-v0",
+    "Algorithmic/RottenOranges-v0",
+    "Algorithmic/SpiralMatrix-v0",
+    "Algorithmic/StoneIntervalsGame-v0",
+    "Algorithmic/TuringMachine2d-QA-v0",
+    # Arc
+    "Arc/Arc1D-v0",
+    "Arc/ArcAgi-v0",
+    "Arc/ReArc-v0",
+    # Cognition
+    "Cognition/Hue-QA-v0",
+    "Cognition/Maze3D-QA-v0",
+    "Cognition/OddOneOutPoly-v0",
+    "Cognition/RectangleCount-v0",
+    "Cognition/RubiksCube-QA-v0",
+    "Cognition/SequenceCompletionPoly-v0",
+    "Cognition/SymmetryFillPoly-v0",
+    "Cognition/TransformResultPoly-v0",
+    # Geometry
+    "Geometry/ConvexHull-v0",
+    "Geometry/LargestRectangleAmongPoints-v0",
+    "Geometry/SkaRockGarden-v0",
+    "Geometry/SmallestCircle-v0",
+    "Geometry/SumTriangleArea-v0",
+    "Geometry/Tangram-QA-v0",
+    "Geometry/VisibleLine-v0",
+    # Graphs
+    "Graphs/FbiBinaryTree-v0",
+    "Graphs/GraphContainTreeCounting-v0",
+    "Graphs/GraphIsomorphism-v0",
+    "Graphs/GridComponent-v0",
+    "Graphs/HamiltonianPath-v0",
+    "Graphs/LargestIsland-v0",
+    "Graphs/LongestPath-v0",
+    "Graphs/MaximumAchromaticNumber-v0",
+    "Graphs/MaximumClique-v0",
+    "Graphs/MaximumIndependentSetGrid-v0",
+    "Graphs/MaximumIndependentSetTree-v0",
+    "Graphs/MaximumWeightMatching-v0",
+    "Graphs/MinimumChromaticNumber-v0",
+    "Graphs/MinimumDirectedSpanningTree-v0",
+    "Graphs/MinimumSpanningTreeCounting-v0",
+    "Graphs/MixedGraphEulerianCircuit-v0",
+    "Graphs/Patrol-v0",
+    "Graphs/ShortestPath-v0",
+    "Graphs/TreeCenter-v0",
+    "Graphs/TreeChangeOneEdgeDiameter-v0",
+    "Graphs/TreeColoring-v0",
+    "Graphs/TreeDistanceEqualTriadCounting-v0",
+    "Graphs/TreeEvenPartitioning-v0",
+    "Graphs/TreeTopologicalSequenceCounting-v0",
+    "Graphs/WeightedBinarytree-v0",
+    # Logic
+    "Logic/Binairo-v0",
+    "Logic/BinarioNoAdjacencyRequirement-v0",
+    "Logic/CampsitePuzzle-v0",
+    "Logic/CircuitLogic-v0",
+    "Logic/Futoshiki-v0",
+    "Logic/GridParityConstruction-v0",
+    "Logic/Kakurasu-v0",
+    "Logic/MagicSquarePuzzle-v0",
+    "Logic/MiniSudoku-v0",
+    "Logic/NQueens-v0",
+    "Logic/Numbrix-v0",
+    "Logic/Renzoku-v0",
+    "Logic/SkyscraperPuzzle-v0",
+    "Logic/StarBattle-QA-v0",
+    "Logic/Survo-v0",
+    "Logic/Tents-QA-v0",
+    "Logic/Thermometers-v0",
+    # Perception
+    "Perception/3DReconstruction-QA-v0",
+    "Perception/ChartToTable-v0",
+    "Perception/ContourPlot-v0",
+    "Perception/DAGToTopoOrder-v0",
+    "Perception/FlowNetwork-v0",
+    "Perception/FunctionGraph-v0",
+    "Perception/GraphToAdjacency-v0",
+    "Perception/GraphToMST-v0",
+    "Perception/ParametricCurve-v0",
+    "Perception/PolarPlot-v0",
+    "Perception/TreeToTraversal-v0",
+    "Perception/VectorField-v0",
+    # Puzzles
+    "Puzzles/ChessRanger-QA-v0",
+    "Puzzles/EightDigitPuzzle-v0",
+    "Puzzles/Freecell-QA-v0",
+    "Puzzles/Jewel2-QA-v0",
+    "Puzzles/KloBlocks-v0",
+    "Puzzles/KnightSwap-v0",
+    "Puzzles/Maze-QA-v0",
+    "Puzzles/NinePuzzle-v0",
+    "Puzzles/Pacman-QA-v0",
+    "Puzzles/PyramidChess-QA-v0",
+    "Puzzles/RhythmGame-QA-v0",
+    "Puzzles/Snake-QA-v0",
+    "Puzzles/SpaceInvaders-QA-v0",
+    "Puzzles/SpiderSolitaire-QA-v0",
+    "Puzzles/Tetris-QA-v0",
+    "Puzzles/TetrisAttack-v0",
+    "Puzzles/TicTacToe-QA-v0",
+    "Puzzles/TowerOfHanoi-v0",
+    "Puzzles/Tsumego-v0",
+    "Puzzles/TwiddlePuzzle-v0",
+    "Puzzles/UltraTicTacToe-QA-v0",
+    "Puzzles/WordSearch-QA-v0",
+    "Puzzles/Zuma-QA-v0",
+]
 
-ENVS_ARC = {
-    "Arc/Arc1D-v0": "arc_1d",
-    "Arc/ArcAgi-v0": "arc_agi",
-    "Arc/ReArc-v0": "rearc",
-}
+NUM_SEEDS = 10
 
-ENVS_COGNITION = {
-    "Cognition/Hue-QA-v0": "hue",
-    "Cognition/Maze3D-QA-v0": "maze_3d",
-    "Cognition/OddOneOutPoly-v0": "odd_one_out",
-    "Cognition/RectangleCount-v0": "rectangle_count",
-    "Cognition/RubiksCube-QA-v0": "rubiks_cube",
-    "Cognition/SequenceCompletionPoly-v0": "sequence_completion",
-    "Cognition/SymmetryFillPoly-v0": "symmetry_fill",
-    "Cognition/TransformResultPoly-v0": "transform_result",
-}
+IMAGE_DIR = Path(__file__).resolve().parent / "test_images"
 
-ENVS_GEOMETRY = {
-    "Geometry/ConvexHull-v0": "convex_hull",
-    "Geometry/LargestRectangleAmongPoints-v0": "largest_rectangle_among_points",
-    "Geometry/SkaRockGarden-v0": "ska_rock_garden",
-    "Geometry/SmallestCircle-v0": "smallest_circle",
-    "Geometry/SumTriangleArea-v0": "sum_triangle_area",
-    "Geometry/Tangram-QA-v0": "tangram",
-    "Geometry/VisibleLine-v0": "visible_line",
-}
-
-ENVS_GRAPHS = {
-    "Graphs/FbiBinaryTree-v0": "fbi_binary_tree",
-    "Graphs/GraphContainTreeCounting-v0": "graph_contain_tree_counting",
-    "Graphs/GraphIsomorphism-v0": "graph_isomorphism",
-    "Graphs/GridComponent-v0": "grid_component",
-    "Graphs/HamiltonianPath-v0": "hamiltonian_path",
-    "Graphs/LargestIsland-v0": "largest_island",
-    "Graphs/LongestPath-v0": "longest_path",
-    "Graphs/MaximumAchromaticNumber-v0": "maximum_achromatic_number",
-    "Graphs/MaximumClique-v0": "maximum_clique",
-    "Graphs/MaximumIndependentSetGrid-v0": "maximum_independent_set_grid",
-    "Graphs/MaximumIndependentSetTree-v0": "maximum_independent_set_tree",
-    "Graphs/MaximumWeightMatching-v0": "maximum_weight_matching",
-    "Graphs/MinimumChromaticNumber-v0": "minimum_chromatic_number",
-    "Graphs/MinimumDirectedSpanningTree-v0": "minimum_directed_spanning_tree",
-    "Graphs/MinimumSpanningTreeCounting-v0": "minimum_spanning_tree_counting",
-    "Graphs/MixedGraphEulerianCircuit-v0": "mixed_graph_eulerian_circuit",
-    "Graphs/Patrol-v0": "patrol",
-    "Graphs/ShortestPath-v0": "shortest_path",
-    "Graphs/TreeCenter-v0": "tree_center",
-    "Graphs/TreeChangeOneEdgeDiameter-v0": "tree_change_one_edge_diameter",
-    "Graphs/TreeColoring-v0": "tree_coloring",
-    "Graphs/TreeDistanceEqualTriadCounting-v0": "tree_distance_equal_triad_counting",
-    "Graphs/TreeEvenPartitioning-v0": "tree_even_partitioning",
-    "Graphs/TreeTopologicalSequenceCounting-v0": "tree_topological_sequence_counting",
-    "Graphs/WeightedBinarytree-v0": "weighted_binarytree",
-}
-
-ENVS_LOGIC = {
-    "Logic/Binairo-v0": "binairo",
-    "Logic/BinarioNoAdjacencyRequirement-v0": "binario_no_adjacency_requirement",
-    "Logic/CampsitePuzzle-v0": "campsite_puzzle",
-    "Logic/CircuitLogic-v0": "circuit_logic",
-    "Logic/Futoshiki-v0": "futoshiki",
-    "Logic/GridParityConstruction-v0": "grid_parity_construction",
-    "Logic/Kakurasu-v0": "kakurasu",
-    "Logic/MagicSquarePuzzle-v0": "magic_square_puzzle",
-    "Logic/MiniSudoku-v0": "mini_sudoku",
-    "Logic/NQueens-v0": "n_queens",
-    "Logic/Numbrix-v0": "numbrix",
-    "Logic/Renzoku-v0": "renzoku",
-    "Logic/SkyscraperPuzzle-v0": "skyscraper_puzzle",
-    "Logic/StarBattle-QA-v0": "star_battle",
-    "Logic/Survo-v0": "survo",
-    "Logic/Tents-QA-v0": "tents",
-    "Logic/Thermometers-v0": "thermometers",
-}
-
-ENVS_PERCEPTION = {
-    "Perception/3DReconstruction-QA-v0": "threed_reconstruction",
-    "Perception/ChartToTable-v0": "chart_to_table",
-    "Perception/ContourPlot-v0": "contour_plot",
-    "Perception/DAGToTopoOrder-v0": "dag_to_topo_order",
-    "Perception/FlowNetwork-v0": "flow_network",
-    "Perception/FunctionGraph-v0": "function_graph",
-    "Perception/GraphToAdjacency-v0": "graph_to_adjacency",
-    "Perception/GraphToMST-v0": "graph_to_mst",
-    "Perception/ParametricCurve-v0": "parametric_curve",
-    "Perception/PolarPlot-v0": "polar_plot",
-    "Perception/TreeToTraversal-v0": "tree_to_traversal",
-    "Perception/VectorField-v0": "vector_field",
-}
-
-ENVS_PUZZLES = {
-    "Puzzles/ChessRanger-QA-v0": "chess_ranger",
-    "Puzzles/EightDigitPuzzle-v0": "eight_digit_puzzle",
-    "Puzzles/Freecell-QA-v0": "freecell",
-    "Puzzles/Jewel2-QA-v0": "jewel2",
-    "Puzzles/KloBlocks-v0": "klo_blocks",
-    "Puzzles/KnightSwap-v0": "knight_swap",
-    "Puzzles/Maze-QA-v0": "maze_qa",
-    "Puzzles/NinePuzzle-v0": "nine_puzzle",
-    "Puzzles/Pacman-QA-v0": "pacman",
-    "Puzzles/PyramidChess-QA-v0": "pyramidchess",
-    "Puzzles/RhythmGame-QA-v0": "rhythm_game",
-    "Puzzles/Snake-QA-v0": "snake",
-    "Puzzles/SpaceInvaders-QA-v0": "space_invaders",
-    "Puzzles/SpiderSolitaire-QA-v0": "spider_solitaire",
-    "Puzzles/Tetris-QA-v0": "tetris",
-    "Puzzles/TetrisAttack-v0": "tetris_attack",
-    "Puzzles/TicTacToe-QA-v0": "tictactoe",
-    "Puzzles/TowerOfHanoi-v0": "tower_of_hanoi",
-    "Puzzles/Tsumego-v0": "tsumego",
-    "Puzzles/TwiddlePuzzle-v0": "twiddle_puzzle",
-    "Puzzles/UltraTicTacToe-QA-v0": "ultra_tictactoe",
-    "Puzzles/WordSearch-QA-v0": "word_search",
-    "Puzzles/Zuma-QA-v0": "zuma",
-}
-
-# All single-turn environments
-ALL_ENVS = {
-    **ENVS_ALGORITHMIC,
-    **ENVS_ARC,
-    **ENVS_COGNITION,
-    **ENVS_GEOMETRY,
-    **ENVS_GRAPHS,
-    **ENVS_LOGIC,
-    **ENVS_PERCEPTION,
-    **ENVS_PUZZLES,
-}
 
 # ---------------------------------------------------------------------------
-# Environments that use partial credit scoring
+# Helpers
 # ---------------------------------------------------------------------------
-PARTIAL_CREDIT_ENVS = {
-    "Arc/ArcAgi-v0": {
-        "reason": "ARC-AGI grid: 0.05 for valid grid format, 0.0 for parse failure",
-        "max_wrong_reward": 0.05,
-        "max_empty_reward": 0.05,
-    },
-    "Arc/ReArc-v0": {
-        "reason": "ReArc grid: 0.05 for valid grid format, 0.0 for parse failure",
-        "max_wrong_reward": 0.05,
-        "max_empty_reward": 0.05,
-    },
-    "Algorithmic/MonochromeBlockCounting-v0": {
-        "reason": "Numeric answer: partial credit based on closeness",
-        "max_wrong_reward": 0.99,
-    },
-    "Cognition/RectangleCount-v0": {
-        "reason": "Numeric answer: partial credit based on closeness",
-        "max_wrong_reward": 0.99,
-    },
-    "Geometry/ConvexHull-v0": {
-        "reason": "Numeric answer: partial credit based on closeness",
-        "max_wrong_reward": 0.99,
-    },
-    "Logic/Kakurasu-v0": {
-        "reason": "Kakurasu: accepts alternative valid solutions",
-        "max_wrong_reward": 1.0,
-        "allow_alternative_solutions": True,
-    },
-    "Perception/FlowNetwork-v0": {
-        "reason": "Flow network: accepts alternative valid solutions",
-        "max_wrong_reward": 1.0,
-        "allow_alternative_solutions": True,
-    },
-    "Graphs/MaximumClique-v0": {
-        "reason": "Graph coloring: accepts alternative valid solutions",
-        "max_wrong_reward": 1.0,
-        "allow_alternative_solutions": True,
-    },
-    "Graphs/MinimumChromaticNumber-v0": {
-        "reason": "Graph coloring: partial credit for partially correct coloring",
-        "max_wrong_reward": 0.99,
-    },
-    "Perception/GraphToMST-v0": {
-        "reason": "MST extraction: accepts alternative valid MSTs",
-        "max_wrong_reward": 1.0,
-        "allow_alternative_solutions": True,
-    },
-    "Puzzles/TicTacToe-QA-v0": {
-        "reason": "TicTacToe QA: accepts alternative valid answers",
-        "max_wrong_reward": 1.0,
-        "allow_alternative_solutions": True,
-    },
-    "Logic/MiniSudoku-v0": {
-        "reason": "4x4 grid, scores by correct cells / 16",
-        "max_wrong_reward": 0.99,
-    },
-    "Algorithmic/RotateMatrix-v0": {
-        "reason": "Substring matching: len(correct) / len(answer)",
-        "max_wrong_reward": 0.99,
-    },
-    "Puzzles/Tsumego-v0": {
-        "reason": "Go coordinates: 0.05 for valid format, 0.01 otherwise",
-        "max_wrong_reward": 0.1,
-    },
-    "Logic/Thermometers-v0": {
-        "reason": "Accepts any solution satisfying constraints",
-        "max_wrong_reward": 1.0,
-        "allow_alternative_solutions": True,
-    },
-    "Puzzles/TwiddlePuzzle-v0": {
-        "reason": "Grid transformation puzzle: scores by (matching_cells / total_cells)^5",
-        "max_wrong_reward": 0.99,
-    },
-    "Algorithmic/CirculatingGrid-v0": {
-        "reason": "Optimization puzzle: minimizes cell changes",
-        "max_wrong_reward": 1.0,
-        "allow_alternative_solutions": True,
-    },
-    "Geometry/LargestRectangleAmongPoints-v0": {
-        "reason": "Optimization puzzle: maximizes rectangle area",
-        "max_wrong_reward": 1.0,
-        "allow_alternative_solutions": True,
-    },
-    "Graphs/MaximumIndependentSetTree-v0": {
-        "reason": "Optimization puzzle: maximizes total weight of independent set",
-        "max_wrong_reward": 1.0,
-        "allow_alternative_solutions": True,
-    },
-    "Graphs/MaximumWeightMatching-v0": {
-        "reason": "Optimization puzzle: maximizes total weight of matching",
-        "max_wrong_reward": 1.0,
-        "allow_alternative_solutions": True,
-    },
-    "Graphs/WeightedBinarytree-v0": {
-        "reason": "Optimization puzzle: maximizes binary tree score",
-        "max_wrong_reward": 1.0,
-        "allow_alternative_solutions": True,
-    },
-    "Puzzles/TetrisAttack-v0": {
-        "reason": "Optimization puzzle: minimizes swaps to clear array",
-        "max_wrong_reward": 1.0,
-        "allow_alternative_solutions": True,
-    },
-}
 
 
-class TestSingleTurnEnvironments(unittest.TestCase):
-    """Unified test suite for all single-turn gym-v environments."""
+def _get_oracle(env, info: dict) -> str:
+    """Extract oracle answer from info dict or env attribute."""
+    for key in ("oracle_answer", "reference_answer"):
+        val = info.get(key)
+        if val is not None:
+            if isinstance(val, str):
+                return val
+            if isinstance(val, list | tuple):
+                if all(isinstance(row, list | tuple) for row in val):
+                    return "\n".join(" ".join(map(str, row)) for row in val)
+                return " ".join(map(str, val))
+            return str(val)
+    try:
+        val = env.get_wrapper_attr("_oracle_answer")
+        if val is not None:
+            return str(val)
+    except (AttributeError, KeyError):
+        pass
+    raise ValueError(f"No oracle answer found (info keys: {list(info.keys())})")
 
-    def _get_output_dir(self, env_id: str) -> Path:
-        """Get output directory for environment test artifacts."""
-        suite, name = env_id.split("/")
-        name_clean = name.replace("-v0", "")
-        snake_name = "".join(
-            f"_{c.lower()}" if c.isupper() else c for c in name_clean
-        ).lstrip("_")
-        return (
-            Path(__file__).resolve().parent
-            / f"test_output_{suite.lower()}_{snake_name}"
-        )
 
-    def _setup_output_dir(self, output_dir: Path) -> None:
-        """Create or clean output directory."""
-        if output_dir.exists():
-            for p in output_dir.glob("*"):
-                if p.is_file():
-                    p.unlink()
+def _perturb(answer: str, rng: random.Random) -> str:
+    """Create a semantically perturbed answer that should score < 1.0.
+
+    Unlike naive character-level mutation, this understands common answer
+    formats (JSON, multiple-choice, numbers, grids) and perturbs them in ways
+    that survive normalisation (case-folding, whitespace stripping, partial-
+    field checking).
+    """
+    if not answer:
+        return "WRONG_ANSWER"
+    stripped = answer.strip()
+
+    # ---- JSON object: change every numeric value ----
+    try:
+        obj = json.loads(stripped)
+        if isinstance(obj, dict):
+            return _perturb_json_obj(obj, rng)
+    except (json.JSONDecodeError, ValueError):
+        pass
+
+    # ---- Multiple-choice like (a), (b), ..., (h) ----
+    mc = re.fullmatch(r"\(([a-zA-Z])\)", stripped)
+    if mc:
+        letter = mc.group(1).lower()
+        choices = [c for c in "abcdefgh" if c != letter]
+        return f"({rng.choice(choices)})"
+
+    # ---- Coordinate like (7, 3) ----
+    coord = re.match(r"\(?\s*(-?\d+)\s*,\s*(-?\d+)\s*\)?", stripped)
+    if coord:
+        x, y = int(coord.group(1)), int(coord.group(2))
+        return f"({x + 999}, {y + 999})"
+
+    # ---- Single character ----
+    if len(stripped) == 1:
+        return _perturb_single_char(stripped, rng)
+
+    # ---- Multi-line grid (rows of space-separated tokens) ----
+    lines = stripped.split("\n")
+    if len(lines) > 1:
+        return _perturb_grid(lines, rng)
+
+    # ---- Space-separated number list ----
+    tokens = stripped.split()
+    if len(tokens) > 1 and all(_looks_numeric(t) for t in tokens):
+        return _perturb_number_list(tokens, rng)
+
+    # ---- Single number ----
+    if _looks_numeric(stripped):
+        return _perturb_number(stripped, rng)
+
+    # ---- Fallback: aggressive mutation ----
+    return _perturb_aggressive(stripped, rng)
+
+
+def _perturb_json_obj(obj: dict, rng: random.Random) -> str:
+    """Perturb all numeric values in a JSON dict."""
+    new = {}
+    for k, v in obj.items():
+        if isinstance(v, (int, float)):
+            new[k] = v + rng.choice([-999, -100, -10, 10, 100, 999])
+        elif isinstance(v, list):
+            new[k] = [_perturb_json_value(item, rng) for item in v]
+        elif isinstance(v, str):
+            new[k] = v + "_WRONG"
         else:
-            output_dir.mkdir(parents=True, exist_ok=True)
+            new[k] = v
+    return json.dumps(new)
 
-    def _get_oracle_answer(self, env: Any, info: dict[str, Any]) -> str:
-        """Retrieve oracle answer from environment or info dict."""
 
-        def _normalize_oracle(value: Any) -> str | None:
-            if value is None:
-                return None
-            if isinstance(value, str):
-                return value
-            try:
-                import numpy as np
+def _perturb_json_value(val, rng: random.Random):
+    """Perturb a single value inside a JSON structure."""
+    if isinstance(val, (int, float)):
+        return val + rng.choice([-999, -100, -10, 10, 100, 999])
+    if isinstance(val, str):
+        return val + "_WRONG"
+    if isinstance(val, list):
+        return [_perturb_json_value(item, rng) for item in val]
+    return val
 
-                if isinstance(value, np.generic):
-                    return str(value.item())
-            except Exception:
-                pass
-            if isinstance(value, list | tuple):
-                if all(isinstance(row, list | tuple) for row in value):
-                    return "\n".join(" ".join(map(str, row)) for row in value)
-                return " ".join(map(str, value))
-            return str(value)
 
-        oracle = _normalize_oracle(info.get("oracle_answer"))
-        if oracle:
-            return oracle
+def _perturb_single_char(ch: str, rng: random.Random) -> str:
+    """Perturb a single character to a guaranteed-wrong value.
 
-        oracle = _normalize_oracle(info.get("reference_answer"))
-        if oracle:
-            return oracle
+    Returns a string with no letters (avoids matching choice-scoring regexes)
+    and no valid numbers (avoids matching numeric scoring). The '###' format
+    is unparseable by JSON, coordinate, choice, and number scorers.
+    """
+    return "###"
 
-        try:
-            oracle = env.get_wrapper_attr("_oracle_answer")
-            oracle = _normalize_oracle(oracle)
-            if oracle:
-                return oracle
-        except (AttributeError, KeyError):
-            pass
 
-        raise ValueError(f"Could not find oracle answer in env or info: {info.keys()}")
-
-    def _perturb_answer(self, answer: str) -> str:
-        """Create a perturbed version of the correct answer."""
-        if not answer:
-            return "WRONG"
-
-        if len(answer) == 3 and answer[0] == "(" and answer[2] == ")":
-            choices = ["(a)", "(b)", "(c)", "(d)", "(e)", "(f)", "(g)", "(h)"]
-            other_choices = [c for c in choices if c != answer]
-            return random.choice(other_choices)
-
-        answer_list = list(answer)
-        num_changes = min(random.randint(1, 3), len(answer_list))
-
-        for _ in range(num_changes):
-            idx = random.randint(0, len(answer_list) - 1)
-            answer_list[idx] = random.choice(string.ascii_letters + string.digits)
-
-        perturbed = "".join(answer_list)
-
-        if perturbed == answer:
-            return answer + "_WRONG"
-
-        return perturbed
-
-    def _test_env(self, env_id: str, env_name: str) -> None:
-        """Test a single environment comprehensively."""
-        output_dir = self._get_output_dir(env_id)
-        self._setup_output_dir(output_dir)
-
-        test_seed = random.randint(0, 9999)
-        print(f"\n[{env_id}] Using random seed: {test_seed}")
-
-        env = gym_v.make(env_id)
-
-        obs_dict, info_dict = env.reset(seed=test_seed)
-
-        agent_id = "agent_0"
-        self.assertIn(agent_id, obs_dict, f"{env_id}: agent_0 not in obs_dict")
-        self.assertIn(agent_id, info_dict, f"{env_id}: agent_0 not in info_dict")
-
-        obs: Observation = obs_dict[agent_id]
-        info = info_dict[agent_id]
-
-        self.assertIsNotNone(obs.image, f"{env_id}: obs.image is None")
-        obs.image.save(output_dir / "0_reset.png")
-
-        oracle = self._get_oracle_answer(env, info)
-        self.assertIsInstance(oracle, str, f"{env_id}: oracle is not string")
-        self.assertGreater(len(oracle), 0, f"{env_id}: oracle is empty")
-
-        print("\n" + "=" * 80)
-        print(f"[{env_id}] SEED: {test_seed}")
-        print(f"[{env_id}] DESCRIPTION:")
-        desc = env.description[:500] if len(env.description) > 500 else env.description
-        print(desc)
-        print(f"\n[{env_id}] OBS.TEXT:")
-        text = obs.text or "No text"
-        print(text[:500] if len(text) > 500 else text)
-        print(f"\n[{env_id}] ORACLE ANSWER:")
-        print(oracle[:300] + "..." if len(oracle) > 300 else oracle)
-        print("=" * 80 + "\n")
-
-        # --- correct answer → reward should be 1.0 (or >0 for alternative-solution envs) ---
-        action_dict = {agent_id: oracle}
-        _, reward_dict, terminated_dict, _, _ = env.step(action_dict)
-
-        self.assertIn(agent_id, reward_dict)
-        self.assertIn(agent_id, terminated_dict)
-        self.assertTrue(
-            terminated_dict[agent_id], f"{env_id}: not terminated after step"
-        )
-        self.assertIsInstance(reward_dict[agent_id], float)
-
-        if env_id in PARTIAL_CREDIT_ENVS and PARTIAL_CREDIT_ENVS[env_id].get(
-            "allow_alternative_solutions", False
-        ):
-            self.assertGreater(
-                reward_dict[agent_id],
-                0.0,
-                f"{env_id}: Expected positive reward for valid solution, got {reward_dict[agent_id]}",
-            )
-        else:
-            self.assertAlmostEqual(
-                reward_dict[agent_id],
-                1.0,
-                places=6,
-                msg=f"{env_id}: Expected reward 1.0 for correct answer, got {reward_dict[agent_id]}",
-            )
-
-        # --- empty answer → reward should be 0.0 ---
-        obs_dict, info_dict = env.reset(seed=test_seed)
-        action_empty = {agent_id: ""}
-        _, reward_empty, terminated_empty, _, _ = env.step(action_empty)
-
-        self.assertTrue(terminated_empty[agent_id])
-        self.assertIsInstance(reward_empty[agent_id], float)
-
-        if env_id in PARTIAL_CREDIT_ENVS and "max_empty_reward" in PARTIAL_CREDIT_ENVS[env_id]:
-            max_empty = PARTIAL_CREDIT_ENVS[env_id]["max_empty_reward"]
-            self.assertLessEqual(
-                reward_empty[agent_id],
-                max_empty,
-                f"{env_id}: Empty answer reward {reward_empty[agent_id]} exceeds max {max_empty}",
-            )
-        else:
-            self.assertEqual(
-                reward_empty[agent_id],
-                0.0,
-                f"{env_id}: Expected reward 0.0 for empty answer, got {reward_empty[agent_id]}",
-            )
-
-        # --- perturbed answer → reward depends on partial-credit config ---
-        obs_dict, info_dict = env.reset(seed=test_seed)
-        info_reset = info_dict[agent_id]
-        oracle_reset = self._get_oracle_answer(env, info_reset)
-
-        perturbed = self._perturb_answer(oracle_reset)
-        action_perturbed = {agent_id: perturbed}
-        _, reward_perturbed, terminated_perturbed, _, _ = env.step(action_perturbed)
-
-        self.assertTrue(terminated_perturbed[agent_id])
-        self.assertIsInstance(reward_perturbed[agent_id], float)
-
-        if env_id in PARTIAL_CREDIT_ENVS:
-            config = PARTIAL_CREDIT_ENVS[env_id]
-            max_allowed = config["max_wrong_reward"]
-            allow_alternative_solutions = config.get(
-                "allow_alternative_solutions", False
-            )
-
-            if not allow_alternative_solutions:
-                self.assertLess(
-                    reward_perturbed[agent_id],
-                    1.0,
-                    f"{env_id}: Perturbed answer should not get full credit (got {reward_perturbed[agent_id]})",
-                )
-
-            self.assertLessEqual(
-                reward_perturbed[agent_id],
-                max_allowed,
-                f"{env_id}: Perturbed answer reward {reward_perturbed[agent_id]} exceeds max {max_allowed}. "
-                f"Reason: {config['reason']}. Perturbed: '{perturbed}'",
-            )
-        else:
-            self.assertEqual(
-                reward_perturbed[agent_id],
-                0.0,
-                f"{env_id}: Expected reward 0.0 for perturbed answer '{perturbed}', got {reward_perturbed[agent_id]}",
-            )
-
-        # --- additional seeds (stability check) ---
-        print(f"[{env_id}] Testing with 3 additional seeds...")
-        for i in range(3):
-            seed = random.randint(0, 9999)
-            obs_test_dict, info_test_dict = env.reset(seed=seed)
-
-            obs_test = obs_test_dict[agent_id]
-            info_test = info_test_dict[agent_id]
-
-            self.assertIsNotNone(obs_test.image, f"{env_id}: image None (seed={seed})")
-            obs_test.image.save(output_dir / f"{i + 1}_seed_{seed}.png")
-
-            oracle_test = self._get_oracle_answer(env, info_test)
-            self.assertIsNotNone(oracle_test, f"{env_id}: oracle None (seed={seed})")
-            self.assertIsInstance(oracle_test, str)
-            self.assertGreater(len(oracle_test), 0)
-
-            _, reward_test_dict, _, _, _ = env.step({agent_id: oracle_test})
-            if env_id in PARTIAL_CREDIT_ENVS and PARTIAL_CREDIT_ENVS[env_id].get(
-                "allow_alternative_solutions", False
-            ):
-                self.assertGreater(
-                    reward_test_dict[agent_id],
-                    0.0,
-                    msg=f"{env_id}: Expected positive reward (seed={seed})",
-                )
+def _perturb_grid(lines: list[str], rng: random.Random) -> str:
+    """Perturb a multi-line grid answer by flipping values in every row."""
+    new_lines = []
+    for line in lines:
+        tokens = line.strip().split()
+        if tokens:
+            idx = rng.randint(0, len(tokens) - 1)
+            tok = tokens[idx]
+            if _looks_numeric(tok):
+                tokens[idx] = str(_flip_number(tok, rng))
             else:
-                self.assertAlmostEqual(
-                    reward_test_dict[agent_id],
-                    1.0,
-                    places=6,
-                    msg=f"{env_id}: Expected reward 1.0 (seed={seed})",
-                )
-
-            print(f"  Seed {seed}: Generated valid puzzle with oracle answer")
-
-        env.close()
-        print(f"[{env_id}]: All tests passed (primary_seed={test_seed})")
+                tokens[idx] = _flip_token(tok)
+            new_lines.append(" ".join(tokens))
+        else:
+            new_lines.append(line)
+    return "\n".join(new_lines)
 
 
-def _make_test_method(env_id: str, env_name: str):
-    """Factory function to dynamically create test methods."""
-
-    def test_method(self):
-        self._test_env(env_id, env_name)
-
-    test_method.__name__ = f"test_{env_name}"
-    test_method.__doc__ = f"Test {env_id} environment."
-    return test_method
-
-
-for _env_id, _env_name in ALL_ENVS.items():
-    _test_method = _make_test_method(_env_id, _env_name)
-    setattr(TestSingleTurnEnvironments, _test_method.__name__, _test_method)
+def _flip_token(tok: str) -> str:
+    """Flip a non-numeric grid token to a guaranteed-different value."""
+    low = tok.strip().lower()
+    if low == "e":
+        return "s"
+    if low == "s":
+        return "e"
+    if low in ("0", "false", "no", "n"):
+        return "1"
+    if low in ("1", "true", "yes", "y"):
+        return "0"
+    return "###"
 
 
-if __name__ == "__main__":
-    unittest.main()
+def _perturb_number_list(tokens: list[str], rng: random.Random) -> str:
+    """Perturb a space-separated list of numbers.
+
+    Changes values AND appends an extra element to break length-based
+    validation (e.g. coloring problems where relabelled colors are equivalent).
+    """
+    tokens = list(tokens)
+    n_change = max(1, len(tokens) // 2)
+    indices = rng.sample(range(len(tokens)), min(n_change, len(tokens)))
+    for i in indices:
+        tokens[i] = str(_flip_number(tokens[i], rng))
+    tokens.append("999")
+    return " ".join(tokens)
+
+
+def _perturb_number(s: str, rng: random.Random) -> str:
+    """Perturb a single number string."""
+    return str(_flip_number(s, rng))
+
+
+def _flip_number(s: str, rng: random.Random):
+    """Change a numeric string to a significantly different value."""
+    try:
+        if "." in s:
+            v = float(s)
+            decimals = len(s.split(".")[-1])
+            return round(v + rng.choice([-100.0, -10.0, 10.0, 100.0]), decimals)
+        else:
+            v = int(s)
+            return v + rng.choice([-999, -100, -10, 10, 100, 999])
+    except ValueError:
+        return s + "_WRONG"
+
+
+def _perturb_aggressive(s: str, rng: random.Random) -> str:
+    """Aggressively mutate a string to be clearly wrong."""
+    if len(s) <= 3:
+        return "WRONG_" + s
+    chars = list(s)
+    n = max(len(chars) // 3, 2)
+    for _ in range(n):
+        i = rng.randint(0, len(chars) - 1)
+        if chars[i].isdigit():
+            chars[i] = rng.choice(string.ascii_uppercase)
+        elif chars[i].isalpha():
+            chars[i] = rng.choice(string.digits)
+        else:
+            chars[i] = rng.choice(string.digits)
+    result = "".join(chars)
+    return result if result.lower() != s.lower() else "WRONG_" + s
+
+
+def _looks_numeric(s: str) -> bool:
+    """Check if string looks like a number (int or float)."""
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
+
+# ---------------------------------------------------------------------------
+# Parametrized test
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("env_id", ALL_ENV_IDS)
+def test_single_turn_env(env_id: str):
+    """Test a single-turn environment across 5 random seeds."""
+
+    # Prepare image output dir
+    safe_name = env_id.replace("/", "_").replace("-", "_")
+    img_dir = IMAGE_DIR / safe_name
+    img_dir.mkdir(parents=True, exist_ok=True)
+
+    env = gym_v.make(env_id)
+    rng = random.Random()
+    seeds = [rng.randint(0, 99999) for _ in range(NUM_SEEDS)]
+
+    for seed in seeds:
+        # ---- reset & save image ----
+        obs_dict, info_dict = env.reset(seed=seed)
+        obs = obs_dict["agent_0"]
+        info = info_dict["agent_0"]
+        assert obs.image is not None, f"[{env_id} seed={seed}] obs.image is None"
+        obs.image.save(img_dir / f"seed_{seed}.png")
+
+        oracle = _get_oracle(env, info)
+        assert isinstance(oracle, str) and len(oracle) > 0, (
+            f"[{env_id} seed={seed}] oracle is empty or not a string"
+        )
+
+        # ---- 1. oracle answer → reward == 1.0 ----
+        _, rwd, term, _, _ = env.step({"agent_0": oracle})
+        r_oracle = rwd["agent_0"]
+        assert term["agent_0"], f"[{env_id} seed={seed}] not terminated after step"
+        assert r_oracle == pytest.approx(1.0, abs=1e-6), (
+            f"[{env_id} seed={seed}] oracle reward should be 1.0, "
+            f"got {r_oracle}. oracle='{oracle}'"
+        )
+
+        # ---- 2. empty answer → reward == 0.0 ----
+        env.reset(seed=seed)
+        _, rwd_e, _, _, _ = env.step({"agent_0": ""})
+        r_empty = rwd_e["agent_0"]
+        assert r_empty == 0.0, (
+            f"[{env_id} seed={seed}] empty answer reward should be 0.0, "
+            f"got {r_empty}"
+        )
+
+        # ---- 3. perturbed answer → reward < 1.0 ----
+        _, info_p = env.reset(seed=seed)
+        oracle_p = _get_oracle(env, info_p["agent_0"])
+        perturbed = _perturb(oracle_p, rng)
+        _, rwd_p, _, _, _ = env.step({"agent_0": perturbed})
+        r_perturbed = rwd_p["agent_0"]
+        assert r_perturbed < 1.0, (
+            f"[{env_id} seed={seed}] perturbed reward should be < 1.0, "
+            f"got {r_perturbed}. "
+            f"oracle='{oracle}', perturbed='{perturbed}'"
+        )
+
+    env.close()

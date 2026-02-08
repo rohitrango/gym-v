@@ -168,7 +168,7 @@ Grid (uppercase letters):
             self._question_type_idx = self._question_type_param
             q_type = self.QUESTION_TYPES[self._question_type_idx]
         else:
-            self._question_type_idx = random.randint(0, len(self.QUESTION_TYPES) - 1)
+            self._question_type_idx = int(self.np_random.integers(0, len(self.QUESTION_TYPES)))
             q_type = self.QUESTION_TYPES[self._question_type_idx]
 
         self._current_q_type = q_type

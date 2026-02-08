@@ -704,7 +704,7 @@ class PyramidChessQAEnv(Env):
         if self._question_type_param is not None:
             self._question_type_idx = self._question_type_param
         else:
-            self._question_type_idx = random.randint(0, 5)
+            self._question_type_idx = int(self.np_random.integers(0, 6))
         q_type = self.QUESTION_TYPES[self._question_type_idx]
 
         # Generate question - sets _question, _options, _oracle_answer

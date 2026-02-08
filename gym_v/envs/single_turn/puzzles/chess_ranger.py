@@ -755,7 +755,7 @@ class ChessRangerQAEnv(Env):
         if self._question_type_param is not None:
             self._question_type_idx = self._question_type_param
         else:
-            self._question_type_idx = random.randint(0, 4)
+            self._question_type_idx = int(self.np_random.integers(0, 5))
         q_type = self.QUESTION_TYPES[self._question_type_idx]
 
         # Generate question - methods set self._question, self._options, self._oracle_answer

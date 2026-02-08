@@ -158,7 +158,10 @@ class ArcAgiEnv(Env):
     ]:
         agent_id = next(iter(self._agent_ids))
         answer = action[agent_id]
-        reward = self._dataset.score_answer(answer=answer, entry=self._entry)
+        if not answer or not answer.strip():
+            reward = 0.0
+        else:
+            reward = self._dataset.score_answer(answer=answer, entry=self._entry)
 
         obs = Observation(
             image=self.render(),
