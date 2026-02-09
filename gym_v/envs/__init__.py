@@ -256,8 +256,8 @@ register(
 )
 
 register(
-    id="Graphs/LargestIsland-v0",
-    entry_point="gym_v.envs.single_turn.graphs.largest_island:LargestIslandEnv",
+    id="Geometry/LargestIsland-v0",
+    entry_point="gym_v.envs.single_turn.geometry.largest_island:LargestIslandEnv",
     max_episode_steps=1,
     kwargs=dict(
         dataset_kwargs=dict(size=500),

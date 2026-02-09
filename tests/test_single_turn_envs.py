@@ -73,7 +73,7 @@ ALL_ENV_IDS = [
     "Graphs/GraphIsomorphism-v0",
     "Graphs/GridComponent-v0",
     "Graphs/HamiltonianPath-v0",
-    "Graphs/LargestIsland-v0",
+    "Geometry/LargestIsland-v0",
     "Graphs/LongestPath-v0",
     "Graphs/MaximumAchromaticNumber-v0",
     "Graphs/MaximumClique-v0",
