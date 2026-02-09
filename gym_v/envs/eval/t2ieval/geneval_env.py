@@ -10,17 +10,14 @@ from torch.utils.data import Dataset
 
 from gym_v.core import Env, Observation
 from gym_v.envs.eval.t2ieval.client import (
-    RewardClient,
-    decode_data_url,
-    ensure_list,
-    image_to_data_url,
-    parse_openai_payload,
+    BaseNetworkClient,
     run_coroutine,
 )
-from gym_v.logger import get_logger
-from gym_v.utils.image import to_pil_list
-
-logger = get_logger()
+from deploy.utils import (
+    convert_base64_to_local_image_or_video,
+    convert_local_image_or_video_to_base_64,
+)
+from gym_v.envs.eval.t2ieval.utils import select_indices
 
 
 class GenevalPromptDataset(Dataset):
@@ -33,13 +30,9 @@ class GenevalPromptDataset(Dataset):
         if file_path is None and dataset_root and dataset_root.endswith(".jsonl"):
             file_path = dataset_root
         if file_path is None:
-            if not dataset_root:
-                raise ValueError(
-                    "dataset_root is required unless file_path is provided."
-                )
-            file_path = os.path.join(dataset_root, f"{split}_metadata.jsonl")
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f"Geneval metadata not found: {file_path}")
+            split_path = os.path.join(dataset_root, f"{split}_metadata.jsonl")
+            eval_path = os.path.join(dataset_root, "evaluation_metadata.jsonl")
+            file_path = split_path if os.path.exists(split_path) else eval_path
 
         self.file_path = file_path
         with open(self.file_path, encoding="utf-8") as f:
@@ -78,23 +71,18 @@ def _postprocess_geneval_results(results: list[dict[str, Any]]):
         scores.append(result.get("score"))
         rewards.append(1.0 if result.get("correct") else 0.0)
         tag = result.get("tag")
-        for key in required_keys:
-            if key != tag:
-                grouped_strict_rewards[key].append(-10.0)
-                grouped_rewards[key].append(-10.0)
-            else:
-                grouped_strict_rewards[tag].append(
-                    1.0 if result.get("strict_correct") else 0.0
-                )
-                grouped_rewards[tag].append(1.0 if result.get("correct") else 0.0)
+        if tag in required_keys:
+            grouped_strict_rewards[tag].append(
+                1.0 if result.get("strict_correct") else 0.0
+            )
+            grouped_rewards[tag].append(1.0 if result.get("correct") else 0.0)
     return (
         scores,
         rewards,
         strict_rewards,
-        dict(grouped_rewards),
-        dict(grouped_strict_rewards),
+        {key: grouped_rewards.get(key, []) for key in required_keys},
+        {key: grouped_strict_rewards.get(key, []) for key in required_keys},
     )
-
 
 def _preprocess_geneval_payload(
     image: Image.Image,
@@ -104,74 +92,49 @@ def _preprocess_geneval_payload(
     only_strict: bool,
     model: str,
 ) -> dict[str, Any]:
-    if metadata is None:
-        raise ValueError("metadata is required for geneval requests.")
-
-    prompt_text = "" if prompt is None else str(prompt)
-    data_url = image_to_data_url(image)
-    meta_datas = metadata if isinstance(metadata, list) else [metadata]
+    meta = metadata
+    prompt_text = str(prompt)
+    data_url = convert_local_image_or_video_to_base_64(image, media_type="image")
     return {
         "model": model,
-        "messages": [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "image_url", "image_url": {"url": data_url}},
-                    {"type": "text", "text": prompt_text},
-                ],
-            }
-        ],
+        "prompt": prompt_text,
+        "multimodal_outputs": {"image": data_url},
         "metadata": {
-            "meta_datas": meta_datas,
+            **meta,
             "only_strict": bool(only_strict),
         },
     }
 
 
-def collect_geneval_results(responses: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    results: list[dict[str, Any]] = []
-    for response in responses:
-        item_results = parse_openai_payload(response)["geneval"]
-        if len(item_results) != 1:
-            raise ValueError(
-                f"Expected 1 geneval result per request, got {len(item_results)}."
-            )
-        results.append(item_results[0])
-    return results
-
-
 def geneval_score_async(
     *,
-    server_url: str = "http://127.0.0.1:18085",
+    server_url: str,
     only_strict: bool = True,
     timeout_s: float = 120.0,
     max_retries: int = 1000,
     backoff_factor: float = 1.0,
     model: str = "geneval",
+    max_concurrency: int | None = None,
 ):
-    client = RewardClient(
-        server_url=server_url,
+    client = BaseNetworkClient(
+        endpoint=f"{server_url}/v1/generate",
         timeout_s=timeout_s,
         max_retries=max_retries,
         backoff_factor=backoff_factor,
+        concurrency=1 if max_concurrency is None else max_concurrency,
     )
 
-    async def _fn(images, prompts=None, metadatas=None, only_strict_override=None):
-        images_list = list(images or [])
-        prompts_list = ensure_list(prompts, len(images_list), "")
-        metadatas_list = ensure_list(metadatas, len(images_list), None)
-        if len(prompts_list) != len(images_list) or len(metadatas_list) != len(
-            images_list
-        ):
-            raise ValueError("prompts/metadatas length must match images length.")
-        strict = only_strict if only_strict_override is None else only_strict_override
+    async def _fn(images, prompts=None, metadatas=None):
+        images_list = list(images)
+        prompts_list = list(prompts)
+        metadatas_list = list(metadatas)
 
         payloads = [
             _preprocess_geneval_payload(
                 image,
                 prompt,
                 metadata,
-                only_strict=strict,
+                only_strict=only_strict,
                 model=model,
             )
             for image, prompt, metadata in zip(
@@ -179,8 +142,11 @@ def geneval_score_async(
             )
         ]
         responses = await client.request_many(payloads)
-        results = collect_geneval_results(responses)
-        return _postprocess_geneval_results(results)
+        unwrapped: list[dict[str, Any]] = []
+        for response in responses:
+            parsed = response['geneval']
+            unwrapped.append(parsed)
+        return _postprocess_geneval_results(unwrapped)
 
     return _fn
 
@@ -199,16 +165,20 @@ class GenevalEnv(Env):
         dataset_path: str | None = None,
         split: str = "test",
         server_url: str | None = None,
-        only_strict: bool = True,
+        only_strict: bool = False,
         timeout_s: float = 120.0,
         max_retries: int = 1000,
         backoff_factor: float = 1.0,
+        max_concurrency: int | None = None,
         **kwargs: Any,
     ):
         super().__init__(max_episode_steps=1)
 
+        server_url = os.environ.get("SERVER_URL", server_url)
         if dataset_root is None and dataset_path is None:
-            dataset_root = os.environ.get("GENEVAL_DATASET_ROOT")
+            raise ValueError(
+                "Geneval requires dataset_root or dataset_path."
+            )
 
         self.dataset = GenevalPromptDataset(
             dataset_root=dataset_root, split=split, file_path=dataset_path
@@ -218,18 +188,16 @@ class GenevalEnv(Env):
         self.indices = list(range(len(self.prompts)))
 
         self._agent_ids = {f"agent_{i}" for i in self.indices}
-        self._agent_id_to_index = {f"agent_{i}": i for i in self.indices}
         self._active_indices = self.indices
 
         self.only_strict = only_strict
         self.timeout_s = timeout_s
+        self.max_concurrency = max_concurrency
 
         if server_url is None:
-            server_url = (
-                os.environ.get("GENEVAL_REWARD_URL")
-                or os.environ.get("GENEVAL_SERVER_URL")
-                or "http://127.0.0.1:18085"
-            )
+            server_url = os.environ.get("GENEVAL_SERVER_URL")
+        if not server_url:
+            raise ValueError("Geneval requires GENEVAL_SERVER_URL or server_url.")
         self.server_url = server_url
 
         self._score_async_fn = geneval_score_async(
@@ -238,6 +206,7 @@ class GenevalEnv(Env):
             timeout_s=self.timeout_s,
             max_retries=max_retries,
             backoff_factor=backoff_factor,
+            max_concurrency=self.max_concurrency,
         )
 
     @property
@@ -247,20 +216,10 @@ class GenevalEnv(Env):
     def reset(self, *, seed=None, options=None):
         super().reset(seed=seed, options=options)
 
-        indices = self.indices
-        if options:
-            if "indices" in options:
-                indices = list(options["indices"])
-            elif "max_samples" in options:
-                max_samples = int(options["max_samples"])
-                indices = indices[:max_samples]
-            if options.get("shuffle"):
-                indices = list(indices)
-                self.np_random.shuffle(indices)
+        indices = select_indices(self.indices, options, self.np_random)
 
         self._active_indices = indices
         self._agent_ids = {f"agent_{i}" for i in indices}
-        self._agent_id_to_index = {f"agent_{i}": i for i in indices}
 
         obs_dict = {}
         info_dict = {}
@@ -278,30 +237,21 @@ class GenevalEnv(Env):
         return obs_dict, info_dict
 
     def step(self, action_dict):
-        if not action_dict:
-            raise ValueError("action_dict is empty; expected generated images.")
-
-        unknown = set(action_dict) - set(self._agent_id_to_index)
-        if unknown:
-            raise ValueError(f"Unknown agent ids in action_dict: {sorted(unknown)}")
-
-        missing = set(self._agent_id_to_index) - set(action_dict)
-        if missing:
-            logger.warning("Missing actions for %d prompts.", len(missing))
-
-        ordered_agents = sorted(
-            action_dict.keys(), key=lambda aid: self._agent_id_to_index[aid]
-        )
+        agent_ids = list(action_dict.keys())
 
         images = []
         prompts = []
         metadatas = []
+        indices = []
 
-        for agent_id in ordered_agents:
+        for agent_id in agent_ids:
             action = action_dict[agent_id]
-            pil_image = self._action_to_pil(action)
+            pil_image = convert_base64_to_local_image_or_video(
+                action["image"], media_type="image"
+            )
             images.append(pil_image)
-            idx = self._agent_id_to_index[agent_id]
+            idx = int(agent_id.split("_")[-1])
+            indices.append(idx)
             prompts.append(self.prompts[idx])
             metadatas.append(self.metadatas[idx])
 
@@ -313,23 +263,21 @@ class GenevalEnv(Env):
 
         reward_dict = {}
         info_dict = {}
-        for idx, agent_id in enumerate(ordered_agents):
-            score = scores[idx] if idx < len(scores) else None
-            reward = rewards[idx] if idx < len(rewards) else None
-            strict_reward = strict_rewards[idx] if idx < len(strict_rewards) else None
-            reward_value = strict_reward if strict_reward is not None else reward
-            if reward_value is None:
-                reward_value = 0.0
+        for idx, agent_id in enumerate(agent_ids):
+            score = scores[idx]
+            reward = rewards[idx]
+            strict_reward = strict_rewards[idx]
+            reward_value = strict_reward if self.only_strict else reward
             reward_dict[agent_id] = float(reward_value)
             info_dict[agent_id] = {
-                "index": self._agent_id_to_index[agent_id],
+                "index": indices[idx],
                 "score": score,
                 "reward": reward,
                 "strict_reward": strict_reward,
             }
 
-        terminated = {agent_id: True for agent_id in ordered_agents}
-        truncated = {agent_id: False for agent_id in ordered_agents}
+        terminated = {agent_id: True for agent_id in agent_ids}
+        truncated = {agent_id: False for agent_id in agent_ids}
         terminated["__all__"] = True
         truncated["__all__"] = False
         info_dict["__all__"] = {
@@ -338,21 +286,3 @@ class GenevalEnv(Env):
         }
 
         return {}, reward_dict, terminated, truncated, info_dict
-
-    def _action_to_pil(self, action: Any) -> Image.Image:
-        if isinstance(action, dict):
-            if "image" in action:
-                action = action["image"]
-            elif "images" in action:
-                action = action["images"]
-
-        if isinstance(action, list | tuple) and len(action) == 1:
-            action = action[0]
-
-        if isinstance(action, str) and action.startswith("data:"):
-            action = decode_data_url(action)
-
-        images = to_pil_list(action)
-        if len(images) != 1:
-            raise ValueError(f"Expected single image per prompt, got {len(images)}.")
-        return images[0].convert("RGB")

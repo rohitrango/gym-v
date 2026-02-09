@@ -9,7 +9,6 @@ from services.rewards.geneval.gen_eval import load_geneval
 from services.rewards.registry import register_reward
 
 
-@register_reward("geneval")
 class GenevalReward(BaseReward):
     """
     Local Geneval reward wrapper. Uses vendored gen_eval under rewards/local/geneval.
@@ -31,14 +30,30 @@ class GenevalReward(BaseReward):
             object_names_path=object_names_path,
         )
 
-    def __call__(self, images, prompts=None, metadata=None):
-        meta_datas = []
-        only_strict = True
-        if metadata:
-            if isinstance(metadata, dict):
-                meta_datas = metadata.get("meta_datas", meta_datas)
-                only_strict = metadata.get("only_strict", only_strict)
-            else:
-                meta_datas = metadata
+    def __call__(self, samples):
+        sample_list = list(samples)
+        images: list[Any] = []
+        meta_datas: list[Any] = []
+        only_strict: bool | None = None
+        for sample in sample_list:
+            data = sample if isinstance(sample, dict) else sample.to_dict()
+            image = data.get("multimodal_outputs")["image"]
+            images.append(image)
 
+            metadata = data.get("metadata")
+            if only_strict is None and isinstance(metadata, dict):
+                only_strict = bool(metadata.get("only_strict"))
+            meta_datas.append(metadata)
+
+        if only_strict is None:
+            only_strict = True
         return self.inference_fn(images, meta_datas, only_strict)
+
+
+@register_reward("geneval")
+def build_geneval_reward(
+    *, torch_device: torch.device | str | None = None, torch_dtype=None, **kwargs: Any
+) -> BaseReward:
+    if torch_device is not None and "device" not in kwargs:
+        kwargs["device"] = torch_device
+    return GenevalReward(**kwargs)

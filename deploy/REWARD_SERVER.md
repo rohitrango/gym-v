@@ -1,18 +1,30 @@
-GenEval Reward Server 说明
+Reward Server 说明
 
 目标
-- 把 GenEval 评测从本地逻辑中拆出来，独立部署成服务。
-- 通过 Ray Serve 启动（`gym_v.deploy.rewards.deploy`）。
-- 与 `gym_v.envs.eval.t2ieval.geneval_env` 的 OpenAI 兼容 JSON 请求对齐。
+- 把评测/打分逻辑从本地推理中拆出来，独立部署成服务。
+- 通过 Ray Serve 启动（`deploy/deploy.py`），支持批处理与多副本扩展。
+- 与 `gym_v.envs.eval.t2ieval` 的 Sample JSON 请求对齐。
+
+架构
+```
+Env/Client
+  -> RewardClient (POST /v1/generate)
+  -> Reward Server (Ray Serve)
+  -> RMModelManager (services/rewards)
+  -> Reward 实现 (geneval / qwen3vl / ...)
+```
+说明：
+- `deploy/server.py` 接收 Sample JSON，解码图片/视频字段后转为 `Sample`。
+- `RMModelManager` 根据 `SCORE_JSON` 构建 reward 组件，逐个计算并返回字典结果。
 
 文件结构
-- `gym_v/deploy/rewards/server.py`：Ray Serve 服务实现（OpenAI 兼容 JSON）。
-- `gym_v/deploy/rewards/deploy.py`：部署入口。
-- `gym_v/deploy/rewards/local/geneval/`：GenEval 本地 reward 实现与模型依赖。
+- `deploy/server.py`：Ray Serve 服务实现（Sample JSON）。
+- `deploy/deploy.py`：部署入口。
+- `services/rewards/`：Reward 实现与模型依赖。
 - `start.sh`：最简启动脚本（默认 geneval）。
 
 接口路径
-- `POST /v1/chat/completions`：OpenAI 兼容 JSON 协议（含 image_url data URL）。
+- `POST /v1/generate`：Sample JSON 协议。
 
 启动方式
 ```
@@ -36,51 +48,97 @@ GenEval Reward Server 说明
 
 示例（传入 Geneval 模型路径）
 ```
-SCORE_JSON='{"geneval":{"init":{"config_path":"...","ckpt_root":"...","object_names_path":"..."}}}' ./start.sh
+SCORE_JSON='{"geneval":{"torch_device":"cuda","config_path":"...","ckpt_root":"...","object_names_path":"..."}}' ./start.sh
 ```
 
-请求格式（OpenAI 兼容 JSON，单图示例）
+示例（多 reward）
 ```
-curl -s http://127.0.0.1:18085/v1/chat/completions \
+SCORE_JSON='{
+  "geneval": {"torch_device":"cuda","config_path":"...","ckpt_root":"..."},
+  "qwen3vl": {"model":"Qwen/Qwen3-VL-8B-Instruct","device":"cuda"}
+}' ./start.sh
+```
+说明：
+- 支持为同一 reward 传入 list-of-dicts，例如 `{"qwen3vl": [{...}, {...}]}`，会注册为 `qwen3vl_0/qwen3vl_1`。
+- `qwen3vl` 需要在请求的 `metadata.gen` 中提供 `max_tokens/temperature/logprobs`。
+
+新增 reward
+- 新建文件：`services/rewards/<reward_name>/<reward_name>_reward.py`（文件名需以 `_reward.py` 结尾，才能被自动扫描注册）。
+- 继承 `BaseReward` 并实现 `__call__(self, samples)`。
+- 用 `@register_reward("<reward_name>")` 注册 builder（工厂函数）。
+- 通过 `SCORE_JSON` 传入该 reward 的初始化参数。
+
+示例（最小骨架）
+```
+from services.rewards.base import BaseReward
+from services.rewards.registry import register_reward
+
+class MyReward(BaseReward):
+    def __init__(self, device="cpu", **kwargs):
+        super().__init__(device=device)
+        # 初始化模型/状态
+
+    def __call__(self, samples):
+        results = []
+        for sample in samples or []:
+            data = sample if isinstance(sample, dict) else sample.to_dict()
+            # 计算分数
+            results.append({"score": 0.0})
+        return results
+
+@register_reward("myreward")
+def build_myreward(*, torch_device=None, **kwargs):
+    if torch_device is not None and "device" not in kwargs:
+        kwargs["device"] = torch_device
+    return MyReward(**kwargs)
+```
+
+Reward 配置结构（SCORE_JSON）
+- 顶层是 dict：`{ "<reward_name>": <config> }`
+- `<config>` 支持 dict 或 list[dict]：
+  - dict：单实例。
+  - list[dict]：多实例，会注册为 `<reward_name>_0/<reward_name>_1/...`。
+
+Reward 返回结构
+- reward 的 `__call__` 可以返回：
+  - `list`：长度应与样本数一致（推荐）。
+  - `dict` 或单值：服务端会按样本数复制。
+- 最终单请求返回一个 dict，key 为 reward 名称；批量请求时，每个请求对应一个 dict。
+
+Sample JSON 字段解析
+- `prompt`：str 或消息列表（list[dict]）。
+- `multimodal_inputs`：输入多模态（如图像/视频），用于模型理解。
+- `multimodal_outputs`：输出多模态（如生成图像），常用于 T2I 评分。
+- `multimodal_train_inputs`：训练态输入（可选）。
+- `response`：文本输出（可选）。
+- `metadata` / `train_metadata`：额外配置/控制参数（如 `metadata.gen`）。
+- 其他未列字段会被保留并透传给 reward。
+
+多模态字段解码规则
+- 仅解码 `multimodal_inputs` / `multimodal_outputs` / `multimodal_train_inputs` 下的：
+  - `image` / `images`
+  - `video` / `videos`
+- 支持 data URL、本地路径，以及 list 形式（不支持 raw base64/HTTP(S) URL）。
+
+请求格式（Sample JSON，单图示例）
+```
+curl -s http://127.0.0.1:18085/v1/generate \
   -H "Content-Type: application/json" \
   -d '{
     "model": "geneval",
-    "messages": [
-      {
-        "role": "user",
-        "content": [
-          {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,..."}},
-          {"type": "text", "text": "score this image"}
-        ]
-      }
-    ],
+    "prompt": "score this image",
+    "multimodal_outputs": {"image": "data:image/jpeg;base64,..."},
     "metadata": {
-      "meta_datas": [ ... ],
+      "...": "...",
       "only_strict": true
     }
   }'
 ```
 
 说明
-- `messages` 支持 OpenAI 兼容格式：`image_url` + `text`。
-- `metadata` 必须是 dict，会直接传给 reward 的 `score(..., metadata=...)`。
-- `metadata` 内若包含 base64 或图片路径，会尝试解码为 PIL.Image。
-- 不需要显式传 `input_format`，服务端会自动识别。
+- 服务端不解析 prompt/images/metadata，仅对 Sample 内部的 image/video 字段做 data URL 或本地路径解码。
+- 解码后的 Sample（dict）会直接传给 reward 实现。
 
-批处理合并逻辑（Ray Serve batch）
-- 多个请求会被合并成一个大 batch 调用 `scorer`。
-- 图片与 prompt 会顺序拼接后一次性送入 reward。
-- `metadata` 按 key 合并：
-  - 如果 value 是 list/tuple/dict：按请求 append，得到 list-of-requests（例如 `meta_datas` -> `[[...],[...]]`）。
-  - 其它标量 key：使用第一条请求的值。
-
-示例（两个请求合并）
-```
-req1.metadata = {"meta_datas": [a, b], "only_strict": true, "cfg": {"foo": 1}}
-req2.metadata = {"meta_datas": [c], "only_strict": true, "cfg": {"foo": 1}}
-merged.metadata = {
-  "meta_datas": [[a, b], [c]],
-  "only_strict": true,
-  "cfg": [{"foo": 1}, {"foo": 1}]
-}
-```
+返回格式
+- 成功：直接返回 reward 输出 dict（key 为 reward 名称）。
+- 失败：reward 返回 `{"error": "..."}` 时为 HTTP 400；运行时异常会由 FastAPI/Ray 直接返回 500。

@@ -2217,3 +2217,27 @@ register(
     max_episode_steps=1,
     kwargs=dict(),
 )
+
+# GenEval2 T2I environment
+register(
+    id="GenEval2-v0",
+    entry_point="gym_v.envs.eval.t2ieval:Geneval2Env",
+    max_episode_steps=1,
+    kwargs=dict(),
+)
+
+# GenExam T2I environment
+register(
+    id="GenExam-v0",
+    entry_point="gym_v.envs.eval.t2ieval:GenExamEnv",
+    max_episode_steps=1,
+    kwargs=dict(),
+)
+
+# WISE T2I environment
+register(
+    id="WISE-v0",
+    entry_point="gym_v.envs.eval.t2ieval:WiseEnv",
+    max_episode_steps=1,
+    kwargs=dict(),
+)

@@ -3,20 +3,12 @@ from __future__ import annotations
 import asyncio
 import base64
 from collections.abc import Iterable
-from io import BytesIO
 import json
 import threading
 import time
 from typing import Any
 
-from PIL import Image
 import requests
-
-
-def ensure_list(value: list[Any] | None, size: int, fill: Any) -> list[Any]:
-    if value is None:
-        return [fill for _ in range(size)]
-    return list(value)
 
 
 def run_coroutine(coro):
@@ -53,57 +45,48 @@ def decode_data_url(value: str) -> bytes:
     _, _, b64 = value.partition(",")
     return base64.b64decode(b64)
 
-
-def image_to_data_url(image: Image.Image, *, image_format: str = "PNG") -> str:
-    buffer = BytesIO()
-    image.save(buffer, format=image_format)
-    encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
-    return f"data:image/{image_format.lower()};base64,{encoded}"
-
-
-def parse_openai_payload(response: dict[str, Any]) -> dict[str, Any]:
-    if "error" in response:
-        raise RuntimeError(response["error"])
-    if "choices" in response:
-        content = response["choices"][0]["message"]["content"]
-        if isinstance(content, str):
-            try:
-                return json.loads(content)
-            except json.JSONDecodeError as exc:
-                raise ValueError("Failed to decode reward payload JSON.") from exc
-        if isinstance(content, dict):
-            return content
-    return response
-
-
-class RewardClient:
+class BaseNetworkClient:
     def __init__(
         self,
-        server_url: str,
         *,
+        endpoint: str,
+        headers: dict[str, str] | None = None,
         timeout_s: float = 120.0,
         max_retries: int = 3,
         backoff_factor: float = 1.0,
+        concurrency: int = 1,
         session: requests.Session | None = None,
     ) -> None:
-        self.server_url = server_url.rstrip("/")
-        self.endpoint = f"{self.server_url}/v1/chat/completions"
+        self.endpoint = endpoint
+        self.headers = headers
         self.timeout_s = timeout_s
         self.max_retries = max_retries
         self.backoff_factor = backoff_factor
+        self.concurrency = concurrency
         self._session = session or requests.Session()
 
     def request(self, payload: dict[str, Any]) -> dict[str, Any]:
         attempts = max(self.max_retries, 1)
         last_exc: Exception | None = None
+        headers = self.headers
         for attempt in range(attempts):
             try:
-                response = self._session.post(
-                    self.endpoint, json=payload, timeout=self.timeout_s
-                )
-                if response.status_code >= 400:
-                    raise RuntimeError(f"HTTP {response.status_code}: {response.text}")
-                return response.json()
+                if headers:
+                    resp = self._session.post(
+                        self.endpoint,
+                        json=payload,
+                        headers=headers,
+                        timeout=self.timeout_s,
+                    )
+                else:
+                    resp = self._session.post(
+                        self.endpoint, json=payload, timeout=self.timeout_s
+                    )
+                resp.raise_for_status()
+                data = resp.json()
+                if headers and "choices" not in data:
+                    raise RuntimeError(f"No choices in response: {data}")
+                return data
             except Exception as exc:
                 last_exc = exc
                 if attempt + 1 >= attempts:
@@ -111,7 +94,7 @@ class RewardClient:
                 sleep_s = self.backoff_factor * (2**attempt)
                 if sleep_s > 0:
                     time.sleep(sleep_s)
-        raise last_exc or RuntimeError("Reward request failed")
+        raise last_exc or RuntimeError("Request failed")
 
     async def request_async(self, payload: dict[str, Any]) -> dict[str, Any]:
         return await asyncio.to_thread(self.request, payload)
@@ -119,17 +102,10 @@ class RewardClient:
     async def request_many(
         self,
         payloads: Iterable[dict[str, Any]],
-        *,
-        concurrency: int | None = None,
     ) -> list[dict[str, Any]]:
         payload_list = list(payloads)
-        if not payload_list:
-            return []
 
-        if not concurrency or concurrency <= 0:
-            tasks = [self.request_async(payload) for payload in payload_list]
-            return await asyncio.gather(*tasks)
-
+        concurrency = self.concurrency
         semaphore = asyncio.Semaphore(concurrency)
 
         async def _run(payload: dict[str, Any]) -> dict[str, Any]:

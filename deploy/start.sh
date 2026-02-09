@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-SCORE_JSON=${SCORE_JSON:-'{"geneval":{"device":"cuda","init":{"config_path":"/abs/path/to/mmdet_config.py","ckpt_root":"/abs/path/to/mask2former_ckpt_dir","object_names_path":"/abs/path/to/object_names.txt"}}}'}
+SCORE_JSON=${SCORE_JSON:-'{"geneval":{"torch_device":"cuda","config_path":"/abs/path/to/mmdet_config.py","ckpt_root":"/abs/path/to/mask2former_ckpt_dir","object_names_path":"/abs/path/to/object_names.txt"}}'}
 DEVICE=${DEVICE:-cuda}
 HOST=${HOST:-0.0.0.0}
 PORT=${PORT:-18085}

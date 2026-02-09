@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import ast
 import json
 import math
 import threading
@@ -14,44 +13,26 @@ from deploy.server import build_reward_service
 
 
 def _parse_mapping(text: str) -> dict[str, Any]:
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        data = ast.literal_eval(text)
-        if not isinstance(data, dict):
-            raise ValueError("Reward config must be a dict.") from None
-        return data
+    return json.loads(text)
 
 
 def _load_score_dict(score_json: str | None, score_path: str | None) -> dict[str, Any]:
-    if score_json and score_path:
-        raise ValueError("Use only one of --score-json or --score-path.")
     if score_path:
         with open(score_path, encoding="utf-8") as handle:
             return _parse_mapping(handle.read())
     if score_json:
         return _parse_mapping(score_json)
-    raise ValueError("Provide --score-json or --score-path.")
+    return {}
 
 
 def _default_device() -> str:
-    try:
-        import torch
-    except Exception:
-        return "cpu"
+    import torch
     return "cuda" if torch.cuda.is_available() else "cpu"
 
 
 def _cluster_gpu_total() -> float:
-    try:
-        resources = ray.cluster_resources()
-    except Exception:
-        return 0.0
-    total = resources.get("GPU", 0.0)
-    try:
-        return float(total)
-    except (TypeError, ValueError):
-        return 0.0
+    resources = ray.cluster_resources()
+    return float(resources.get("GPU", 0.0))
 
 
 def _resolve_num_replicas(
@@ -61,18 +42,10 @@ def _resolve_num_replicas(
     total_gpus: float,
 ) -> int:
     if num_replicas is not None:
-        if num_replicas <= 0:
-            raise ValueError("--num-replicas must be a positive integer.")
         return num_replicas
-    if num_gpus <= 0:
+    if num_gpus <= 0 or total_gpus <= 0:
         return 1
-    if total_gpus <= 0:
-        raise ValueError("Ray cluster reports 0 GPUs, but num_gpus is > 0.")
     replicas = int(math.floor(total_gpus / num_gpus))
-    if replicas <= 0:
-        raise ValueError(
-            f"Requested {num_gpus} GPU(s) per replica, but cluster has {total_gpus} GPUs."
-        )
     return replicas
 
 
