@@ -260,7 +260,13 @@ register(
     entry_point="gym_v.envs.single_turn.geometry.largest_island:LargestIslandEnv",
     max_episode_steps=1,
     kwargs=dict(
-        dataset_kwargs=dict(size=500),
+        dataset_kwargs=dict(
+            size=500,
+            min_num_islands=2,    # 至少生成 2 个岛屿
+            max_num_islands=5,    # 最多 5 个
+            min_island_size=0,    # 岛屿至少由 3 个格子组成
+            max_island_size=10,   # 最大 10 个格子
+            ),
         cell_px=40,
         padding=24,
         num_players=1,
@@ -286,8 +292,8 @@ register(
     entry_point="gym_v.envs.single_turn.graphs.longest_path:LongestPathEnv",
     max_episode_steps=1,
     kwargs=dict(
-        max_n=10,
-        edge_density=0.5,
+        max_n=8,
+        edge_density=0.4,
         node_radius=18,
         image_size=700,
         padding=60,
@@ -506,7 +512,11 @@ register(
     entry_point="gym_v.envs.single_turn.algorithmic.rotten_oranges:RottenOrangesEnv",
     max_episode_steps=1,
     kwargs=dict(
-        dataset_kwargs=dict(size=500),
+        dataset_kwargs=dict(
+            size=500,
+            min_n=5,
+            max_n=9,
+            ),
         cell_px=36,
         padding=20,
         num_players=1,
