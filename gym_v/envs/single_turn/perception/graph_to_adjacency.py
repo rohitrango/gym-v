@@ -331,11 +331,7 @@ class GraphToAdjacencyEnv(Env):
         # Draw edge weights if weighted
         if self._is_weighted:
             edge_labels = nx.get_edge_attributes(G, "weight")
-            nx.draw_networkx_edge_labels(
-                G,
-                pos,
-                ax=ax,
-                edge_labels=edge_labels,
+            label_kwargs = dict(
                 font_size=10,
                 font_color="red",
                 font_weight="bold",
@@ -345,6 +341,15 @@ class GraphToAdjacencyEnv(Env):
                     edgecolor="none",
                     alpha=0.8,
                 ),
+            )
+            if self._is_directed:
+                label_kwargs["connectionstyle"] = "arc3,rad=0.1"
+            nx.draw_networkx_edge_labels(
+                G,
+                pos,
+                ax=ax,
+                edge_labels=edge_labels,
+                **label_kwargs,
             )
 
         # Add title

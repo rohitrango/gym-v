@@ -479,6 +479,10 @@ def _style_composite(
             x1, y1, x2, y2 = sorted(data[:2]) + sorted(data[2:])
             x2 = min(x2 + img_size * 0.3, img_size - margin)
             y2 = min(y2 + img_size * 0.2, img_size - margin)
+            if x1 > x2:
+                x1, x2 = x2, x1
+            if y1 > y2:
+                y1, y2 = y2, y1
             draw.ellipse([x1, y1, x2, y2], fill=color, outline=(40, 40, 40), width=2)
         elif shape_type == "rectangle":
             x1, y1 = data[0], data[1]
