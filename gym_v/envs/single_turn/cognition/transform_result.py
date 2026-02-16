@@ -9,7 +9,7 @@ from typing import Any
 from PIL import Image
 
 from gym_v import Env, Observation, get_logger
-from gym_v.envs.single_turn.perception.sphinx_utils import (
+from gym_v.envs.single_turn.cognition.sphinx_utils import (
     TRANSFORMS,
     apply_transform,
     compose_8_options,
