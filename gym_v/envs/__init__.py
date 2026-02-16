@@ -62,7 +62,7 @@ register(
     entry_point="gym_v.envs.single_turn.algorithmic.binary_matrix:BinaryMatrixEnv",
     max_episode_steps=1,
     kwargs=dict(
-        dataset_kwargs=dict(size=500),
+        dataset_kwargs=dict(size=500, min_n=3, max_n=5),
         cell_px=40,
         padding=20,
         num_players=1,
@@ -292,8 +292,8 @@ register(
     entry_point="gym_v.envs.single_turn.graphs.longest_path:LongestPathEnv",
     max_episode_steps=1,
     kwargs=dict(
-        max_n=8,
-        edge_density=0.4,
+        max_n=6,
+        edge_density=0.3,
         node_radius=18,
         image_size=700,
         padding=60,
@@ -515,7 +515,7 @@ register(
         dataset_kwargs=dict(
             size=500,
             min_n=5,
-            max_n=9,
+            max_n=6,
             ),
         cell_px=36,
         padding=20,
@@ -1188,7 +1188,7 @@ register(
     entry_point="gym_v.envs.single_turn.puzzles.tower_of_hanoi:TowerOfHanoiEnv",
     max_episode_steps=1,
     kwargs=dict(
-        dataset_kwargs=dict(size=500),
+        dataset_kwargs=dict(size=500, min_disks=3, max_disks=4, min_pegs=3, max_pegs=4),
         peg_width=150,
         peg_height=250,
         padding=40,
@@ -1272,91 +1272,11 @@ register(
     ),
 )
 
-# --- Perception (12 environments) ---
+# --- Cognition (moved from Perception) ---
 
 register(
-    id="Perception/3DReconstruction-QA-v0",
-    entry_point="gym_v.envs.single_turn.perception.threed_reconstruction:ReconstructionQAEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        plot_level="Easy",
-        question_type=None,
-        num_players=1,
-    ),
-)
-
-register(
-    id="Perception/ChartToTable-v0",
-    entry_point="gym_v.envs.single_turn.perception.chart_to_table:ChartToTableEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        img_size=(640, 480),
-        max_categories=8,
-        num_players=1,
-    ),
-)
-
-register(
-    id="Perception/ContourPlot-v0",
-    entry_point="gym_v.envs.single_turn.perception.contour_plot:ContourPlotEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        img_size=(640, 480),
-        xy_range=(-3, 3),
-        num_players=1,
-    ),
-)
-
-register(
-    id="Perception/DAGToTopoOrder-v0",
-    entry_point="gym_v.envs.single_turn.perception.dag_to_topo_order:DAGToTopoOrderEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        img_size=(640, 480),
-        min_nodes=5,
-        max_nodes=9,
-        num_players=1,
-    ),
-)
-
-register(
-    id="Perception/FlowNetwork-v0",
-    entry_point="gym_v.envs.single_turn.perception.flow_network:FlowNetworkEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        img_size=(640, 480),
-        min_nodes=5,
-        max_nodes=8,
-        num_players=1,
-    ),
-)
-
-register(
-    id="Perception/FunctionGraph-v0",
-    entry_point="gym_v.envs.single_turn.perception.function_graph:FunctionGraphEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        img_size=(640, 480),
-        x_range=(-5, 5),
-        num_players=1,
-    ),
-)
-
-register(
-    id="Perception/GraphToAdjacency-v0",
-    entry_point="gym_v.envs.single_turn.perception.graph_to_adjacency:GraphToAdjacencyEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        img_size=(640, 480),
-        min_nodes=4,
-        max_nodes=8,
-        num_players=1,
-    ),
-)
-
-register(
-    id="Perception/GraphToMST-v0",
-    entry_point="gym_v.envs.single_turn.perception.graph_to_mst:GraphToMSTEnv",
+    id="Cognition/FlowNetwork-v0",
+    entry_point="gym_v.envs.single_turn.cognition.flow_network:FlowNetworkEnv",
     max_episode_steps=1,
     kwargs=dict(
         img_size=(640, 480),
@@ -1391,25 +1311,6 @@ register(
     ),
 )
 
-register(
-    id="Perception/ParametricCurve-v0",
-    entry_point="gym_v.envs.single_turn.perception.parametric_curve:ParametricCurveEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        img_size=(640, 480),
-        num_players=1,
-    ),
-)
-
-register(
-    id="Perception/PolarPlot-v0",
-    entry_point="gym_v.envs.single_turn.perception.polar_plot:PolarPlotEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        img_size=(640, 480),
-        num_players=1,
-    ),
-)
 
 register(
     id="Cognition/RubiksCube-QA-v0",
@@ -1464,25 +1365,13 @@ register(
 )
 
 register(
-    id="Perception/TreeToTraversal-v0",
-    entry_point="gym_v.envs.single_turn.perception.tree_to_traversal:TreeToTraversalEnv",
+    id="Cognition/TreeToTraversal-v0",
+    entry_point="gym_v.envs.single_turn.cognition.tree_to_traversal:TreeToTraversalEnv",
     max_episode_steps=1,
     kwargs=dict(
         img_size=(640, 480),
         min_nodes=5,
         max_nodes=12,
-        num_players=1,
-    ),
-)
-
-register(
-    id="Perception/VectorField-v0",
-    entry_point="gym_v.envs.single_turn.perception.vector_field:VectorFieldEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        img_size=(640, 480),
-        xy_range=(-3, 3),
-        grid_density=15,
         num_players=1,
     ),
 )
