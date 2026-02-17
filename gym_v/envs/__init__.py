@@ -432,8 +432,8 @@ register(
     entry_point="gym_v.envs.single_turn.graphs.minimum_directed_spanning_tree:MinimumDirectedSpanningTreeEnv",
     max_episode_steps=1,
     kwargs=dict(
-        max_n=10,
-        edge_density=0.5,
+        max_n=6,
+        edge_density=0.3,
         node_radius=18,
         image_size=700,
         padding=60,
@@ -663,8 +663,8 @@ register(
     entry_point="gym_v.envs.single_turn.graphs.tree_topological_sequence_counting:TreeTopologicalSequenceCountingEnv",
     max_episode_steps=1,
     kwargs=dict(
-        max_n=10,
-        max_mod=1000000,
+        max_n=7,
+        max_mod=100,
         node_radius=22,
         image_size=700,
         padding=60,
@@ -727,8 +727,8 @@ register(
     entry_point="gym_v.envs.single_turn.logic.binario_no_adjacency_requirement:BinarioNoAdjacencyRequirementEnv",
     max_episode_steps=1,
     kwargs=dict(
-        max_n_m=4,
-        sparsity=0.5,
+        max_n_m=2,
+        sparsity=0.3,
         cell_px=56,
         padding=24,
         num_players=1,
@@ -789,7 +789,7 @@ register(
     entry_point="gym_v.envs.single_turn.logic.futoshiki:FutoshikiEnv",
     max_episode_steps=1,
     kwargs=dict(
-        size=5,
+        size=4,
         cell_px=60,
         padding=30,
         num_players=1,
@@ -837,7 +837,7 @@ register(
     entry_point="gym_v.envs.single_turn.logic.kakurasu:KakurasuEnv",
     max_episode_steps=1,
     kwargs=dict(
-        dataset_kwargs=dict(size=500),
+        dataset_kwargs=dict(size=500, min_rows=3, max_rows=3, min_cols=3, max_cols=3, p_ones=0.4),
         cell_px=56,
         padding=40,
         num_players=1,
@@ -936,7 +936,7 @@ register(
     entry_point="gym_v.envs.single_turn.logic.n_queens:NQueensEnv",
     max_episode_steps=1,
     kwargs=dict(
-        dataset_kwargs=dict(size=500),
+        dataset_kwargs=dict(size=500, n=5, min_remove=1, max_remove=2),
         cell_px=64,
         padding=24,
         num_players=1,
@@ -998,7 +998,7 @@ register(
     entry_point="gym_v.envs.single_turn.logic.renzoku:RenzokuEnv",
     max_episode_steps=1,
     kwargs=dict(
-        size=9,
+        size=4,
         cell_px=50,
         padding=30,
         num_players=1,
@@ -1165,7 +1165,7 @@ register(
     entry_point="gym_v.envs.single_turn.logic.thermometers:ThermometersEnv",
     max_episode_steps=1,
     kwargs=dict(
-        size=5,
+        size=3,
         num_hints=0,
         cell_px=60,
         padding=50,

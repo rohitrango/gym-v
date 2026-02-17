@@ -67,30 +67,34 @@ The matrix is given in **row-major order**, with each row represented as a strin
             size_hint = f"{rows} x {cols}"
             row_count = f"{rows}"
             col_count = f"{cols}"
+            half_row = str(self._M)
+            half_col = str(self._N)
         else:
             size_hint = "(2N) x (2M)"
             row_count = "(2N)"
             col_count = "(2M)"
+            half_row = "M"
+            half_col = "N"
         return dedent(
             f"""
-            This is a simplified Binario puzzle (without adjacency requirement). Fill
-            the empty cells in a grid with '0' or '1' such that each row and column
-            contains equal numbers of '0's and '1's.
+            Simplified Binario Puzzle: Fill the empty cells with '0' or '1'.
 
             Rules:
-            1) Fill all empty cells ('*') with '0' or '1'.
-            2) Each row must contain exactly M '0's and M '1's (equal amounts).
-            3) Each column must contain exactly N '0's and N '1's (equal amounts).
+            1) Replace each empty cell ('?') with '0' or '1'.
+            2) Each row must have exactly {half_row} zeros and {half_row} ones.
+            3) Each column must have exactly {half_col} zeros and {half_col} ones.
+            4) Pre-filled cells (shown in the image) must not be changed.
 
             In the image:
             - The grid is {size_hint}
-            - Pre-filled cells are shown with their values (0 or 1)
-            - Empty cells are shown with '?'
-            - Blue cells represent '0', orange cells represent '1'
+            - Blue cells = '0', Orange cells = '1', '?' cells = empty (to fill)
 
-            **Output Format:** Output {row_count} lines, each containing {col_count}
-            characters, where each character is either '0' or '1'. The output should
-            match the format of the input (i.e., one row per line, no separators).
+            **Output Format:** {row_count} lines, each with {col_count} characters ('0' or '1'), no spaces or separators.
+            Example for a 4x4 grid:
+            0110
+            1001
+            0110
+            1001
             """
         ).strip()
 
