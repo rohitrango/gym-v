@@ -593,19 +593,6 @@ register(
 )
 
 register(
-    id="Graphs/TreeCenter-v0",
-    entry_point="gym_v.envs.single_turn.graphs.tree_center:TreeCenterEnv",
-    max_episode_steps=1,
-    kwargs=dict(
-        max_n=10,
-        node_radius=22,
-        image_size=700,
-        padding=60,
-        num_players=1,
-    ),
-)
-
-register(
     id="Graphs/TreeChangeOneEdgeDiameter-v0",
     entry_point="gym_v.envs.single_turn.graphs.tree_change_one_edge_diameter:TreeChangeOneEdgeDiameterEnv",
     max_episode_steps=1,
@@ -649,8 +636,8 @@ register(
     entry_point="gym_v.envs.single_turn.graphs.tree_even_partitioning:TreeEvenPartitioningEnv",
     max_episode_steps=1,
     kwargs=dict(
-        max_n=4,
-        max_k=3,
+        max_n=6,
+        max_k=4,
         node_radius=20,
         image_size=800,
         padding=80,
