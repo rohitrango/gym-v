@@ -134,7 +134,11 @@ class ReArcEnv(Env):
         if not answer or not answer.strip():
             reward = 0.0
         else:
-            reward = self._dataset.score_answer(answer=answer, entry=self._entry)
+            try:
+                reward = self._dataset.score_answer(answer=answer, entry=self._entry)
+            except Exception as e:
+                logger.warning(f"score_answer failed for {type(self).__name__}: {e}, answer={str(answer)[:200]}")
+                reward = 0.0
 
         obs = Observation(
             image=self.render(),

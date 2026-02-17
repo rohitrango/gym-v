@@ -144,7 +144,11 @@ class RotateMatrixEnv(Env):
     ]:
         agent_id = next(iter(self._agent_ids))
         answer = action[agent_id]
-        reward = self._dataset.score_answer(answer=answer, entry=self._entry)
+        try:
+            reward = self._dataset.score_answer(answer=answer, entry=self._entry)
+        except Exception as e:
+            logger.warning(f"score_answer failed for {type(self).__name__}: {e}, answer={str(answer)[:200]}")
+            reward = 0.0
 
         obs = Observation(
             image=self.render(),
