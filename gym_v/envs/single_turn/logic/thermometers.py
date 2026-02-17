@@ -190,26 +190,22 @@ e e e e e
 
             In the image:
             - Thermometer shapes are shown with bulbs (red circles) at one end
-            - Numbers on left show required filled cells per row
-            - Numbers on top show required filled cells per column
+            - Numbers on the left show the required number of filled cells in each row
+            - Numbers on top show the required number of filled cells in each column
 
             Rules:
-            1. Each thermometer can be filled 0 to full length (you choose how much to fill)
-            2. If filling, must start from the bulb (circular end) and fill continuously
-            3. You can: not fill at all, fill only the bulb, or fill from bulb continuously
-            4. You cannot skip cells - must fill from bulb without gaps
-            5. Row and column counts must match the given clues
-            6. Only thermometer cells can be filled
+            1. Each thermometer can be partially or fully filled, starting from the bulb end.
+            2. Filling must be continuous from the bulb - you cannot skip cells.
+            3. A thermometer can also be left completely empty.
+            4. The total filled cells in each row must equal the row clue number.
+            5. The total filled cells in each column must equal the column clue number.
 
-            Output format: A {self._size}x{self._size} grid with 's' (filled) or 'e' (empty)
-            separated by spaces within rows, and newlines separating rows.
-            Example for 6x6:
-            e e s s e e
-            s s s e e e
-            e e e e e e
-            s e s s s s
-            e e e e e e
-            e e s s s e
+            Output format: {self._size} lines, each with {self._size} characters separated by spaces.
+            Use 's' for filled cells and 'e' for empty cells.
+            Example for a 3x3 grid:
+            s e e
+            s s e
+            e s s
         """).strip()
 
     def _prompt_generate(self) -> str:

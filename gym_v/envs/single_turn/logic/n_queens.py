@@ -89,18 +89,19 @@ class NQueensEnv(Env):
         num_removed = self._metadata.get("num_removed", 0) if self._metadata else 0
 
         return dedent(f"""
-            Your job is to complete an {n} x {n} chess board with {n} Queens in total, ssuch that no two attack each other.
+            Complete an {n}x{n} chess board by placing {num_removed} more Queen(s) so that exactly {n} Queens are on the board and no two Queens attack each other.
 
-            No two queens attack each other if they are not in the same row, column, or diagonal.
-            Your job is to place {num_removed} more queen(s) on the board such that no two queens attack each other.
+            Two queens attack each other if they share the same row, column, or diagonal.
+            Some queens are already placed on the board (shown in the image). You must keep them and add the remaining queen(s).
 
-            Output format: A {n}x{n} board where each cell is either Q (queen) or _ (empty),
-            with spaces separating cells in a row, and newlines separating rows.
-            Example for a 4x4 board:
-            _ Q _ _
-            _ _ _ Q
-            Q _ _ _
-            _ _ Q _
+            Output format: {n} lines, each with {n} cells separated by spaces.
+            Use Q for a queen and _ for an empty cell.
+            Example for a 5x5 board:
+            _ _ Q _ _
+            Q _ _ _ _
+            _ _ _ Q _
+            _ Q _ _ _
+            _ _ _ _ Q
         """).strip()
 
     def _make_dataset(self, *, seed: int | None):

@@ -91,24 +91,20 @@ class KakurasuEnv(Env):
         n_cols = self._metadata.get("n_cols", 4) if self._metadata else 4
 
         return dedent(f"""
-            Kakurasu (Kukurasu) Puzzle:
+            Kakurasu Puzzle: Fill the {n_rows}x{n_cols} grid with 0s and 1s.
 
             In the image:
-            - The {n_rows}x{n_cols} main grid shows cells marked with "?" (to be filled)
-            - Top row (blue): Column weights 1, 2, 3, ... from left to right
-            - Left column (blue): Row weights 1, 2, 3, ... from top to bottom
-            - Right column (orange): Target sum for each row
-            - Bottom row (orange): Target sum for each column
+            - Each column has a weight equal to its position (column 1 = weight 1, column 2 = weight 2, etc.)
+            - Each row has a weight equal to its position (row 1 = weight 1, row 2 = weight 2, etc.)
+            - The target sum for each row is shown on the right side
+            - The target sum for each column is shown at the bottom
 
             Rules:
-            1. Each cell can contain either a 1 or an 0.
-            2. The weight of a 1 in a row is its column position (1 to {n_cols}).
-            3. The weight of a 1 in a column is its row position (1 to {n_rows}).
-            4. The weighted sum of each row must match the corresponding row constraint.
-            5. The weighted sum of each column must match the corresponding column constraint.
+            1. Fill each cell with 0 or 1.
+            2. For each row: sum of (cell value x column weight) must equal the row's target.
+            3. For each column: sum of (cell value x row weight) must equal the column's target.
 
-            Output format: A {n_rows}x{n_cols} grid with 0s and 1s,
-            spaces separating numbers in a row, newlines separating rows.
+            Output format: {n_rows} lines, each with {n_cols} numbers (0 or 1) separated by spaces.
             Example for a 3x3 grid:
             1 0 1
             0 1 0

@@ -176,14 +176,12 @@ Example output for a 5×5 puzzle:
                - '<' or '>' between horizontal neighbors.
                - '^' or 'v' between vertical neighbors.
 
-            Output format: A {self._size}x{self._size} grid with numbers separated by spaces.
-            separated by spaces within rows, and newlines separating rows.
-            Example for 5x5:
-            1 2 3 4 5
-            2 3 4 5 1
-            3 4 5 1 2
-            4 5 1 2 3
-            5 1 2 3 4
+            Output format: A {self._size}x{self._size} grid with numbers separated by spaces within rows, and newlines separating rows.
+            Example for a 4x4 grid:
+            1 2 3 4
+            2 3 4 1
+            3 4 1 2
+            4 1 2 3
         """).strip()
 
     def _prompt_generate(self) -> str:
