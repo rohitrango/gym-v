@@ -97,8 +97,8 @@ class SpiralMatrixEnv(Env):
 
     def _make_dataset(self, *, seed: int | None):
         kwargs = self._dataset_kwargs.copy()
-        if seed is not None and "seed" not in kwargs:
-            kwargs["seed"] = seed
+        if "seed" not in kwargs:
+            kwargs["seed"] = seed if seed is not None else int(self.np_random.integers(0, 2**31))
         if "size" not in kwargs:
             kwargs["size"] = 500
 
