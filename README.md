@@ -1,308 +1,407 @@
-# gym-v
+<h1 align="center">Gym-V</h1>
 
-## 开发前可以先安装一下pre-commit (uv run pre-commit install)
+<p align="center">
+  <b>A Unified Vision Environment System for Agentic Vision Research</b>
+</p>
 
-## 已接入环境列表
-
-**总计: 202 个环境**
-
-- Single Turn (单轮): 125 个
-- Multi Turn (多轮): 74 个
-- 其他: 3 个
-
----
-
-## Single Turn 环境 (125 个)
-
-单轮环境仅需一步交互，智能体观察图像后给出答案，环境返回奖励。
-
-### Arc (3 个)
-
-ARC (Abstraction and Reasoning Corpus) 抽象推理任务。
-
-| 环境 ID | 简介 |
-|---------|------|
-| `Arc/Arc1D-v0` | 一维 ARC 推理任务，根据输入输出示例推断变换规则 |
-| `Arc/ArcAgi-v0` | ARC-AGI 基准推理任务，二维网格颜色变换推理 |
-| `Arc/ReArc-v0` | ReArc 程序生成的 ARC 任务，支持无限量题目 |
-
-### Algorithmic (24 个)
-
-算法与模拟类任务，涵盖矩阵运算、博弈论、搜索、计数等。
-
-| 环境 ID | 简介 |
-|---------|------|
-| `Algorithmic/AdditionTable-v0` | 加法表填空，根据部分信息推断缺失值 |
-| `Algorithmic/BinaryMatrix-v0` | 二进制矩阵变换，预测下一步状态 |
-| `Algorithmic/BinaryTreeLeafNumExpectation-v0` | 随机二叉树的叶子节点数量期望计算 |
-| `Algorithmic/CirculatingGrid-v0` | 循环网格优化，最少修改使行列满足约束 |
-| `Algorithmic/CoinSquareGame-v0` | 硬币方格博弈，判断先后手胜负 |
-| `Algorithmic/FaceRightWay-v0` | 朝向调整，计算最少翻转次数使所有朝同一方向 |
-| `Algorithmic/GameOfLife-v0` | 康威生命游戏，预测若干步后的网格状态 |
-| `Algorithmic/GraMinimaGame-v0` | 图博弈，在网格上的极小值策略分析 |
-| `Algorithmic/GridBFS-v0` | 网格 BFS 最短路径搜索 |
-| `Algorithmic/GridLocalMinimumCounting-v0` | 网格局部最小值计数 |
-| `Algorithmic/LandformGenerationCounting-v0` | 地形生成计数，计算满足高度约束的方案数 |
-| `Algorithmic/LangtonAnt-QA-v0` | 兰顿蚂蚁模拟问答，预测蚂蚁行为 |
-| `Algorithmic/Lifegame-QA-v0` | 生命游戏模拟问答，分析网格演化 |
-| `Algorithmic/MatrixPermutationBothDiagonalOne-v0` | 矩阵排列使两条对角线均为 1 的方案计数 |
-| `Algorithmic/MatrixPermutationMainDiagonalOne-v0` | 矩阵排列使主对角线均为 1 的方案计数 |
-| `Algorithmic/MaxGridPathIntersection-v0` | 网格路径最大交叉点数 |
-| `Algorithmic/MonochromeBlockCounting-v0` | 单色块计数 |
-| `Algorithmic/RotateMatrix-v0` | 矩阵旋转，输出旋转后的矩阵 |
-| `Algorithmic/RottenOranges-v0` | 腐烂橘子扩散模拟，计算全部腐烂所需时间 |
-| `Algorithmic/SpiralMatrix-v0` | 螺旋矩阵遍历，按螺旋顺序输出元素 |
-| `Algorithmic/StoneGame-v0` | 取石子博弈，判断先后手胜负 |
-| `Algorithmic/StoneIntervalsGame-v0` | 石子区间博弈策略分析 |
-| `Algorithmic/TuringMachine2d-QA-v0` | 2D 图灵机模拟问答，预测执行结果 |
-
-### Cognition (8 个)
-
-认知与空间推理任务，包含模式识别、3D 理解、视觉推理。
-
-| 环境 ID | 简介 |
-|---------|------|
-| `Cognition/Hue-QA-v0` | 颜色匹配游戏问答 |
-| `Cognition/Maze3D-QA-v0` | 3D 迷宫空间推理问答 |
-| `Cognition/OddOneOutPoly-v0` | 多边形找不同，识别异类图形 |
-| `Cognition/RectangleCount-v0` | 矩形计数，统计图中矩形数量 |
-| `Cognition/RubiksCube-QA-v0` | 魔方状态问答，分析旋转后的状态 |
-| `Cognition/SequenceCompletionPoly-v0` | 多边形序列补全，推断下一个图形 |
-| `Cognition/SymmetryFillPoly-v0` | 对称填充，补全对称图形 |
-| `Cognition/TransformResultPoly-v0` | 变换结果预测，推断几何变换后的图形 |
-
-### Geometry (8 个)
-
-计算几何任务，涉及凸包、面积、最小圆等经典问题。
-
-| 环境 ID | 简介 |
-|---------|------|
-| `Geometry/ConvexHull-v0` | 凸包计算，找出点集的凸包顶点 |
-| `Geometry/LargestRectangleAmongPoints-v0` | 点集中最大矩形面积 |
-| `Geometry/PipelineArrangement-v0` | 管道排列优化 |
-| `Geometry/SkaRockGarden-v0` | 枯山水庭院布局问题 |
-| `Geometry/SmallestCircle-v0` | 最小覆盖圆，求包含所有点的最小圆 |
-| `Geometry/SumTriangleArea-v0` | 三角形面积之和计算 |
-| `Geometry/Tangram-QA-v0` | 七巧板拼图问答 |
-| `Geometry/VisibleLine-v0` | 可见线段计算，判断从上方可见的线段 |
-
-### Graphs (27 个)
-
-图论任务，涵盖最短路、生成树、着色、匹配、同构等经典问题。
-
-| 环境 ID | 简介 |
-|---------|------|
-| `Graphs/FbiBinaryTree-v0` | FBI 二叉树问题，分析树结构 |
-| `Graphs/GraphContainTreeCounting-v0` | 图中包含的生成树计数 |
-| `Graphs/GraphIsomorphism-v0` | 图同构判定 |
-| `Graphs/GridComponent-v0` | 网格连通分量计数 |
-| `Graphs/HamiltonianPath-v0` | 哈密顿路径求解 |
-| `Graphs/HamiltonianPathExistence-v0` | 哈密顿路径存在性判定 |
-| `Graphs/LargestIsland-v0` | 最大岛屿面积搜索 |
-| `Graphs/LongestPath-v0` | 图中最长路径求解 |
-| `Graphs/MaximumAchromaticNumber-v0` | 最大无色数计算 |
-| `Graphs/MaximumClique-v0` | 最大团求解 |
-| `Graphs/MaximumIndependentSetGrid-v0` | 网格图最大独立集 |
-| `Graphs/MaximumIndependentSetTree-v0` | 树上最大权独立集 |
-| `Graphs/MaximumWeightMatching-v0` | 最大权匹配 |
-| `Graphs/MinimumChromaticNumber-v0` | 最小色数（图着色） |
-| `Graphs/MinimumDirectedSpanningTree-v0` | 最小有向生成树 |
-| `Graphs/MinimumSpanningTreeCounting-v0` | 最小生成树计数 |
-| `Graphs/MixedGraphEulerianCircuit-v0` | 混合图欧拉回路判定 |
-| `Graphs/Patrol-v0` | 巡逻路径规划 |
-| `Graphs/ShortestPath-v0` | 加权图最短路径 |
-| `Graphs/SpyNetwork-v0` | 间谍网络最小顶点覆盖 |
-| `Graphs/TreeCenter-v0` | 树的中心节点求解 |
-| `Graphs/TreeChangeOneEdgeDiameter-v0` | 改变一条边最小化树直径 |
-| `Graphs/TreeColoring-v0` | 树着色方案数 |
-| `Graphs/TreeDistanceEqualTriadCounting-v0` | 树上等距三元组计数 |
-| `Graphs/TreeEvenPartitioning-v0` | 树的均匀划分 |
-| `Graphs/TreeTopologicalSequenceCounting-v0` | 树拓扑序列计数 |
-| `Graphs/WeightedBinarytree-v0` | 加权二叉树最大分值 |
-
-### Logic (19 个)
-
-逻辑推理与约束满足类谜题。
-
-| 环境 ID | 简介 |
-|---------|------|
-| `Logic/Binairo-v0` | 二进制谜题 (Binairo)，填入 0/1 满足行列约束 |
-| `Logic/BinarioNoAdjacencyRequirement-v0` | 无相邻要求的二进制填充谜题 |
-| `Logic/CampsitePuzzle-v0` | 露营地谜题，在树旁放置帐篷 |
-| `Logic/CircuitLogic-v0` | 电路逻辑门求解 |
-| `Logic/Futoshiki-v0` | 不等号数独 |
-| `Logic/GridParityConstruction-v0` | 网格奇偶性构造 |
-| `Logic/HitoriPuzzle-v0` | Hitori 谜题变体 |
-| `Logic/Kakurasu-v0` | Kakurasu 加法逻辑谜题 |
-| `Logic/MagicSquarePuzzle-v0` | 幻方填数 |
-| `Logic/MiniSudoku-v0` | 迷你数独 (4x4) |
-| `Logic/NQueens-v0` | N 皇后问题 |
-| `Logic/Numbrix-v0` | 数字路径连接谜题 |
-| `Logic/Renzoku-v0` | 连续数字谜题 |
-| `Logic/SkyscraperPuzzle-v0` | 摩天楼谜题 |
-| `Logic/SkyscraperSumPuzzle-v0` | 摩天楼求和谜题 |
-| `Logic/StarBattle-QA-v0` | 星星大战谜题问答 |
-| `Logic/Survo-v0` | Survo 逻辑谜题 |
-| `Logic/Tents-QA-v0` | 帐篷谜题问答 |
-| `Logic/Thermometers-v0` | 温度计谜题 |
-
-### Perception (12 个)
-
-图表与数学图形的视觉理解任务。
-
-| 环境 ID | 简介 |
-|---------|------|
-| `Perception/3DReconstruction-QA-v0` | 3D 重建视觉理解问答 |
-| `Perception/ChartToTable-v0` | 图表转表格数据 |
-| `Perception/ContourPlot-v0` | 等高线图函数理解 |
-| `Perception/DAGToTopoOrder-v0` | 有向无环图拓扑排序 |
-| `Perception/FlowNetwork-v0` | 流网络最大流分析 |
-| `Perception/FunctionGraph-v0` | 函数图像识别与理解 |
-| `Perception/GraphToAdjacency-v0` | 图转邻接矩阵 |
-| `Perception/GraphToMST-v0` | 从图中求最小生成树 |
-| `Perception/ParametricCurve-v0` | 参数曲线方程识别 |
-| `Perception/PolarPlot-v0` | 极坐标图方程识别 |
-| `Perception/TreeToTraversal-v0` | 树结构遍历序列 |
-| `Perception/VectorField-v0` | 向量场函数识别 |
-
-### Puzzles (24 个)
-
-经典游戏与益智谜题的视觉问答。
-
-| 环境 ID | 简介 |
-|---------|------|
-| `Puzzles/ChessRanger-QA-v0` | 象棋攻击范围问答 |
-| `Puzzles/EightDigitPuzzle-v0` | 八数码推盘，求解复原步骤 |
-| `Puzzles/Freecell-QA-v0` | 空当接龙问答 |
-| `Puzzles/Jewel2-QA-v0` | 宝石消除问答 |
-| `Puzzles/KloBlocks-v0` | 方块消除谜题 |
-| `Puzzles/Klondike-QA-v0` | 克朗代克纸牌问答 |
-| `Puzzles/KnightSwap-v0` | 骑士交换位置求解 |
-| `Puzzles/Maze-QA-v0` | 迷宫问答 |
-| `Puzzles/NinePuzzle-v0` | 九宫格推盘谜题 |
-| `Puzzles/Pacman-QA-v0` | 吃豆人问答 |
-| `Puzzles/PyramidChess-QA-v0` | 金字塔象棋问答 |
-| `Puzzles/RhythmGame-QA-v0` | 节奏游戏问答 |
-| `Puzzles/Snake-QA-v0` | 贪吃蛇问答 |
-| `Puzzles/SpaceInvaders-QA-v0` | 太空侵略者问答 |
-| `Puzzles/SpiderSolitaire-QA-v0` | 蜘蛛纸牌问答 |
-| `Puzzles/Tetris-QA-v0` | 俄罗斯方块问答 |
-| `Puzzles/TetrisAttack-v0` | 方块攻击，最少交换消除 |
-| `Puzzles/TicTacToe-QA-v0` | 井字棋问答 |
-| `Puzzles/TowerOfHanoi-v0` | 汉诺塔，求最优移动序列 |
-| `Puzzles/Tsumego-v0` | 围棋死活题 (诘棋) |
-| `Puzzles/TwiddlePuzzle-v0` | 旋转拼图，旋转子矩阵复原 |
-| `Puzzles/UltraTicTacToe-QA-v0` | 终极井字棋问答 |
-| `Puzzles/WordSearch-QA-v0` | 单词搜索问答 |
-| `Puzzles/Zuma-QA-v0` | 祖玛问答 |
+<p align="center">
+  <a href="#installation">Installation</a> &bull;
+  <a href="#quick-start">Quick Start</a> &bull;
+  <a href="#environment-catalogue">Environments</a> &bull;
+  <a href="#key-findings">Key Findings</a>
+</p>
 
 ---
 
-## Multi Turn 环境 (74 个)
+**Gym-V** is a unified platform of **179 procedurally generated visual environments** across 10 domains with controllable difficulty, built on a Gymnasium-compatible API. It unifies interactive training, offline supervision, and benchmark evaluation under one interface — enabling controlled experiments on vision-language agents that were previously infeasible across fragmented toolkits.
 
-多轮交互环境，智能体在多个步骤中与环境持续交互。
+### Highlights
 
-### Games (31 个)
+- **179 environments** spanning single-turn reasoning, multi-turn games, spatial navigation, and retro arcade games
+- **Gymnasium-compatible API** with multi-agent support, composable wrappers, and tool integration
+- **Controllable difficulty** via parametric generation with difficulty presets (levels 0, 1, 2)
+- **Evaluation-as-a-Service** with a distributed reward server (Ray Serve) supporting heterogeneous backends
+- **Composable observation wrappers** that make task representation an explicit experimental variable
 
-经典棋牌与益智游戏的多轮交互版本。
+## Installation
 
-| 环境 ID | 简介 |
-|---------|------|
-| `Games/Alquerque-v0` | 西班牙跳棋 |
-| `Games/Breakthrough-v0` | 突围棋 |
-| `Games/Chess-v0` | 国际象棋 |
-| `Games/ConnectFour-v0` | 四子棋 (单智能体 vs 内置对手) |
-| `Games/ConnectFourMultiAgent-v0` | 四子棋 (多智能体对战) |
-| `Games/Crosswords-v0` | 英文填字游戏 |
-| `Games/Crusade-v0` | 十字军棋 |
-| `Games/FifteenPuzzle-v0` | 15 数字推盘 |
-| `Games/FrozenLake-v0` | 冰湖导航 |
-| `Games/Game2048-v0` | 2048 数字合并 |
-| `Games/GinRummy-v0` | 金罗美扑克 |
-| `Games/Go-v0` | 围棋 |
-| `Games/LeducHoldem-v0` | Leduc 扑克 |
-| `Games/LightsOut-v0` | 点灯谜题 |
-| `Games/LinesOfAction-v0` | 行动路线棋 |
-| `Games/Minesweeper-v0` | 扫雷 |
-| `Games/Nim-v0` | 尼姆取子游戏 |
-| `Games/Othello-v0` | 黑白棋 |
-| `Games/PegJump-v0` | 孔明棋 |
-| `Games/RushHour-v0` | 华容道 / 塞车时间 |
-| `Games/SimpleTak-v0` | 简化 Tak 棋 |
-| `Games/Sokoban-v0` | 推箱子 |
-| `Games/Sudoku-v0` | 9x9 数独 |
-| `Games/TexasHoldem-v0` | 德州扑克 |
-| `Games/TexasHoldemNoLimit-v0` | 无限注德州扑克 |
-| `Games/TicTacToe-v0` | 井字棋 |
-| `Games/TowerOfHanoiMultiTurn-v0` | 汉诺塔 (多轮交互) |
-| `Games/UltimateTicTacToe-v0` | 终极井字棋 |
-| `Games/WildTicTacToe-v0` | 狂野井字棋 |
-| `Games/WordSearch-v0` | 单词搜索 |
-| `Games/Wordle-v0` | Wordle 猜单词 |
+```bash
+# Basic installation
+pip install -e .
 
-### Spatial (30 个)
+# With optional environment groups
+pip install -e ".[games]"       # Board/card games (TextArena, PettingZoo)
+pip install -e ".[spatial]"     # 2D/3D navigation (MiniGrid, MiniWorld)
+pip install -e ".[temporal]"    # Retro games (stable-retro)
+pip install -e ".[vlmeval]"     # VLM evaluation benchmarks
 
-2D/3D 空间导航与物体交互任务。
+# All optional dependencies
+pip install -e ".[games,spatial,temporal,vlmeval,reasoning-gym]"
+```
 
-| 环境 ID | 简介 |
-|---------|------|
-| `Spatial/CollectHealth-v0` | 3D 空间收集生命值物品 |
-| `Spatial/DoorKey-v0` | 2D 网格中找钥匙开门到达目标 |
-| `Spatial/DynamicObstacles-v0` | 2D 动态障碍物躲避导航 |
-| `Spatial/Empty-v0` | 2D 空房间导航基准 |
-| `Spatial/FourRooms2D-v0` | 2D 四房间导航 |
-| `Spatial/FourRooms3D-v0` | 3D 四房间导航 |
-| `Spatial/Hallway-v0` | 3D 走廊导航 |
-| `Spatial/LavaGap-v0` | 2D 跨越熔岩间隙 |
-| `Spatial/Maze-v0` | 3D 迷宫导航 |
-| `Spatial/MazeS2-v0` | 3D 迷宫 (中等规模) |
-| `Spatial/MazeS3-v0` | 3D 迷宫 (大规模) |
-| `Spatial/MazeS3Fast-v0` | 3D 迷宫 (大规模, 快速模式) |
-| `Spatial/MultiRoom-v0` | 2D 多房间导航 |
-| `Spatial/OneRoom-v0` | 3D 单房间导航 |
-| `Spatial/OneRoomS6-v0` | 3D 单房间 (大规模) |
-| `Spatial/OneRoomS6Fast-v0` | 3D 单房间 (大规模, 快速模式) |
-| `Spatial/PickupObjects-v0` | 3D 空间拾取物体 |
-| `Spatial/PutNext-v0` | 3D 空间将物体放到指定位置旁 |
-| `Spatial/RoomObjects-v0` | 3D 多房间物体交互 |
-| `Spatial/Sidewalk-v0` | 3D 人行道导航 |
-| `Spatial/Sign-v0` | 3D 根据标识导航 |
-| `Spatial/TMaze-v0` | 3D T 形迷宫 |
-| `Spatial/TMazeLeft-v0` | 3D T 形迷宫 (左转) |
-| `Spatial/TMazeRight-v0` | 3D T 形迷宫 (右转) |
-| `Spatial/ThreeRooms-v0` | 3D 三房间导航 |
-| `Spatial/Unlock-v0` | 2D 解锁房间 |
-| `Spatial/WallGap-v0` | 3D 穿墙缺口导航 |
-| `Spatial/YMaze-v0` | 3D Y 形迷宫 |
-| `Spatial/YMazeLeft-v0` | 3D Y 形迷宫 (左转) |
-| `Spatial/YMazeRight-v0` | 3D Y 形迷宫 (右转) |
+## Quick Start
 
-### Temporal (13 个)
+```python
+import gym_v
 
-Sega Genesis 复古游戏，基于 Retro 模拟器。
+# Single-turn: observe an image, give an answer, receive a reward
+env = gym_v.make("Arc/ArcAgi-v0")
+obs, info = env.reset(seed=42)
+# obs = {"agent_0": Observation(image=PIL.Image, text="...", metadata={})}
+obs, reward, terminated, truncated, info = env.step({"agent_0": "[[0,1],[1,0]]"})
+env.close()
 
-| 环境 ID | 简介 |
-|---------|------|
-| `Temporal/Airstriker-v0` | 空中打击 |
-| `Temporal/AlteredBeast-v0` | 兽王记 |
-| `Temporal/CastleOfIllusion-v0` | 幻影城堡 |
-| `Temporal/CastlevaniaBloodlines-v0` | 恶魔城血统 |
-| `Temporal/Columns-v0` | 宝石方块 |
-| `Temporal/DynamiteHeaddy-v0` | 炸弹人 |
-| `Temporal/GoldenAxe-v0` | 战斧 |
-| `Temporal/KidChameleon-v0` | 变色龙小子 |
-| `Temporal/MortalKombatII-v0` | 真人快打 II |
-| `Temporal/SpaceHarrierII-v0` | 太空哈利 II |
-| `Temporal/StreetsOfRage2-v0` | 怒之铁拳 2 |
-| `Temporal/Strider-v0` | 出击飞龙 |
-| `Temporal/ThunderForceIII-v0` | 雷电战机 III |
+# Multi-turn: interact with the environment over multiple steps
+env = gym_v.make("Games/Chess-v0")
+obs, info = env.reset(seed=0)
+obs, reward, terminated, truncated, info = env.step({"agent_0": "e2e4"})
+# Continue stepping until terminated["__all__"] or truncated["__all__"]
+env.close()
+```
+
+### Interactive Demo
+
+```bash
+python examples/demo.py --id "Games/TicTacToe-v0"
+```
+
+## Architecture
+
+```
+gym_v/
+├── core.py              # Env, Observation, Wrapper base classes
+├── envs/
+│   ├── registration.py  # register() / make() system
+│   ├── single_turn/     # 125 single-step reasoning environments
+│   ├── multi_turn/      # 74 interactive environments
+│   │   ├── games/       #   Board, card & puzzle games
+│   │   ├── spatial/     #   2D/3D navigation tasks
+│   │   └── temporal/    #   Retro arcade games (stable-retro)
+│   ├── offline/         # Generic JSONL dataset loader
+│   └── eval/            # VLMEval & GenEval integration
+├── wrappers/            # Composable observation/action wrappers
+├── tools/               # Agent tool system (IPython, etc.)
+└── utils/               # Image, seeding, rendering utilities
+```
+
+### Core Interface
+
+Every environment follows the standard Gymnasium protocol:
+
+| Method | Description |
+|--------|-------------|
+| `reset(seed=None)` | Returns `(obs_dict, info_dict)` |
+| `step(action_dict)` | Returns `(obs_dict, reward_dict, terminated_dict, truncated_dict, info_dict)` |
+| `render()` | Returns a PIL Image of the current state |
+| `close()` | Cleans up resources |
+
+**Observations** are `Observation(image, text, metadata)` namedtuples. **Actions** are `{agent_id: action_string}` dicts.
+
+## Environment Catalogue
+
+**Total: 179 environments** — 105 Single-Turn, 74 Multi-Turn
 
 ---
 
-## 其他环境 (3 个)
+### Single-Turn Environments (105)
 
-| 环境 ID | 简介 |
-|---------|------|
-| `Offline/SingleTurn-v0` | 通用离线单轮环境，支持加载 JSONL 多模态数据集 |
-| `VLMEval-Base-v0` | VLMEval 评测基础环境 |
-| `GenEval-v0` | 文生图评测环境 |
+Single-turn environments require a single interaction: the agent observes an image and provides an answer.
+
+#### Arc (3)
+
+Abstract Reasoning Corpus — infer transformation rules from input-output grid pairs.
+
+| Environment ID | Description |
+|----------------|-------------|
+| `Arc/Arc1D-v0` | 1D ARC reasoning: infer transformation rules from sequences |
+| `Arc/ArcAgi-v0` | ARC-AGI benchmark: 2D grid color transformation reasoning |
+| `Arc/ReArc-v0` | Procedurally generated ARC tasks with unlimited instances |
+
+#### Algorithmic (21)
+
+Algorithm and simulation tasks covering matrix operations, game theory, search, and counting.
+
+| Environment ID | Description |
+|----------------|-------------|
+| `Algorithmic/AdditionTable-v0` | Fill in missing values in a partial addition table |
+| `Algorithmic/BinaryMatrix-v0` | Predict the next state of a binary matrix transformation |
+| `Algorithmic/BinaryTreeLeafNumExpectation-v0` | Compute expected leaf count of a random binary tree |
+| `Algorithmic/CirculatingGrid-v0` | Minimize edits to satisfy row/column constraints on a cyclic grid |
+| `Algorithmic/CoinSquareGame-v0` | Coin-square combinatorial game: determine the winner |
+| `Algorithmic/FaceRightWay-v0` | Compute minimum flips to align all elements in one direction |
+| `Algorithmic/GameOfLife-v0` | Predict grid state after N steps of Conway's Game of Life |
+| `Algorithmic/GraMinimaGame-v0` | Graph minima game: strategic analysis on a grid |
+| `Algorithmic/GridBFS-v0` | Find the shortest path on a grid via BFS |
+| `Algorithmic/GridLocalMinimumCounting-v0` | Count local minima in a grid |
+| `Algorithmic/LandformGenerationCounting-v0` | Count valid terrain configurations under height constraints |
+| `Algorithmic/LangtonAnt-QA-v0` | Predict Langton's Ant behavior after N steps |
+| `Algorithmic/Lifegame-QA-v0` | Analyze Game of Life grid evolution |
+| `Algorithmic/MatrixPermutationBothDiagonalOne-v0` | Count permutations placing 1s on both diagonals |
+| `Algorithmic/MatrixPermutationMainDiagonalOne-v0` | Count permutations placing 1s on the main diagonal |
+| `Algorithmic/MaxGridPathIntersection-v0` | Maximize path intersection points on a grid |
+| `Algorithmic/MonochromeBlockCounting-v0` | Count monochromatic blocks in a grid |
+| `Algorithmic/RotateMatrix-v0` | Output the rotated matrix |
+| `Algorithmic/RottenOranges-v0` | Simulate orange decay propagation and compute total time |
+| `Algorithmic/SpiralMatrix-v0` | Output matrix elements in spiral order |
+| `Algorithmic/StoneGame-v0` | Stone-taking game: determine the winner |
+| `Algorithmic/StoneIntervalsGame-v0` | Stone interval game: strategic analysis |
+| `Algorithmic/TuringMachine2d-QA-v0` | Predict 2D Turing machine execution results |
+
+#### Cognition (10)
+
+Cognitive and spatial reasoning tasks including pattern recognition and 3D understanding.
+
+| Environment ID | Description |
+|----------------|-------------|
+| `Cognition/Hue-QA-v0` | Color matching game Q&A |
+| `Cognition/Maze3D-QA-v0` | 3D maze spatial reasoning Q&A |
+| `Cognition/OddOneOutPoly-v0` | Identify the polygon that doesn't belong |
+| `Cognition/RectangleCount-v0` | Count rectangles in a figure |
+| `Cognition/RubiksCube-QA-v0` | Analyze Rubik's Cube state after rotations |
+| `Cognition/SequenceCompletionPoly-v0` | Complete a polygon sequence by inferring the pattern |
+| `Cognition/SymmetryFillPoly-v0` | Complete a symmetric figure |
+| `Cognition/TransformResultPoly-v0` | Predict the result of geometric transformations |
+
+#### Geometry (8)
+
+Computational geometry tasks involving convex hulls, areas, and enclosing shapes.
+
+| Environment ID | Description |
+|----------------|-------------|
+| `Geometry/ConvexHull-v0` | Compute the convex hull vertices of a point set |
+| `Geometry/LargestRectangleAmongPoints-v0` | Find the largest rectangle area among points |
+| `Geometry/PipelineArrangement-v0` | Optimize pipeline layout |
+| `Geometry/SkaRockGarden-v0` | Japanese rock garden layout problem |
+| `Geometry/SmallestCircle-v0` | Find the minimum enclosing circle for a point set |
+| `Geometry/SumTriangleArea-v0` | Compute total triangle area |
+| `Geometry/Tangram-QA-v0` | Tangram puzzle Q&A |
+| `Geometry/VisibleLine-v0` | Determine visible line segments from above |
+
+#### Graphs (23)
+
+Graph theory tasks covering shortest paths, spanning trees, coloring, matching, and isomorphism.
+
+| Environment ID | Description |
+|----------------|-------------|
+| `Graphs/FbiBinaryTree-v0` | FBI binary tree structure analysis |
+| `Graphs/GraphContainTreeCounting-v0` | Count spanning trees in a graph |
+| `Graphs/GraphIsomorphism-v0` | Determine graph isomorphism |
+| `Graphs/GridComponent-v0` | Count connected components in a grid |
+| `Graphs/HamiltonianPath-v0` | Find a Hamiltonian path |
+| `Graphs/HamiltonianPathExistence-v0` | Determine Hamiltonian path existence |
+| `Graphs/LargestIsland-v0` | Find the largest island area |
+| `Graphs/LongestPath-v0` | Find the longest path in a graph |
+| `Graphs/MaximumAchromaticNumber-v0` | Compute maximum achromatic number |
+| `Graphs/MaximumClique-v0` | Find the maximum clique |
+| `Graphs/MaximumIndependentSetGrid-v0` | Maximum independent set on a grid graph |
+| `Graphs/MaximumIndependentSetTree-v0` | Maximum weighted independent set on a tree |
+| `Graphs/MaximumWeightMatching-v0` | Find maximum weight matching |
+| `Graphs/MinimumChromaticNumber-v0` | Compute minimum chromatic number |
+| `Graphs/MinimumDirectedSpanningTree-v0` | Find minimum directed spanning tree |
+| `Graphs/MinimumSpanningTreeCounting-v0` | Count minimum spanning trees |
+| `Graphs/MixedGraphEulerianCircuit-v0` | Determine Eulerian circuit in a mixed graph |
+| `Graphs/Patrol-v0` | Patrol route planning |
+| `Graphs/ShortestPath-v0` | Weighted graph shortest path |
+| `Graphs/SpyNetwork-v0` | Minimum vertex cover in a spy network |
+| `Graphs/TreeCenter-v0` | Find the center of a tree |
+| `Graphs/TreeChangeOneEdgeDiameter-v0` | Minimize tree diameter by changing one edge |
+| `Graphs/TreeColoring-v0` | Count tree coloring configurations |
+| `Graphs/TreeDistanceEqualTriadCounting-v0` | Count equidistant triads in a tree |
+| `Graphs/TreeEvenPartitioning-v0` | Even partitioning of a tree |
+| `Graphs/TreeTopologicalSequenceCounting-v0` | Count tree topological orderings |
+| `Graphs/WeightedBinarytree-v0` | Maximize score on a weighted binary tree |
+
+#### Logic (17)
+
+Logic reasoning and constraint satisfaction puzzles.
+
+| Environment ID | Description |
+|----------------|-------------|
+| `Logic/Binairo-v0` | Binary puzzle: fill 0/1 to satisfy row/column constraints |
+| `Logic/BinarioNoAdjacencyRequirement-v0` | Binary fill puzzle without adjacency constraints |
+| `Logic/CampsitePuzzle-v0` | Place tents next to trees following constraints |
+| `Logic/CircuitLogic-v0` | Solve logic gate circuits |
+| `Logic/Futoshiki-v0` | Inequality Sudoku variant |
+| `Logic/GridParityConstruction-v0` | Grid parity construction puzzle |
+| `Logic/HitoriPuzzle-v0` | Hitori puzzle variant |
+| `Logic/Kakurasu-v0` | Kakurasu addition logic puzzle |
+| `Logic/MagicSquarePuzzle-v0` | Fill in a magic square |
+| `Logic/MiniSudoku-v0` | Mini Sudoku (4×4) |
+| `Logic/NQueens-v0` | N-Queens placement problem |
+| `Logic/Numbrix-v0` | Number path connection puzzle |
+| `Logic/Renzoku-v0` | Consecutive number puzzle |
+| `Logic/SkyscraperPuzzle-v0` | Skyscraper puzzle |
+| `Logic/SkyscraperSumPuzzle-v0` | Skyscraper sum puzzle |
+| `Logic/StarBattle-QA-v0` | Star Battle puzzle Q&A |
+| `Logic/Survo-v0` | Survo logic puzzle |
+| `Logic/Tents-QA-v0` | Tents puzzle Q&A |
+| `Logic/Thermometers-v0` | Thermometer puzzle |
+
+#### Perception
+
+Chart and graph visual understanding tasks.
+
+| Environment ID | Description |
+|----------------|-------------|
+| `Perception/3DReconstruction-QA-v0` | 3D reconstruction visual Q&A |
+| `Perception/ChartToTable-v0` | Extract tabular data from charts |
+| `Perception/ContourPlot-v0` | Understand functions from contour plots |
+| `Perception/DAGToTopoOrder-v0` | Topological sort of a DAG |
+| `Perception/FlowNetwork-v0` | Maximum flow analysis on a flow network |
+| `Perception/FunctionGraph-v0` | Identify functions from their graphs |
+| `Perception/GraphToAdjacency-v0` | Convert graph visualization to adjacency matrix |
+| `Perception/GraphToMST-v0` | Find MST from a graph visualization |
+| `Perception/ParametricCurve-v0` | Identify parametric curve equations |
+| `Perception/PolarPlot-v0` | Identify polar coordinate equations |
+| `Perception/TreeToTraversal-v0` | Produce tree traversal sequences |
+| `Perception/VectorField-v0` | Identify vector field functions |
+
+#### Puzzles (23)
+
+Classic games and visual puzzle Q&A.
+
+| Environment ID | Description |
+|----------------|-------------|
+| `Puzzles/ChessRanger-QA-v0` | Chess piece attack range Q&A |
+| `Puzzles/EightDigitPuzzle-v0` | 8-puzzle: find the solution sequence |
+| `Puzzles/Freecell-QA-v0` | FreeCell solitaire Q&A |
+| `Puzzles/Jewel2-QA-v0` | Jewel match Q&A |
+| `Puzzles/KloBlocks-v0` | Block elimination puzzle |
+| `Puzzles/Klondike-QA-v0` | Klondike solitaire Q&A |
+| `Puzzles/KnightSwap-v0` | Swap knight positions |
+| `Puzzles/Maze-QA-v0` | Maze Q&A |
+| `Puzzles/NinePuzzle-v0` | 9-puzzle sliding tile puzzle |
+| `Puzzles/Pacman-QA-v0` | Pac-Man Q&A |
+| `Puzzles/PyramidChess-QA-v0` | Pyramid chess Q&A |
+| `Puzzles/RhythmGame-QA-v0` | Rhythm game Q&A |
+| `Puzzles/Snake-QA-v0` | Snake game Q&A |
+| `Puzzles/SpaceInvaders-QA-v0` | Space Invaders Q&A |
+| `Puzzles/SpiderSolitaire-QA-v0` | Spider solitaire Q&A |
+| `Puzzles/Tetris-QA-v0` | Tetris Q&A |
+| `Puzzles/TetrisAttack-v0` | Tetris Attack: minimize swaps to clear blocks |
+| `Puzzles/TicTacToe-QA-v0` | Tic-Tac-Toe Q&A |
+| `Puzzles/TowerOfHanoi-v0` | Tower of Hanoi: find optimal move sequence |
+| `Puzzles/Tsumego-v0` | Go life-and-death puzzle (Tsumego) |
+| `Puzzles/TwiddlePuzzle-v0` | Twiddle puzzle: rotate sub-matrices to restore order |
+| `Puzzles/UltraTicTacToe-QA-v0` | Ultimate Tic-Tac-Toe Q&A |
+| `Puzzles/WordSearch-QA-v0` | Word search Q&A |
+| `Puzzles/Zuma-QA-v0` | Zuma Q&A |
+
+---
+
+### Multi-Turn Environments (74)
+
+Multi-turn environments involve sustained interaction over multiple steps.
+
+#### Games (31)
+
+Classic board, card, and puzzle games.
+
+| Environment ID | Description |
+|----------------|-------------|
+| `Games/Alquerque-v0` | Alquerque (Spanish checkers variant) |
+| `Games/Breakthrough-v0` | Breakthrough board game |
+| `Games/Chess-v0` | Chess |
+| `Games/ConnectFour-v0` | Connect Four (single-agent vs built-in opponent) |
+| `Games/ConnectFourMultiAgent-v0` | Connect Four (multi-agent) |
+| `Games/Crosswords-v0` | Crossword puzzle |
+| `Games/Crusade-v0` | Crusade board game |
+| `Games/FifteenPuzzle-v0` | 15-puzzle sliding tiles |
+| `Games/FrozenLake-v0` | Frozen lake navigation |
+| `Games/Game2048-v0` | 2048 number merging game |
+| `Games/GinRummy-v0` | Gin Rummy card game |
+| `Games/Go-v0` | Go (Weiqi) |
+| `Games/LeducHoldem-v0` | Leduc Hold'em poker |
+| `Games/LightsOut-v0` | Lights Out puzzle |
+| `Games/LinesOfAction-v0` | Lines of Action board game |
+| `Games/Minesweeper-v0` | Minesweeper |
+| `Games/Nim-v0` | Nim |
+| `Games/Othello-v0` | Othello (Reversi) |
+| `Games/PegJump-v0` | Peg solitaire |
+| `Games/RushHour-v0` | Rush Hour sliding block puzzle |
+| `Games/SimpleTak-v0` | Simplified Tak board game |
+| `Games/Sokoban-v0` | Sokoban box-pushing puzzle |
+| `Games/Sudoku-v0` | 9×9 Sudoku |
+| `Games/TexasHoldem-v0` | Texas Hold'em poker |
+| `Games/TexasHoldemNoLimit-v0` | No-Limit Texas Hold'em |
+| `Games/TicTacToe-v0` | Tic-Tac-Toe |
+| `Games/TowerOfHanoiMultiTurn-v0` | Tower of Hanoi (multi-turn) |
+| `Games/UltimateTicTacToe-v0` | Ultimate Tic-Tac-Toe |
+| `Games/WildTicTacToe-v0` | Wild Tic-Tac-Toe |
+| `Games/WordSearch-v0` | Word search |
+| `Games/Wordle-v0` | Wordle |
+
+#### Spatial (30)
+
+2D/3D spatial navigation and object interaction tasks.
+
+| Environment ID | Description |
+|----------------|-------------|
+| `Spatial/CollectHealth-v0` | Collect health items in 3D space |
+| `Spatial/DoorKey-v0` | Find key and unlock door in a 2D grid |
+| `Spatial/DynamicObstacles-v0` | Navigate around dynamic obstacles in 2D |
+| `Spatial/Empty-v0` | Empty room navigation baseline (2D) |
+| `Spatial/FourRooms2D-v0` | Four-room navigation (2D) |
+| `Spatial/FourRooms3D-v0` | Four-room navigation (3D) |
+| `Spatial/Hallway-v0` | 3D hallway navigation |
+| `Spatial/LavaGap-v0` | Cross a lava gap (2D) |
+| `Spatial/Maze-v0` | 3D maze navigation |
+| `Spatial/MazeS2-v0` | 3D maze (medium) |
+| `Spatial/MazeS3-v0` | 3D maze (large) |
+| `Spatial/MazeS3Fast-v0` | 3D maze (large, fast mode) |
+| `Spatial/MultiRoom-v0` | Multi-room navigation (2D) |
+| `Spatial/OneRoom-v0` | Single-room navigation (3D) |
+| `Spatial/OneRoomS6-v0` | Single-room navigation, large (3D) |
+| `Spatial/OneRoomS6Fast-v0` | Single-room navigation, large, fast (3D) |
+| `Spatial/PickupObjects-v0` | Pick up objects in 3D space |
+| `Spatial/PutNext-v0` | Place objects at target locations (3D) |
+| `Spatial/RoomObjects-v0` | Multi-room object interaction (3D) |
+| `Spatial/Sidewalk-v0` | 3D sidewalk navigation |
+| `Spatial/Sign-v0` | Navigate by signs (3D) |
+| `Spatial/TMaze-v0` | T-maze navigation (3D) |
+| `Spatial/TMazeLeft-v0` | T-maze, left turn (3D) |
+| `Spatial/TMazeRight-v0` | T-maze, right turn (3D) |
+| `Spatial/ThreeRooms-v0` | Three-room navigation (3D) |
+| `Spatial/Unlock-v0` | Unlock a room (2D) |
+| `Spatial/WallGap-v0` | Navigate through wall gaps (3D) |
+| `Spatial/YMaze-v0` | Y-maze navigation (3D) |
+| `Spatial/YMazeLeft-v0` | Y-maze, left turn (3D) |
+| `Spatial/YMazeRight-v0` | Y-maze, right turn (3D) |
+
+#### Temporal (13)
+
+Classic Sega Genesis retro games via [stable-retro](https://github.com/Farama-Foundation/stable-retro). See [Temporal README](gym_v/envs/multi_turn/temporal/README.md) for ROM setup.
+
+| Environment ID | Description |
+|----------------|-------------|
+| `Temporal/Airstriker-v0` | Airstriker (free homebrew) |
+| `Temporal/AlteredBeast-v0` | Altered Beast |
+| `Temporal/CastleOfIllusion-v0` | Castle of Illusion |
+| `Temporal/CastlevaniaBloodlines-v0` | Castlevania: Bloodlines |
+| `Temporal/Columns-v0` | Columns |
+| `Temporal/DynamiteHeaddy-v0` | Dynamite Headdy |
+| `Temporal/GoldenAxe-v0` | Golden Axe |
+| `Temporal/KidChameleon-v0` | Kid Chameleon |
+| `Temporal/MortalKombatII-v0` | Mortal Kombat II |
+| `Temporal/SpaceHarrierII-v0` | Space Harrier II |
+| `Temporal/StreetsOfRage2-v0` | Streets of Rage 2 |
+| `Temporal/Strider-v0` | Strider |
+| `Temporal/ThunderForceIII-v0` | Thunder Force III |
+
+---
+
+## Key Findings
+
+Using Gym-V, our experiments reveal several insights for training vision-language agents:
+
+1. **Observation scaffolding > RL algorithm choice.** Captions, game rules, and interaction history determine whether learning succeeds at all — more so than the choice between GRPO, GSPO, or SAPO.
+
+2. **Diverse training generalizes; narrow training hurts.** Cross-domain curricula transfer broadly, while training on a single domain can cause negative transfer. Multi-turn interaction amplifies both effects.
+
+3. **RL closes the gap.** A 7B model trained with RL on Gym-V environments can surpass much larger models' zero-shot performance on several task categories.
+
+For full results, see our paper.
+
+## License
+
+This project is for research use. See [LICENSE](LICENSE) for details.
