@@ -125,7 +125,7 @@ class SpiralMatrixEnv(Env):
 
         obs = Observation(
             image=self.render(),
-            text=self.description,
+            text=None,
             metadata={
                 "state_text": matrix_text,
                 **self._metadata,

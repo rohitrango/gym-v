@@ -121,7 +121,7 @@ class BinaryMatrixEnv(Env):
 
         obs = Observation(
             image=self.render(),
-            text=self.description,
+            text=None,
             metadata={
                 **self._metadata,
                 "text_prompt": self.description,

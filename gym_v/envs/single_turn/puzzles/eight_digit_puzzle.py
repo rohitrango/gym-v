@@ -113,7 +113,7 @@ Your start and end grids are as shown in the image.
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=None,
             metadata={
                 "state_text": state_text,
                 "text_prompt": self._prompt,

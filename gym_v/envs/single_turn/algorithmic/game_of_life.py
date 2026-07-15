@@ -122,16 +122,15 @@ class GameOfLifeEnv(Env):
 
         # obs.text = only the board state as JSON (caption), not the full question
         board_text = self._board_to_json(self._board) if self._board else "[]"
-
-        entry_without_board = self._parse_board_out_from_question(self._entry["question"])
+        # entry_without_board = self._parse_board_out_from_question(self._entry["question"])
 
         obs = Observation(
             image=self.render(),
-            text=entry_without_board,
+            text=None,
             metadata={
                 "state_text": board_text,
                 **self._metadata,
-                "text_prompt": entry_without_board,
+                "text_prompt": self._entry["question"],
             },
         )
         info = {

@@ -196,7 +196,7 @@ Grid (#=alive, .=dead):
 
         obs = Observation(
             image=self.render(),
-            text=self.description,
+            text=None,
             metadata={
                 "state_text": text_state,
                 "text_prompt": f"{self.description}",

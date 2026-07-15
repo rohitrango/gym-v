@@ -96,7 +96,7 @@ A cell is considered a local minimum if its value is strictly less than all of i
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=None,
             metadata={"state_text": state_text, "text_prompt": self._prompt},
         )
         info = {

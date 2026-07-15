@@ -93,7 +93,7 @@ class FourRoomsSingleTurnEnv(Env):
 
         obs = Observation(
             image=self.render(),
-            text=self.description,
+            text=None,
         )
         info = {}
         return {agent_id: obs for agent_id in self._agent_ids}, {

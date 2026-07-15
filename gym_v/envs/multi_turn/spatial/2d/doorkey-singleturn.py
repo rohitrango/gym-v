@@ -126,7 +126,11 @@ class DoorKeyEnv(Env):
         state_text = self._get_observation_text()
         obs = Observation(
             image=self.render(),
-            text=f"{self.description}",
+            text=None,
+            metadata={
+                "text_prompt": self.description,
+                "state_text": state_text,
+            },
         )
         info = {}
         return {agent_id: obs for agent_id in self._agent_ids}, {

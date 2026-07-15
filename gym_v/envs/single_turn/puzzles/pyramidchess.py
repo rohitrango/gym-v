@@ -735,7 +735,7 @@ class PyramidChessQAEnv(Env):
 
         obs = Observation(
             image=combined_image,
-            text=self.description,
+            text=None,
             metadata={
                 "state_text": text_state,
                 "text_prompt": f"{self.description}",

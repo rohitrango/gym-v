@@ -111,7 +111,7 @@ You will start at cell (0, 0) and move to cell ({N_minus_1}, {N_minus_1}) exactl
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=self._prompt,
+            text=None,
             metadata={
                 "state_text": state_text,
                 "text_prompt": self._prompt,

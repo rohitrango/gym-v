@@ -189,14 +189,13 @@ class LangtonAntQAEnv(Env):
             f"Reset Langton's Ant QA ({self._difficulty}, question: {q_type['name']})."
         )
 
-        text_state = self._get_state_text(grid=False)
-        text_state_without_grid = self._get_state_text(grid=False)
+        text_state = self._get_state_text()
         obs = Observation(
             image=self.render(),
-            text=f"{text_state_without_grid}\n\n{self.description}",
+            text=None,
             metadata={
                 "state_text": text_state,
-                "text_prompt": f"{text_state_without_grid}\n\n{self.description}",
+                "text_prompt": f"{text_state}\n\n{self.description}",
                 "question": self._question,
                 "options": self._options,
                 "question_type": q_type["name"],

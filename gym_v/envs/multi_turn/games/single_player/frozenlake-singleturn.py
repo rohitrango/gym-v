@@ -92,12 +92,11 @@ class FrozenLakeSingleTurnEnv(Env):
 
         logger.info("Reset FrozenLake single-turn.")
 
-        text_prompt = self.description
         obs = Observation(
             image=self.render(),
-            text=text_prompt,
+            text=None,
             metadata={
-                "text_prompt": text_prompt,
+                "text_prompt": self.description,
                 "state_text": self._get_observation_text(),
             },
         )

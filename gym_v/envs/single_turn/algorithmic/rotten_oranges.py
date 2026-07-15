@@ -122,7 +122,7 @@ class RottenOrangesEnv(Env):
 
         obs = Observation(
             image=self.render(),
-            text=self.description,
+            text=None,
             metadata={
                 "state_text": grid_text,
                 **self._metadata,

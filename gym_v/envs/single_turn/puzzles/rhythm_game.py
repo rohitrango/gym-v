@@ -205,7 +205,7 @@ class RhythmGameQAEnv(Env):
 
         obs = Observation(
             image=self.render(),
-            text=self.description,
+            text=None,
             metadata={
                 "state_text": text_state,
                 # "text_prompt": f"{text_state}\n\n{self.description}",
