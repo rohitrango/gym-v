@@ -22,8 +22,8 @@ It is guaranteed that:
 (1) all the coordinates are integers;
 (2) no two points have the same coordinates;
 (3) no three points are on the same line.
-Below is the set of points:
-{points}
+
+The set of points is given in the image.
 
 Your task is to find the **convex hull** of these points, which is the smallest convex polygon that contains all the points.
 
@@ -92,7 +92,7 @@ Your task is to find the **convex hull** of these points, which is the smallest 
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=self._prompt,
             metadata={
                 "state_text": state_text,
                 "text_prompt": self._prompt,

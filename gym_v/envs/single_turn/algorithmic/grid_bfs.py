@@ -24,8 +24,7 @@ class GridBFSEnv(Env):
 3. If a cell **cannot reach** any `1`, its distance should be -1.
 4. Obviously, the distance for a `1` cell is 0; the distance for an `X` cell is also -1.
 
-The grid is given as follows:
-{grid}
+The grid is as shown in the image.
 
 **Output Format:** Output {N} lines, each containing {M} integers (separated by spaces), representing the distance of each cell to the nearest `1` cell."""
 
@@ -100,7 +99,7 @@ The grid is given as follows:
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=self._prompt,
             metadata={
                 "state_text": state_text,
                 "text_prompt": self._prompt,

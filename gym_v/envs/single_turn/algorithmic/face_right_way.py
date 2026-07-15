@@ -25,7 +25,7 @@ class FaceRightWayEnv(Env):
 
     assets_dir = resources.files("gym_v.envs") / "assets"
 
-    prompt_template = r"""There is a 0/1 array A of length {N}, and initially it is: {A}
+    prompt_template = r"""There is a 0/1 array A of length {N}, and initially it is as shown in the image.
 
 Please do the following:
 - First, pick a positive integer K, which must remain fixed throughout the process.
@@ -115,7 +115,7 @@ Your goal is:
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=self._prompt,
             metadata={
                 "state_text": state_text,
                 "text_prompt": self._prompt,
@@ -247,7 +247,8 @@ Your goal is:
             raise RuntimeError("No problem generated")
         return self.prompt_template.format(
             N=self._n,
-            A="; ".join(f"A[{i}]={Ai}" for i, Ai in enumerate(self._array, start=1)),
+            A=" in the image",
+            # A="; ".join(f"A[{i}]={Ai}" for i, Ai in enumerate(self._array, start=1)),
         )
 
     def _process(self, answer: str | None) -> list[tuple[int, int]] | None:

@@ -27,8 +27,7 @@ class MaxGridPathIntersectionEnv(Env):
 
     assets_dir = resources.files("gym_v.envs") / "assets"
 
-    prompt_template = r"""You are given an {N} × {N} grid (0-indexed) of non-negative integers (given in **row-major order**):
-{grid}
+    prompt_template = r"""You are given an {N} × {N} grid (0-indexed) of non-negative integers (given in **row-major order**) in the image.
 
 You will start at cell (0, 0) and move to cell ({N_minus_1}, {N_minus_1}) exactly {K} times. Each time, you can only move **right** or **down** at each step. When you step on a cell during a path, you collect its value and set it to 0 (so future paths will see it as 0). Your goal is to **maximize the total sum** collected across all {K} paths.
 
@@ -40,6 +39,7 @@ You will start at cell (0, 0) and move to cell ({N_minus_1}, {N_minus_1}) exactl
         cell_px: int = 70,
         padding: int = 24,
         num_players: int = 1,
+        easy_mode: bool = False,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
@@ -47,6 +47,7 @@ You will start at cell (0, 0) and move to cell ({N_minus_1}, {N_minus_1}) exactl
         self._cell_px = cell_px
         self._padding = padding
         self.num_players = num_players
+        self.easy_mode = easy_mode
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}
 
         if n < 3:
@@ -110,7 +111,7 @@ You will start at cell (0, 0) and move to cell ({N_minus_1}, {N_minus_1}) exactl
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=self._prompt,
             metadata={
                 "state_text": state_text,
                 "text_prompt": self._prompt,
@@ -493,24 +494,26 @@ You will start at cell (0, 0) and move to cell ({N_minus_1}, {N_minus_1}) exactl
                     cx1 += offset
                     cx2 += offset
 
-                # Draw path line
-                draw.line(
-                    [(cx1, cy1), (cx2, cy2)],
-                    fill=color,
-                    width=4,
-                )
+                
+                if self.easy_mode:
+                    # Draw path line
+                    draw.line(
+                        [(cx1, cy1), (cx2, cy2)],
+                        fill=color,
+                        width=4,
+                    )
 
-                # Draw arrowhead
-                if c2 > c1:  # Right arrow
-                    draw.polygon(
-                        [(cx2 - 8, cy2 - 4), (cx2, cy2), (cx2 - 8, cy2 + 4)],
-                        fill=color,
-                    )
-                else:  # Down arrow
-                    draw.polygon(
-                        [(cx2 - 4, cy2 - 8), (cx2, cy2), (cx2 + 4, cy2 - 8)],
-                        fill=color,
-                    )
+                    # Draw arrowhead
+                    if c2 > c1:  # Right arrow
+                        draw.polygon(
+                            [(cx2 - 8, cy2 - 4), (cx2, cy2), (cx2 - 8, cy2 + 4)],
+                            fill=color,
+                        )
+                    else:  # Down arrow
+                        draw.polygon(
+                            [(cx2 - 4, cy2 - 8), (cx2, cy2), (cx2 + 4, cy2 - 8)],
+                            fill=color,
+                        )
 
         # Draw grid lines
         for r in range(n + 1):

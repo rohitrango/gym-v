@@ -26,11 +26,7 @@ class EightDigitPuzzleEnv(Env):
 - `L` = left
 - `R` = right
 
-You start with the following grid:
-{start_grid}
-
-Your goal is to reach the following grid:
-{destination_grid}
+Your start and end grids are as shown in the image.
 
 **Output Format:** Output a single line containing the sequence of moves made by the `0`, represented by a string of characters (`U`, `D`, `L`, `R`). For example, `RRDDLLUU` (do **NOT** include backticks or quotes) means: right, right, down, down, left, left, up, up."""
 
@@ -117,7 +113,7 @@ Your goal is to reach the following grid:
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=self._prompt,
             metadata={
                 "state_text": state_text,
                 "text_prompt": self._prompt,

@@ -24,7 +24,7 @@ class StoneIntervalsGameEnv(Env):
 
     assets_dir = resources.files("gym_v.envs") / "assets"
 
-    prompt_template = r"""There are {N} piles of stones. Initially, the i-th pile contains A[i] stones, given as: {A}
+    prompt_template = r"""There are {N} piles of stones.
 Alice and Bob play a game with the following rules:
 - Alice goes first. They alternate turns.
 - On each turn, a player selects a pile `i` such that **at least one of its adjacent piles** (`i - 1` or `i + 1`, if within bounds) contains **0 stones** (noting that the first/last pile has ONLY ONE adjacent pile). The player then collects **all stones** from pile `i` (pile `i` becomes 0).
@@ -102,7 +102,7 @@ Assuming both players play optimally to maximize their own total number of colle
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=self._prompt,
             metadata={"state_text": state_text, "text_prompt": self._prompt},
         )
         info = {
@@ -249,10 +249,7 @@ Assuming both players play optimally to maximize their own total number of colle
         """Generate the prompt text for the problem."""
         if self._n is None:
             raise RuntimeError("No problem generated")
-        return self.prompt_template.format(
-            N=self._n,
-            A=" ".join(f"A[{i}]={Ai}" for i, Ai in enumerate(self._a)),
-        )
+        return self.prompt_template.format(N=self._n)
 
     def _process(self, answer: str | None) -> int | None:
         """Process the answer string into an integer."""

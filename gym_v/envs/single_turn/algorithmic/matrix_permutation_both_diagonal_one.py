@@ -27,8 +27,7 @@ Please find:
 - a permutation of the column indices: b[0], ..., b[{N_minus_1}] (a reordering of `0` to `{N_minus_1}`),
 - such that after applying these permutations to the rows and columns of matrix A (i.e., the element at position (i, j) becomes A[a[i]][b[j]]), **both diagonals of the resulting matrix contain only `1`s** — that is, all positions where `i = j` (main diagonal) and `i + j = {N_minus_1}` (anti-diagonal).
 
-Matrix A is given as follows:
-{A}
+Matrix A is given in the image.
 
 **Output Format:** Output two lines:
 - The first line contains the row permutation: a[0] a[1] ... a[{N_minus_1}]
@@ -108,7 +107,7 @@ Matrix A is given as follows:
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=self._prompt,
             metadata={"state_text": state_text, "text_prompt": self._prompt},
         )
         info = {

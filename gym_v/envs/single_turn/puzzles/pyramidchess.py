@@ -557,7 +557,7 @@ def draw_pyramid_combined(layers: dict, plot_level: str) -> Image.Image:
 GAME_RULES = dedent("""
     Pyramid Chess Rules:
 0. Game Board:
-The game board is square and comes in various sizes: 3x3, 4x4, or 5x5. On an nxn board, there are n levels (0 to n-1). At each level k, the x and y coordinates range from 0 to n-1-k, resulting in (n-k)**2 slots per level. The slots in the lower levels act as the base for the slots in the upper levels. Slots at level 0 have no base, while slots at level j (j!=0) with coordinates (m,n) are supported by four base slots (m,n),(m+1,n),(m,n+1),(m+1,n+1) from level j-1. The top-left slot on each level is (0,0).
+The game board is square. On an nxn board, there are n levels (0 to n-1). At each level k, the x and y coordinates range from 0 to n-1-k, resulting in (n-k)**2 slots per level. The slots in the lower levels act as the base for the slots in the upper levels. Slots at level 0 have no base, while slots at level j (j!=0) with coordinates (m,n) are supported by four base slots (m,n),(m+1,n),(m,n+1),(m+1,n+1) from level j-1. The top-left slot on each level is (0,0).
 
 1. Players and Initial Setup:
 The game is played between two players, designated as PLAYER_0 and PLAYER_1, each using balls of a distinct color from their color pool, blue balls for PLAYER_0 and red balls for PLAYER_1. Players take turns placing their balls on a square game board. The number of balls available to each player depends on the size of the board: on a 3x3 board, each player has 7 balls; on a 4x4 board, each has 15 balls; and on a 5x5 board, PLAYER_0 (the first player to place a ball) has 28 balls, while PLAYER_1 has 27 balls.
@@ -735,10 +735,10 @@ class PyramidChessQAEnv(Env):
 
         obs = Observation(
             image=combined_image,
-            text=None,
+            text=self.description,
             metadata={
                 "state_text": text_state,
-                "text_prompt": f"{text_state}\n\n{self.description}",
+                "text_prompt": f"{self.description}",
                 "question": self._question,
                 "options": self._options,
                 "question_type": q_type["name"],

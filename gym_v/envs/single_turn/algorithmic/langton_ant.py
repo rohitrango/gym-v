@@ -128,7 +128,7 @@ class LangtonAntQAEnv(Env):
             oracle_answer=self._oracle_answer,
         )
 
-    def _get_state_text(self) -> str:
+    def _get_state_text(self, grid=True) -> str:
         """Generate text description of current Langton's Ant state.
 
         Returns a grid representation matching the rendered image.
@@ -145,11 +145,15 @@ class LangtonAntQAEnv(Env):
                     row_chars.append(".")
             grid.append("".join(row_chars))
 
-        grid_str = "\n".join(grid)
-        return f"""Grid Size: {self._grid_size}x{self._grid_size}
-Ant Position: ({self._ant_x}, {self._ant_y}) facing {self._ant_direction}
-Grid (A=ant, #=black, .=white):
-{grid_str}"""
+        if grid:
+            grid_str = "\n".join(grid)
+            return f"""Grid Size: {self._grid_size}x{self._grid_size}
+    Ant Position: ({self._ant_x}, {self._ant_y}) facing {self._ant_direction}
+    Grid (A=ant, #=black, .=white):
+    {grid_str}"""
+        else:
+            return f"""Grid Size: {self._grid_size}x{self._grid_size}
+    Ant Position: ({self._ant_x}, {self._ant_y}) facing {self._ant_direction}"""
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
@@ -186,13 +190,14 @@ Grid (A=ant, #=black, .=white):
             f"Reset Langton's Ant QA ({self._difficulty}, question: {q_type['name']})."
         )
 
-        text_state = self._get_state_text()
+        text_state = self._get_state_text(grid=False)
+        text_state_without_grid = self._get_state_text(grid=False)
         obs = Observation(
             image=self.render(),
-            text=None,
+            text=f"{text_state_without_grid}\n\n{self.description}",
             metadata={
                 "state_text": text_state,
-                "text_prompt": f"{text_state}\n\n{self.description}",
+                "text_prompt": f"{text_state_without_grid}\n\n{self.description}",
                 "question": self._question,
                 "options": self._options,
                 "question_type": q_type["name"],

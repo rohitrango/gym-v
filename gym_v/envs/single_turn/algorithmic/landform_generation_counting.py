@@ -27,9 +27,7 @@ class LandformGenerationCountingEnv(Env):
 
     assets_dir = resources.files("gym_v.envs") / "assets"
 
-    prompt_template = r"""You are given two arrays `H` and `C`, each of length {N}:
-H: {H}
-C: {C}
+    prompt_template = r"""You are given two arrays `H` and `C`, each of length {N} shown in the image.
 
 A permutation `p` of the indices `0` to `{N_minus_1}` (i.e., `p[0], p[1], ..., p[{N_minus_1}]`) is considered **valid** if and only if the following condition holds for every index `i` from `0` to `{N_minus_1}`: there are **fewer than** C[p[i]] indices `j` (j < i) such that H[p[j]] > H[p[i]].
 Please count the number of **distinct sequences** `H[p[0]], H[p[1]], ..., H[p[{N_minus_1}]]` that can be obtained by a valid permutation `p`. (Two permutations producing the same `H`-sequence count as one.) Output the result modulo {MOD}."""
@@ -122,7 +120,7 @@ Please count the number of **distinct sequences** `H[p[0]], H[p[1]], ..., H[p[{N
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=self._prompt,
             metadata={"state_text": state_text, "text_prompt": self._prompt},
         )
         info = {

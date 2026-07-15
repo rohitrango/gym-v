@@ -21,8 +21,8 @@ class GridLocalMinimumCountingEnv(Env):
     assets_dir = resources.files("gym_v.envs") / "assets"
 
     prompt_template = r"""Consider a grid of size {N} × {M}, where the numbers from 1 to {N} × {M} are placed in the cells such that **each number appears exactly once**.
-A cell is considered a local minimum if its value is strictly less than all of its 8 neighbors (adjacent vertically, horizontally, or diagonally); if a neighbor does not exist, it is considered to be infinitely large. You are given a grid of size {N} × {M} where some cells are marked with `X` and others with `.`. Please count how many valid numberings exist such that the local minima are **exactly** those marked with `X`. The grid is given as follows:
-{grid}
+A cell is considered a local minimum if its value is strictly less than all of its 8 neighbors (adjacent vertically, horizontally, or diagonally); if a neighbor does not exist, it is considered to be infinitely large. You are given a grid of size {N} × {M} where some cells are marked with `X` and others with `.`. Please count how many valid numberings exist such that the local minima are **exactly** those marked with `X`. The grid is given in the image.
+
 
 **Output Format:** Output a single integer — the number of valid labelings."""
 
@@ -96,7 +96,7 @@ A cell is considered a local minimum if its value is strictly less than all of i
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=self._prompt,
             metadata={"state_text": state_text, "text_prompt": self._prompt},
         )
         info = {

@@ -26,11 +26,12 @@ class WordSearchEnv(Env):
         hardcore: bool = False,
         cell_size: int = 60,
         num_players: int = 1,
+        num_words: int = 5,
         **kwargs,
     ):
         super().__init__(**kwargs)
         self._hardcore = hardcore
-        self._num_words = 5
+        self._num_words = num_words
         self._cell_size = cell_size
         self.num_players = num_players
         self._agent_ids = {f"agent_{i}" for i in range(num_players)}

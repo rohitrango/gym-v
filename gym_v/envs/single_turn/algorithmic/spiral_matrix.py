@@ -125,11 +125,11 @@ class SpiralMatrixEnv(Env):
 
         obs = Observation(
             image=self.render(),
-            text=None,
+            text=self.description,
             metadata={
                 "state_text": matrix_text,
                 **self._metadata,
-                "text_prompt": self._entry.get("question", ""),
+                "text_prompt": self.description,
             },
         )
         info = {
@@ -163,7 +163,7 @@ class SpiralMatrixEnv(Env):
             text=None,
             metadata={
                 **self._metadata,
-                "text_prompt": self._entry.get("question", ""),
+                "text_prompt": self.description,
             },
         )
         info = {

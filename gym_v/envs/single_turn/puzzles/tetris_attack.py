@@ -27,7 +27,7 @@ class TetrisAttackEnv(Env):
 
     assets_dir = resources.files("gym_v.envs") / "assets"
 
-    prompt_template = r"""There is an array A (initially it is of length 2 × {N}, containing each integer from 0 to {N_minus_1} exactly twice). Initially, the array A is: {A}
+    prompt_template = r"""There is an array A (initially it is of length 2 × {N}, containing each integer from 0 to {N_minus_1} exactly twice). Initially, the array A is shown in the image.
 
 The array follows this rule:
 - If there are two adjacent equal elements A[i] == A[i + 1], they are both removed from the array.
@@ -105,7 +105,7 @@ Once the array becomes stable (i.e., no adjacent equal pairs remain), you may pe
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=self._prompt,
             metadata={"state_text": state_text, "text_prompt": self._prompt},
         )
         info = {

@@ -1,7 +1,8 @@
-"""FrozenLake game using TextArena."""
+"""FrozenLake single-turn environment using TextArena."""
 
 from __future__ import annotations
 
+import re
 from functools import cached_property
 from importlib import resources
 from textwrap import dedent
@@ -14,19 +15,23 @@ from gym_v import Env, Observation, get_logger
 
 logger = get_logger()
 
+VALID_ACTIONS = {"up", "down", "left", "right", "w", "a", "s", "d"}
 
-class FrozenLakeEnv(Env):
-    # Meta: source=TextArena, category=games, turn=multi
-    # Overrides: interaction_mode=multi_turn
-    """Frozen Lake navigation game using TextArena's FrozenLake environment.
 
-    The player navigates across a frozen lake from start to goal while avoiding holes.
+class FrozenLakeSingleTurnEnv(Env):
+    # Meta: source=TextArena, category=games, turn=single
+    """FrozenLake single-turn environment.
+
+    The agent must navigate from start to goal in a single response by
+    submitting a sequence of bracketed actions, e.g. [right] [right] [down].
+    The episode terminates after the sequence is applied. Reward is taken
+    from the environment if the goal is reached, otherwise 0.
 
     Args:
-        size: Size of the square grid (size x size)
-        num_holes: Number of holes randomly placed on the lake
-        randomize_start_goal: If True, randomizes start and goal positions each episode
-        tile_size: Size of each tile in pixels for rendering
+        size: Size of the square grid (size x size).
+        num_holes: Number of holes randomly placed on the lake.
+        randomize_start_goal: If True, randomizes start and goal positions.
+        tile_size: Size of each tile in pixels for rendering.
     """
 
     assets_dir = resources.files("gym_v.envs") / "assets" / "frozenlake"
@@ -62,10 +67,18 @@ class FrozenLakeEnv(Env):
         return dedent("""
             Welcome to Frozen Lake!
 
-            Available actions: up, down, left, right (or w, a, s, d)
-            Type your action as: [up], [down], [left], [right] or [w], [a], [s], [d]
+            Objective: Navigate from the start (top-left) to the goal (bottom-right) without falling into holes.
 
-            Objective: Navigate from the start (top-left) to the goal (bottom-right) without falling into any holes!
+            Plan your entire route and submit all moves at once as a sequence of bracketed actions.
+            Use spaces or commas to separate them. Examples:
+                [right] [right] [down] [down]
+                [right], [down], [right], [down]
+
+            Available actions: [up] [down] [left] [right]
+            Aliases: [w] = up, [s] = down, [a] = left, [d] = right
+
+            If you fall in a hole or reach the goal mid-sequence, the episode ends immediately.
+            Reward is 1 if you reach the goal, 0 otherwise.
         """).strip()
 
     def reset(
@@ -74,21 +87,22 @@ class FrozenLakeEnv(Env):
         super().reset(seed=seed)
 
         self._ta_env.reset(num_players=self.num_players, seed=seed)
-        self._ta_env.state.max_turns = self._max_episode_steps - 1
+        self._ta_env.state.max_turns = 10000  # no turn limit; sequence length is the limit
         self._last_direction = "DOWN"
 
-        logger.info("Reset FrozenLake.")
+        logger.info("Reset FrozenLake single-turn.")
 
-        obs = Observation(image=self.render(), text=self._get_observation_text(),
+        text_prompt = self.description
+        obs = Observation(
+            image=self.render(),
+            text=text_prompt,
             metadata={
-                "text_prompt": self.description,
+                "text_prompt": text_prompt,
                 "state_text": self._get_observation_text(),
             },
         )
-        info = {}
-
         return {agent_id: obs for agent_id in self._agent_ids}, {
-            agent_id: info for agent_id in self._agent_ids
+            agent_id: {} for agent_id in self._agent_ids
         }
 
     def inner_step(
@@ -102,24 +116,33 @@ class FrozenLakeEnv(Env):
     ]:
         agent_id = next(iter(self._agent_ids))
         action_str = action[agent_id]
+
+        bracketed_actions = self._parse_action_sequence(action_str)
+
+        reward = 0.0
+        done = False
         info = {}
-        done, _ = self._ta_env.step(action_str)
 
-        info["invalid_action"] = (
-            self._ta_env.state.error_count > 0
-            or self._ta_env.state.game_info[0]["invalid_move"]
+        for bracketed in bracketed_actions:
+            done, _ = self._ta_env.step(bracketed)
+            # Update sprite direction
+            inner = bracketed.strip("[] ").lower()
+            _dir_map = {"up": "UP", "w": "UP", "down": "DOWN", "s": "DOWN",
+                        "left": "LEFT", "a": "LEFT", "right": "RIGHT", "d": "RIGHT"}
+            if inner in _dir_map:
+                self._last_direction = _dir_map[inner]
+            if done:
+                reward = float(self._ta_env.state.rewards[0])
+                break
+
+        terminated = True
+        truncated = False
+
+        obs = Observation(
+            image=self.render(),
+            text=self._get_observation_text(),
+            metadata={"text_prompt": self.description},
         )
-
-        if done:
-            reward = self._ta_env.state.rewards[0]
-            terminated = True
-            truncated = False
-        else:
-            reward = 0
-            terminated = False
-            truncated = False
-
-        obs = Observation(image=self.render(), text=self._get_observation_text())
 
         return (
             {agent_id: obs for agent_id in self._agent_ids},
@@ -142,7 +165,6 @@ class FrozenLakeEnv(Env):
         size = self._tile_size * self._size
         img = Image.new("RGB", (size, size), (255, 255, 255))
 
-        # Load and cache assets
         assets = self._assets
         pr, pc = player_pos
 
@@ -153,11 +175,9 @@ class FrozenLakeEnv(Env):
 
                 cell_content = grid[r][c]
 
-                # Draw base ice surface
                 if "ice" in assets:
                     img.paste(assets["ice"], (x, y))
 
-                # Draw cell content
                 if cell_content == "H":
                     if "hole" in assets:
                         img.paste(assets["hole"], (x, y), assets["hole"])
@@ -165,14 +185,10 @@ class FrozenLakeEnv(Env):
                     if "goal" in assets:
                         img.paste(assets["goal"], (x, y), assets["goal"])
 
-                # Draw player if at this position
                 if (r, c) == (pr, pc):
-                    # Use appropriate elf sprite based on last direction
                     elf_sprite_map = {
-                        "UP": "elf_up",
-                        "DOWN": "elf_down",
-                        "LEFT": "elf_left",
-                        "RIGHT": "elf_right",
+                        "UP": "elf_up", "DOWN": "elf_down",
+                        "LEFT": "elf_left", "RIGHT": "elf_right",
                     }
                     elf_sprite = elf_sprite_map.get(self._last_direction, "elf_down")
                     if elf_sprite in assets:
@@ -183,37 +199,34 @@ class FrozenLakeEnv(Env):
     @cached_property
     def _assets(self) -> dict[str, Image.Image]:
         assets = {}
-
-        # Asset mapping: asset_key -> filename
         asset_files = {
-            "ice": "ice.png",
-            "hole": "hole.png",
-            "goal": "goal.png",
-            "elf_down": "elf_down.png",
-            "elf_up": "elf_up.png",
-            "elf_left": "elf_left.png",
-            "elf_right": "elf_right.png",
+            "ice": "ice.png", "hole": "hole.png", "goal": "goal.png",
+            "elf_down": "elf_down.png", "elf_up": "elf_up.png",
+            "elf_left": "elf_left.png", "elf_right": "elf_right.png",
         }
-
         for asset_key, filename in asset_files.items():
             asset_path = self.assets_dir / filename
             if asset_path.exists():
                 img = Image.open(asset_path).convert("RGBA")
-                # Resize to tile_size
-                img = img.resize(
-                    (self._tile_size, self._tile_size), Image.Resampling.LANCZOS
-                )
+                img = img.resize((self._tile_size, self._tile_size), Image.Resampling.LANCZOS)
                 assets[asset_key] = img
-                logger.debug(f"Loaded asset: {asset_key} from {filename}")
             else:
                 raise FileNotFoundError(f"Asset not found: {asset_path}")
-
         return assets
+
+    def _parse_action_sequence(self, action_str: str) -> list[str]:
+        """Extract all [action] tokens, filtering to valid actions only."""
+        matches = re.findall(r'\[([^\]]+)\]', action_str)
+        result = []
+        for token in matches:
+            token = token.strip().lower()
+            if token in VALID_ACTIONS:
+                result.append(f"[{token}]")
+        return result
 
     def _get_observation_text(self) -> str:
         _, ta_obs = self._ta_env.get_observation()
         obs_text = []
-
         for _, msg, type in ta_obs:
             if type in [
                 ta.ObservationType.GAME_ADMIN,
@@ -221,10 +234,6 @@ class FrozenLakeEnv(Env):
                 ta.ObservationType.GAME_MESSAGE,
             ]:
                 obs_text.append(msg)
-
         if "reason" in self._ta_env.state.game_info[0]:
             obs_text.append(self._ta_env.state.game_info[0]["reason"])
-
-        obs_text = "\n".join(obs_text) if obs_text else None
-
-        return obs_text
+        return "\n".join(obs_text) if obs_text else None

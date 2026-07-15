@@ -35,9 +35,6 @@ class CirculatingGridEnv(Env):
 - `D`: moves to ((i + 1) MOD {R}, j)
 Here, (-1 MOD N) = N - 1.
 
-You are given such a grid:
-{grid}
-
 Modify any number of cells so that the resulting grid satisfies the following condition: Starting from any cell, it must be possible to eventually return to the same cell (simply standing there at the beginning does not count). Can you use as small the number of changes (i.e., number of cells modified) as possible? Output the modified grid in the same format — exactly {R} lines, each containing {C} characters (`L`, `R`, `U`, or `D`) with **no separators**."""
 
     def __init__(
@@ -110,7 +107,7 @@ Modify any number of cells so that the resulting grid satisfies the following co
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=self._prompt,
             metadata={
                 "state_text": state_text,
                 "text_prompt": self._prompt,
@@ -370,7 +367,6 @@ Modify any number of cells so that the resulting grid satisfies the following co
         return self.prompt_template.format(
             R=self._R,
             C=self._C,
-            grid="\n".join("".join(row) for row in self._grid),
         )
 
     def _process(self, answer: str | None) -> list[str] | None:

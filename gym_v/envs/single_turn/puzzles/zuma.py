@@ -104,8 +104,8 @@ class ZumaQAEnv(Env):
         self,
         question_type: int | None = None,
         curve_type: str | None = None,
-        num_balls: int | None = None,
-        ball_radius: float = 0.3,
+        num_balls: int | None = 10,
+        ball_radius: float = 0.5,
         num_players: int = 1,
         **kwargs,
     ):
@@ -246,10 +246,11 @@ Hole position: ({self._hole_pos["x"]:.2f}, {self._hole_pos["y"]:.2f})"""
 
         obs = Observation(
             image=self.render(),
-            text=None,
+            text=self.description,
             metadata={
                 "state_text": text_state,
-                "text_prompt": f"{text_state}\n\n{self.description}",
+                # "text_prompt": f"{text_state}\n\n{self.description}",
+                "text_prompt": f"{self.description}",
                 "question": self._question,
                 "options": self._options,
                 "question_type": self.QUESTION_TYPES[self._question_type_idx]["name"],

@@ -27,7 +27,7 @@ class GraMinimaGameEnv(Env):
 
     assets_dir = resources.files("gym_v.envs") / "assets"
 
-    prompt_template = r"""There are {N} numbers: {A}
+    prompt_template = r"""There are {N} numbers shown in the image.
 Alice and Bob are playing a game with these numbers. Alice goes first, and they take turns. On each turn, a player may choose any **non-empty subset** of the remaining numbers, add the **minimum** of that subset to their score, and then remove the entire subset from the game. The game ends when there are no numbers left.
 Each player plays optimally to maximize **their score minus their opponent's score**. Please compute the final value of (Alice's score − Bob's score)."""
 
@@ -106,7 +106,7 @@ Each player plays optimally to maximize **their score minus their opponent's sco
         state_text = self._get_state_text()
         obs = Observation(
             image=self._last_image,
-            text=None,
+            text=self._prompt,
             metadata={
                 "state_text": state_text,
                 "text_prompt": self._prompt,

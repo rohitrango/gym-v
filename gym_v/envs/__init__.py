@@ -1247,6 +1247,18 @@ register(
 )
 
 register(
+    id="Puzzles/WordSearch-singleturn-v0",
+    entry_point="gym_v.envs.single_turn.puzzles.wordsearch_singleturn:WordSearchSingleTurnEnv",
+    max_episode_steps=1,
+    kwargs=dict(
+        num_words=4,
+        grid_size=None,
+        cell_size=50,
+        num_players=1,
+    ),
+)
+
+register(
     id="Puzzles/Zuma-QA-v0",
     entry_point="gym_v.envs.single_turn.puzzles.zuma:ZumaQAEnv",
     max_episode_steps=1,
@@ -1456,6 +1468,19 @@ register(
     id="Games/FrozenLake-v0",
     entry_point="gym_v.envs.multi_turn.games.single_player.frozenlake:FrozenLakeEnv",
     max_episode_steps=100,
+    kwargs=dict(
+        size=4,
+        num_holes=3,
+        randomize_start_goal=False,
+        tile_size=64,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Games/FrozenLake-singleturn-v0",
+    entry_point="gym_v.envs.multi_turn.games.single_player.frozenlake-singleturn:FrozenLakeSingleTurnEnv",
+    max_episode_steps=1,
     kwargs=dict(
         size=4,
         num_holes=3,
@@ -1720,6 +1745,62 @@ register(
         num_players=1,
     ),
 )
+
+register(
+    id="Spatial/DoorKey-singleturn-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.2d.doorkey-singleturn:DoorKeyEnv",
+    max_episode_steps=640,
+    kwargs=dict(
+        size=8,
+        tile_size=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Spatial/Empty-singleturn-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.2d.empty-singleturn:EmptySingleTurnEnv",
+    max_episode_steps=256,
+    kwargs=dict(
+        size=8,
+        tile_size=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Spatial/LavaGap-singleturn-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.2d.lavagap-singleturn:LavaGapSingleTurnEnv",
+    max_episode_steps=144,
+    kwargs=dict(
+        size=6,
+        tile_size=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Spatial/MultiRoom-singleturn-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.2d.multiroom-singleturn:MultiRoomSingleTurnEnv",
+    max_episode_steps=320,
+    kwargs=dict(
+        num_rooms=2,
+        room_size=4,
+        tile_size=32,
+        num_players=1,
+    ),
+)
+
+register(
+    id="Spatial/FourRooms-singleturn-v0",
+    entry_point="gym_v.envs.multi_turn.spatial.2d.fourrooms2d-singleturn:FourRoomsSingleTurnEnv",
+    max_episode_steps=500,
+    kwargs=dict(
+        tile_size=32,
+        num_players=1,
+    ),
+)
+
 
 register(
     id="Spatial/DynamicObstacles-v0",

@@ -119,15 +119,12 @@ class BinaryMatrixEnv(Env):
 
         logger.info("Reset ReasoningGym Binary Matrix.")
 
-        matrix_text = self._format_matrix(self._matrix)
-
         obs = Observation(
             image=self.render(),
-            text=None,
+            text=self.description,
             metadata={
-                "state_text": matrix_text,
                 **self._metadata,
-                "text_prompt": self._entry.get("question", ""),
+                "text_prompt": self.description,
             },
         )
         info = {
@@ -161,7 +158,7 @@ class BinaryMatrixEnv(Env):
             text=None,
             metadata={
                 **self._metadata,
-                "text_prompt": self._entry.get("question", ""),
+                "text_prompt": self.description,
             },
         )
         info = {

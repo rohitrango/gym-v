@@ -123,13 +123,15 @@ class GameOfLifeEnv(Env):
         # obs.text = only the board state as JSON (caption), not the full question
         board_text = self._board_to_json(self._board) if self._board else "[]"
 
+        entry_without_board = self._parse_board_out_from_question(self._entry["question"])
+
         obs = Observation(
             image=self.render(),
-            text=None,
+            text=entry_without_board,
             metadata={
                 "state_text": board_text,
                 **self._metadata,
-                "text_prompt": self._entry.get("question", ""),
+                "text_prompt": entry_without_board,
             },
         )
         info = {
@@ -160,6 +162,22 @@ class GameOfLifeEnv(Env):
         except (json.JSONDecodeError, ValueError) as e:
             logger.warning(f"Failed to parse board JSON: {e}")
         return []
+
+    def _parse_board_out_from_question(self, question: str) -> list[list[int]]:
+        """Parse out the board JSON from the question string.
+
+        The question contains an example like [[0,0,0],[0,0,0],[0,0,0]] and
+        the actual board. We need to find the last/largest board array.
+        """
+        try:
+            # Find the last occurrence of [[ which should be the actual board
+            # (the first one is typically an example in the prompt)
+            last_start = question.rfind("[[")
+            end = question.rfind("]]") + 2
+            return question[:last_start]
+        except Exception as e:
+            logger.warning(f"Failed to parse board out from question: {e}")
+        return ""
 
     def inner_step(
         self, action: dict[str, str]

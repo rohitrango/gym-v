@@ -779,10 +779,10 @@ class ChessRangerQAEnv(Env):
 
         obs = Observation(
             image=image,
-            text=None,
+            text=self.description,
             metadata={
                 "state_text": text_state,
-                "text_prompt": f"{text_state}\n\n{self.description}",
+                "text_prompt": f"{self.description}",
                 "question": self._question,
                 "options": self._options,
                 "question_type": q_type["name"],
