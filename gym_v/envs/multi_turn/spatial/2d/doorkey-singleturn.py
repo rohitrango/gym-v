@@ -116,8 +116,7 @@ class DoorKeyEnv(Env):
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
 
-        rng = np.random.default_rng(seed)
-        room_type = rng.choice(self._room_types)
+        room_type = self.np_random.choice(self._room_types)
 
         self._minigrid_env = self._minigrid_envs[room_type]
         self._minigrid_env.reset(seed=seed)

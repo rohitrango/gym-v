@@ -5,14 +5,12 @@ from __future__ import annotations
 import io
 import json
 import logging
-import random
 import string
 from textwrap import dedent
 from typing import Any
 
 import matplotlib.pyplot as plt
 import networkx as nx
-import numpy as np
 from PIL import Image, ImageFilter
 
 from gym_v import Env, Observation, get_logger
@@ -92,9 +90,6 @@ class FlowNetworkEnv(Env):
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
         self._seed = seed
-        if seed is not None:
-            np.random.seed(seed)
-            random.seed(seed)
 
         self._generate_new_problem()
 
@@ -176,7 +171,7 @@ class FlowNetworkEnv(Env):
 
     def _generate_new_problem(self):
         """Generate a random flow network and compute maximum flow."""
-        num_nodes = random.randint(self.min_nodes, self.max_nodes)
+        num_nodes = self.py_random.randint(self.min_nodes, self.max_nodes)
 
         # Use S for source, T for sink, and letters for intermediate nodes
         intermediate_labels = list(string.ascii_uppercase[: num_nodes - 2])
@@ -205,12 +200,12 @@ class FlowNetworkEnv(Env):
 
         # Create a layered structure for the flow network
         # Layer 0: source, Layer 1-k: intermediate, Layer k+1: sink
-        num_layers = random.randint(2, min(4, num_nodes - 1))
+        num_layers = self.py_random.randint(2, min(4, num_nodes - 1))
         nodes_per_layer = [1]  # source
         remaining = num_nodes - 2
         for _ in range(num_layers - 2):
             if remaining > 0:
-                count = random.randint(1, max(1, remaining // 2))
+                count = self.py_random.randint(1, max(1, remaining // 2))
                 nodes_per_layer.append(count)
                 remaining -= count
         nodes_per_layer.append(max(1, remaining))  # last intermediate layer
@@ -235,26 +230,26 @@ class FlowNetworkEnv(Env):
         for i in range(len(layers) - 1):
             for u in layers[i]:
                 for v in layers[i + 1]:
-                    if random.random() < 0.6:
-                        capacity = random.randint(self.min_capacity, self.max_capacity)
+                    if self.py_random.random() < 0.6:
+                        capacity = self.py_random.randint(self.min_capacity, self.max_capacity)
                         G.add_edge(u, v, capacity=capacity)
 
         # Ensure source has at least one outgoing edge
         if G.out_degree(self._current_source) == 0 and len(layers) > 1:
-            v = random.choice(layers[1])
+            v = self.py_random.choice(layers[1])
             G.add_edge(
                 self._current_source,
                 v,
-                capacity=random.randint(self.min_capacity, self.max_capacity),
+                capacity=self.py_random.randint(self.min_capacity, self.max_capacity),
             )
 
         # Ensure sink has at least one incoming edge
         if G.in_degree(self._current_sink) == 0 and len(layers) > 1:
-            u = random.choice(layers[-2])
+            u = self.py_random.choice(layers[-2])
             G.add_edge(
                 u,
                 self._current_sink,
-                capacity=random.randint(self.min_capacity, self.max_capacity),
+                capacity=self.py_random.randint(self.min_capacity, self.max_capacity),
             )
 
         # Add some cross-layer edges for complexity
@@ -262,8 +257,8 @@ class FlowNetworkEnv(Env):
             for j in range(i + 2, len(layers)):
                 for u in layers[i]:
                     for v in layers[j]:
-                        if random.random() < 0.15:
-                            capacity = random.randint(
+                        if self.py_random.random() < 0.15:
+                            capacity = self.py_random.randint(
                                 self.min_capacity, self.max_capacity
                             )
                             if not G.has_edge(u, v):
@@ -321,7 +316,7 @@ class FlowNetworkEnv(Env):
             # Add any unassigned nodes
             for node in G.nodes():
                 if node not in pos:
-                    pos[node] = (random.random(), random.random())
+                    pos[node] = (self.py_random.random(), self.py_random.random())
 
         except Exception:
             pos = nx.spring_layout(G, seed=self._seed)
@@ -337,7 +332,7 @@ class FlowNetworkEnv(Env):
                 node_colors.append("#87CEEB")  # Light blue for others
 
         # Draw nodes
-        node_size = random.randint(1800, 2400)
+        node_size = self.py_random.randint(1800, 2400)
         nx.draw_networkx_nodes(
             G,
             pos,
@@ -349,7 +344,7 @@ class FlowNetworkEnv(Env):
         )
 
         # Draw node labels
-        font_size = random.randint(14, 16)
+        font_size = self.py_random.randint(14, 16)
         nx.draw_networkx_labels(
             G,
             pos,
@@ -359,7 +354,7 @@ class FlowNetworkEnv(Env):
         )
 
         # Draw directed edges with arrows
-        edge_width = random.uniform(1.5, 2.5)
+        edge_width = self.py_random.uniform(1.5, 2.5)
         nx.draw_networkx_edges(
             G,
             pos,
@@ -406,13 +401,13 @@ class FlowNetworkEnv(Env):
         plt.close(fig)
 
         # Optional noise
-        if random.random() < 0.1:
+        if self.py_random.random() < 0.1:
             img = self._add_noise(img)
 
         return img
 
     def _add_noise(self, img: Image.Image) -> Image.Image:
         """Add subtle noise or blur to the image."""
-        if random.random() < 0.5:
-            img = img.filter(ImageFilter.GaussianBlur(radius=random.uniform(0.3, 0.8)))
+        if self.py_random.random() < 0.5:
+            img = img.filter(ImageFilter.GaussianBlur(radius=self.py_random.uniform(0.3, 0.8)))
         return img

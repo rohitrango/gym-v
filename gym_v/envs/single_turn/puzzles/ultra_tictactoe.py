@@ -47,13 +47,16 @@ class UTTTGameGrid:
     - (row, col): Cell position within Nine-grid (1-3)
     """
 
-    def __init__(self, plot_level="Easy"):
+    def __init__(self, plot_level="Easy", rng=None):
         """Initialize game grid.
 
         Args:
             plot_level: Difficulty level determining game length
+            rng: Random generator to use (e.g. env's self.py_random); falls back to the
+                 stdlib ``random`` module if not provided.
         """
         self.plot_level = plot_level
+        self._rng = rng if rng is not None else random
         self.piece_coord = {
             f"({s}, {t})": {"X": [], "O": []} for s in range(1, 4) for t in range(1, 4)
         }
@@ -132,7 +135,7 @@ class UTTTGameGrid:
         if not coord_avail_list:
             return 0, 0
 
-        row, col = random.choice(coord_avail_list)
+        row, col = self._rng.choice(coord_avail_list)
         self.draw_piece(i, j, row, col, piece)
         return row, col
 
@@ -241,7 +244,7 @@ class UTTTGameGrid:
                 self.best_next_step = [last_i, last_j, row, col]
                 break
             else:
-                row, col = random.choice(best_pieces)
+                row, col = self._rng.choice(best_pieces)
                 self.draw_piece(last_i, last_j, row, col, piece)
                 self.last_step = [last_i, last_j, row, col]
 
@@ -585,7 +588,7 @@ class UltraTicTacToeQAEnv(Env):
             UTTTGameGrid instance with valid game state
         """
         while True:
-            grid = UTTTGameGrid(plot_level=self._plot_level)
+            grid = UTTTGameGrid(plot_level=self._plot_level, rng=self.py_random)
             game_state = grid.generate_uttt_game(plot_level=self._plot_level)
 
             if game_state is None:
@@ -633,7 +636,7 @@ class UltraTicTacToeQAEnv(Env):
         )
 
         if nine_grids:
-            nine_grid = random.choice(nine_grids)
+            nine_grid = self.py_random.choice(nine_grids)
             positions = list(
                 set(
                     info["position"]
@@ -642,16 +645,16 @@ class UltraTicTacToeQAEnv(Env):
                 )
             )
             if positions:
-                position = random.choice(positions)
+                position = self.py_random.choice(positions)
             else:
-                position = random.choice(
+                position = self.py_random.choice(
                     [f"({row}, {col})" for row in range(1, 4) for col in range(1, 4)]
                 )
         else:
-            nine_grid = random.choice(
+            nine_grid = self.py_random.choice(
                 [f"({i}, {j})" for i in range(1, 4) for j in range(1, 4)]
             )
-            position = random.choice(
+            position = self.py_random.choice(
                 [f"({row}, {col})" for row in range(1, 4) for col in range(1, 4)]
             )
 
@@ -854,14 +857,14 @@ class UltraTicTacToeQAEnv(Env):
         options_made = [str(total_piece_count)]
         random_range = 15
         for _ in range(7):
-            offset = random.randint(-random_range, random_range)
+            offset = self.py_random.randint(-random_range, random_range)
             while (
                 str(total_piece_count + offset) in options_made
                 or (total_piece_count + offset) < 0
             ):
-                offset = random.randint(-random_range, random_range)
+                offset = self.py_random.randint(-random_range, random_range)
             options_made.append(str(total_piece_count + offset))
-        random.shuffle(options_made)
+        self.py_random.shuffle(options_made)
 
         option_number = str(options_made.index(str(total_piece_count)) + 1)
 
@@ -887,13 +890,13 @@ class UltraTicTacToeQAEnv(Env):
         )
 
         if not nine_grids:
-            nine_grid = random.choice(
+            nine_grid = self.py_random.choice(
                 [f"({i}, {j})" for i in range(1, 4) for j in range(1, 4)]
             )
         else:
-            nine_grid = random.choice(nine_grids)
+            nine_grid = self.py_random.choice(nine_grids)
 
-        player_name = random.choice(["First Player", "Second Player"])
+        player_name = self.py_random.choice(["First Player", "Second Player"])
         piece_type = "X" if player_name == "First Player" else "O"
 
         # Get pieces in Nine-grid
@@ -912,11 +915,11 @@ class UltraTicTacToeQAEnv(Env):
         options_made = [str(point)]
         random_range = 15
         for _ in range(7):
-            offset = random.randint(-random_range, random_range)
+            offset = self.py_random.randint(-random_range, random_range)
             while str(point + offset) in options_made or (point + offset) < 0:
-                offset = random.randint(-random_range, random_range)
+                offset = self.py_random.randint(-random_range, random_range)
             options_made.append(str(point + offset))
-        random.shuffle(options_made)
+        self.py_random.shuffle(options_made)
 
         option_number = str(options_made.index(str(point)) + 1)
 

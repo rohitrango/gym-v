@@ -221,8 +221,6 @@ b w w b
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
         self._seed = seed
-        if seed is not None:
-            np.random.seed(seed)
 
         # Generate a new puzzle
         result = generate_puzzle(self._factory, self._size, self._num_hints)

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import math
-import random
 from textwrap import dedent
 from typing import Any
 
@@ -228,12 +227,12 @@ Hole position: ({self._hole_pos["x"]:.2f}, {self._hole_pos["y"]:.2f})"""
         curve_type = (
             self._curve_type
             if self._curve_type is not None
-            else random.choice(["spiral", "heart", "ellipse"])
+            else self.py_random.choice(["spiral", "heart", "ellipse"])
         )
 
         # Select number of balls
         num_balls = (
-            self._num_balls if self._num_balls is not None else random.randint(10, 130)
+            self._num_balls if self._num_balls is not None else self.py_random.randint(10, 130)
         )
 
         # Generate game state
@@ -276,17 +275,17 @@ Hole position: ({self._hole_pos["x"]:.2f}, {self._hole_pos["y"]:.2f})"""
         """Generate the game state with track, frog, and balls."""
         # Random frog and hole positions
         self._frog_pos = {
-            "x": float(np.random.uniform(-1, 1)),
-            "y": float(np.random.uniform(-1, 1)),
+            "x": float(self.np_random.uniform(-1, 1)),
+            "y": float(self.np_random.uniform(-1, 1)),
         }
-        hole_x = float(np.random.uniform(1.5, 3) * np.random.choice([-1, 1]))
-        hole_y = float(np.random.uniform(1.5, 3) * np.random.choice([-1, 1]))
+        hole_x = float(self.np_random.uniform(1.5, 3) * self.np_random.choice([-1, 1]))
+        hole_y = float(self.np_random.uniform(1.5, 3) * self.np_random.choice([-1, 1]))
         self._hole_pos = {"x": hole_x, "y": hole_y}
 
         # Random frog angle and colors
-        self._frog_angle = float(np.random.randint(-179, 180))
-        self._frog_color = random.choice(self.COLORS)
-        self._frog_next_color = random.choice(self.COLORS)
+        self._frog_angle = float(self.np_random.integers(-179, 180))
+        self._frog_color = self.py_random.choice(self.COLORS)
+        self._frog_next_color = self.py_random.choice(self.COLORS)
 
         # Generate track curve
         if curve_type == "spiral":
@@ -335,7 +334,7 @@ Hole position: ({self._hole_pos["x"]:.2f}, {self._hole_pos["y"]:.2f})"""
             self._balls.append(
                 {
                     "position": {"x": float(x), "y": float(y)},
-                    "color": random.choice(self.COLORS),
+                    "color": self.py_random.choice(self.COLORS),
                 }
             )
 
@@ -345,15 +344,15 @@ Hole position: ({self._hole_pos["x"]:.2f}, {self._hole_pos["y"]:.2f})"""
         """Generate spiral curve."""
         # Determine curve length based on num_balls
         if 10 <= num_balls <= 15:
-            length = np.random.uniform(0.5, 1)
+            length = self.np_random.uniform(0.5, 1)
         elif 15 < num_balls <= 30:
-            length = np.random.uniform(1, 1.5)
+            length = self.np_random.uniform(1, 1.5)
         elif 30 < num_balls <= 55:
-            length = np.random.uniform(1.5, 2)
+            length = self.np_random.uniform(1.5, 2)
         elif 55 < num_balls <= 75:
-            length = np.random.uniform(2, 2.5)
+            length = self.np_random.uniform(2, 2.5)
         elif 75 < num_balls <= 100:
-            length = np.random.uniform(2.5, 3)
+            length = self.np_random.uniform(2.5, 3)
         else:
             length = 3.0
 
@@ -369,15 +368,15 @@ Hole position: ({self._hole_pos["x"]:.2f}, {self._hole_pos["y"]:.2f})"""
     def _generate_heart_curve(self, num_balls: int) -> tuple[np.ndarray, np.ndarray]:
         """Generate heart-shaped curve."""
         if 10 <= num_balls <= 15:
-            length = np.random.uniform(0.5, 1)
+            length = self.np_random.uniform(0.5, 1)
         elif 15 < num_balls <= 30:
-            length = np.random.uniform(1, 1.5)
+            length = self.np_random.uniform(1, 1.5)
         elif 30 < num_balls <= 55:
-            length = np.random.uniform(1.5, 2)
+            length = self.np_random.uniform(1.5, 2)
         elif 55 < num_balls <= 75:
-            length = np.random.uniform(2, 2.5)
+            length = self.np_random.uniform(2, 2.5)
         elif 75 < num_balls <= 100:
-            length = np.random.uniform(2.5, 3)
+            length = self.np_random.uniform(2.5, 3)
         else:
             length = 3.0
 
@@ -391,15 +390,15 @@ Hole position: ({self._hole_pos["x"]:.2f}, {self._hole_pos["y"]:.2f})"""
     ) -> tuple[np.ndarray, np.ndarray]:
         """Generate ellipse curve."""
         if 10 <= num_balls <= 15:
-            length = np.random.uniform(0.5, 1)
+            length = self.np_random.uniform(0.5, 1)
         elif 15 < num_balls <= 30:
-            length = np.random.uniform(1, 1.5)
+            length = self.np_random.uniform(1, 1.5)
         elif 30 < num_balls <= 55:
-            length = np.random.uniform(1.5, 2)
+            length = self.np_random.uniform(1.5, 2)
         elif 55 < num_balls <= 75:
-            length = np.random.uniform(2, 2.5)
+            length = self.np_random.uniform(2, 2.5)
         elif 75 < num_balls <= 100:
-            length = np.random.uniform(2.5, 3)
+            length = self.np_random.uniform(2.5, 3)
         else:
             length = 3.0
 
@@ -439,7 +438,7 @@ Hole position: ({self._hole_pos["x"]:.2f}, {self._hole_pos["y"]:.2f})"""
 
     def _question_color_count(self):
         """Question 2: Count of specific color marbles."""
-        target_color = random.choice(self.COLORS)
+        target_color = self.py_random.choice(self.COLORS)
         count = sum(1 for ball in self._balls if ball["color"] == target_color)
 
         self._question = f"How many {target_color} marbles are there on the track?"
@@ -455,7 +454,7 @@ Hole position: ({self._hole_pos["x"]:.2f}, {self._hole_pos["y"]:.2f})"""
 
     def _question_direction_groups(self):
         """Question 3: Number of same-color marble groups in a direction."""
-        direction = random.choice(self.DIRECTIONS)
+        direction = self.py_random.choice(self.DIRECTIONS)
         ball_groups = self._get_ball_groups_in_direction(direction)
 
         self._question = (

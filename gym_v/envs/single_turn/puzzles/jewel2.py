@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import copy
 from importlib import resources
-import random
 from textwrap import dedent
 from typing import Any
 
@@ -52,8 +51,9 @@ class Chessboard:
         size: Size of the square board (default 5x5).
     """
 
-    def __init__(self, size: int = 5):
+    def __init__(self, size: int = 5, rng=None):
         self.size = size
+        self._rng = rng
         self.normal_elements = COMMON_ELEMENTS
         self.special_elements = SPECIAL_ELEMENTS
         self.chessboard = self._generate_random_board()
@@ -73,7 +73,7 @@ class Chessboard:
         for _ in range(self.size):
             row = []
             for _ in range(self.size):
-                element = random.choices(elements, weights=weights, k=1)[0]
+                element = self._rng.choices(elements, weights=weights, k=1)[0]
                 row.append(element)
             board.append(row)
         return board
@@ -272,7 +272,7 @@ class Chessboard:
                         # Generate new element
                         elements = list(ELEMENT_PROBABILITIES.keys())
                         weights = list(ELEMENT_PROBABILITIES.values())
-                        self.chessboard[i][j] = random.choices(
+                        self.chessboard[i][j] = self._rng.choices(
                             elements, weights=weights, k=1
                         )[0]
 
@@ -526,8 +526,8 @@ class Jewel2QAEnv(Env):
 
     def _initialize_game(self) -> None:
         """Initialize game state with random board and score."""
-        self._chessboard = Chessboard(self.size)
-        self._total_cleared = random.randint(0, 100)
+        self._chessboard = Chessboard(self.size, rng=self.py_random)
+        self._total_cleared = self.py_random.randint(0, 100)
 
     def _load_element_images(self) -> None:
         """Load element images from assets directory."""
@@ -724,7 +724,7 @@ class Jewel2QAEnv(Env):
 
     def _generate_question_type_0(self) -> dict:
         """Count specific element"""
-        element = random.choice(COMMON_ELEMENTS)
+        element = self.py_random.choice(COMMON_ELEMENTS)
         positions = [
             (r, c)
             for r in range(self.size)
@@ -752,7 +752,7 @@ class Jewel2QAEnv(Env):
     def _generate_question_type_1(self) -> dict:
         """Identify element position (MCQ)"""
         while True:
-            element = random.choice(COMMON_ELEMENTS)
+            element = self.py_random.choice(COMMON_ELEMENTS)
             positions = [
                 (r, c)
                 for r in range(self.size)
@@ -765,14 +765,14 @@ class Jewel2QAEnv(Env):
         all_positions = [(r, c) for r in range(self.size) for c in range(self.size)]
         incorrect_candidates = [pos for pos in all_positions if pos not in positions]
 
-        correct_position = random.choice(positions)
+        correct_position = self.py_random.choice(positions)
         options_list = [f"Position {correct_position}"] + [
             f"Position {pos}"
-            for pos in random.sample(
+            for pos in self.py_random.sample(
                 incorrect_candidates, min(7, len(incorrect_candidates))
             )
         ]
-        random.shuffle(options_list)
+        self.py_random.shuffle(options_list)
 
         options = [f"{chr(65 + idx)}. {opt}" for idx, opt in enumerate(options_list)]
         correct_answer_letter = next(
@@ -833,17 +833,17 @@ class Jewel2QAEnv(Env):
 
     def _generate_question_type_3(self) -> dict:
         """Simulate clear operation (MCQ)"""
-        if random.random() < 0.75:
+        if self.py_random.random() < 0.75:
             valid_pos = self._find_valid_clear_position()
             if valid_pos:
                 x, y = valid_pos
             else:
                 x, y = (
-                    random.randint(0, self.size - 1),
-                    random.randint(0, self.size - 1),
+                    self.py_random.randint(0, self.size - 1),
+                    self.py_random.randint(0, self.size - 1),
                 )
         else:
-            x, y = random.randint(0, self.size - 1), random.randint(0, self.size - 1)
+            x, y = self.py_random.randint(0, self.size - 1), self.py_random.randint(0, self.size - 1)
 
         target = self._chessboard.chessboard[x][y]
         temp_board = copy.deepcopy(self._chessboard)
@@ -857,7 +857,7 @@ class Jewel2QAEnv(Env):
             options = [
                 "A. Nothing will happen because the clear does not meet elimination conditions."
             ] + [
-                f"{chr(66 + i)}. Perform elimination, eliminate {random.randint(1, 5)} elements, total cleared becomes {current_cleared + random.randint(1, 5)}."
+                f"{chr(66 + i)}. Perform elimination, eliminate {self.py_random.randint(1, 5)} elements, total cleared becomes {current_cleared + self.py_random.randint(1, 5)}."
                 for i in range(7)
             ]
             answer = "A"
@@ -868,22 +868,22 @@ class Jewel2QAEnv(Env):
                     "A. Nothing will happen because the clear does not meet elimination conditions.",
                     f"B. Trigger a special element, total cleared becomes {new_total_cleared}.",
                 ] + [
-                    f"{chr(67 + i)}. Perform elimination, eliminate {random.randint(1, 5)} elements, total cleared becomes {current_cleared + random.randint(1, 5)}."
+                    f"{chr(67 + i)}. Perform elimination, eliminate {self.py_random.randint(1, 5)} elements, total cleared becomes {current_cleared + self.py_random.randint(1, 5)}."
                     for i in range(6)
                 ]
                 answer = "B"
                 analysis = f"Clearing the special element '{target}' at position ({x},{y}) triggered its ability, resulting in the elimination of additional elements. The total cleared count increased to {new_total_cleared}."
             else:
-                correct_option = random.choice(["C", "D", "E", "F", "G", "H"])
+                correct_option = self.py_random.choice(["C", "D", "E", "F", "G", "H"])
                 options = [
                     "A. Nothing will happen because the clear does not meet elimination conditions.",
                     f"B. Trigger a special element, total cleared becomes {new_total_cleared}.",
                 ]
 
                 for option in ["C", "D", "E", "F", "G", "H"]:
-                    random_value = random.randint(1, 9)
+                    random_value = self.py_random.randint(1, 9)
                     while random_value == cleared:
-                        random_value = random.randint(1, 9)
+                        random_value = self.py_random.randint(1, 9)
                     options.append(
                         f"{option}. Perform elimination, eliminate {random_value} elements, total cleared becomes {current_cleared + random_value}."
                     )
@@ -905,19 +905,19 @@ class Jewel2QAEnv(Env):
 
     def _generate_question_type_4(self) -> dict:
         """Simulate swap operation (MCQ)"""
-        if random.random() < 0.75:
+        if self.py_random.random() < 0.75:
             valid_move = self._find_valid_swap_position()
             if valid_move:
                 x, y, pos = valid_move
             else:
                 x, y = (
-                    random.randint(0, self.size - 1),
-                    random.randint(0, self.size - 1),
+                    self.py_random.randint(0, self.size - 1),
+                    self.py_random.randint(0, self.size - 1),
                 )
-                pos = random.choice(DIRECTIONS)
+                pos = self.py_random.choice(DIRECTIONS)
         else:
-            x, y = random.randint(0, self.size - 1), random.randint(0, self.size - 1)
-            pos = random.choice(DIRECTIONS)
+            x, y = self.py_random.randint(0, self.size - 1), self.py_random.randint(0, self.size - 1)
+            pos = self.py_random.choice(DIRECTIONS)
 
         question = f"{GAME_RULES}\n\n**Question:** What will happen if you execute swap {x} {y} {pos}?"
 
@@ -944,7 +944,7 @@ class Jewel2QAEnv(Env):
                 ]
                 + ["B. Cannot perform swap because one of the elements is special."]
                 + [
-                    f"{chr(67 + i)}. After swap, elimination occurs, clearing {random.randint(1, 5)} elements, total cleared becomes {self._total_cleared + random.randint(1, 5)}."
+                    f"{chr(67 + i)}. After swap, elimination occurs, clearing {self.py_random.randint(1, 5)} elements, total cleared becomes {self._total_cleared + self.py_random.randint(1, 5)}."
                     for i in range(6)
                 ]
             )
@@ -955,7 +955,7 @@ class Jewel2QAEnv(Env):
                 "A. Nothing will happen because the swap does not meet elimination conditions.",
                 "B. Cannot perform swap because one of the elements is special.",
             ] + [
-                f"{chr(67 + i)}. After swap, elimination occurs, clearing {random.randint(1, 5)} elements, total cleared becomes {self._total_cleared + random.randint(1, 5)}."
+                f"{chr(67 + i)}. After swap, elimination occurs, clearing {self.py_random.randint(1, 5)} elements, total cleared becomes {self._total_cleared + self.py_random.randint(1, 5)}."
                 for i in range(6)
             ]
             answer = "B"
@@ -966,16 +966,16 @@ class Jewel2QAEnv(Env):
             cleared_after_swap = temp_board.score - self._chessboard.score
 
             if success:
-                correct_option = random.choice(["C", "D", "E", "F", "G", "H"])
+                correct_option = self.py_random.choice(["C", "D", "E", "F", "G", "H"])
                 options = [
                     "A. Nothing will happen because the swap does not meet elimination conditions.",
                     "B. Cannot perform swap because one of the elements is special.",
                 ]
 
                 for option in ["C", "D", "E", "F", "G", "H"]:
-                    random_value = random.randint(1, 9)
+                    random_value = self.py_random.randint(1, 9)
                     while random_value == cleared_after_swap:
-                        random_value = random.randint(1, 9)
+                        random_value = self.py_random.randint(1, 9)
                     options.append(
                         f"{option}. After swap, elimination occurs, clearing {random_value} elements, total cleared becomes {self._total_cleared + random_value}."
                     )
@@ -993,7 +993,7 @@ class Jewel2QAEnv(Env):
                     ]
                     + ["B. Cannot perform swap because one of the elements is special."]
                     + [
-                        f"{chr(67 + i)}. After swap, elimination occurs, clearing {random.randint(1, 5)} elements, total cleared becomes {self._total_cleared + random.randint(1, 5)}."
+                        f"{chr(67 + i)}. After swap, elimination occurs, clearing {self.py_random.randint(1, 5)} elements, total cleared becomes {self._total_cleared + self.py_random.randint(1, 5)}."
                         for i in range(6)
                     ]
                 )
@@ -1017,10 +1017,10 @@ class Jewel2QAEnv(Env):
                 for d in DIRECTIONS:
                     possible_commands.append(f"swap {r} {c} {d}")
 
-        command1 = random.choice(possible_commands)
-        command2 = random.choice(possible_commands)
+        command1 = self.py_random.choice(possible_commands)
+        command2 = self.py_random.choice(possible_commands)
         while command2 == command1:
-            command2 = random.choice(possible_commands)
+            command2 = self.py_random.choice(possible_commands)
 
         temp_board = copy.deepcopy(self._chessboard)
         total_cleared = 0

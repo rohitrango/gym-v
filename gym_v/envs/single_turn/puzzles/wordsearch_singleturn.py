@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from importlib import resources
-import random
 import re
 import string
 from textwrap import dedent
@@ -111,12 +110,11 @@ class WordSearchSingleTurnEnv(Env):
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
-        random.seed(seed)
 
         if self._grid_size_param is not None:
             self._grid_size = self._grid_size_param
         else:
-            self._grid_size = random.randint(5, 8)
+            self._grid_size = self.py_random.randint(5, 8)
 
         self._generate_grid()
         self._place_words()
@@ -262,7 +260,7 @@ class WordSearchSingleTurnEnv(Env):
 
     def _generate_grid(self) -> None:
         self._grid = [
-            [random.choice(string.ascii_uppercase) for _ in range(self._grid_size)]
+            [self.py_random.choice(string.ascii_uppercase) for _ in range(self._grid_size)]
             for _ in range(self._grid_size)
         ]
 
@@ -295,7 +293,7 @@ class WordSearchSingleTurnEnv(Env):
         self._placed_positions = {}
 
         candidates = [w for w in self._words if 3 <= len(w) <= self._grid_size]
-        random.shuffle(candidates)
+        self.py_random.shuffle(candidates)
 
         for word in candidates:
             if len(self._placed_words) >= self._num_words_param:
@@ -303,7 +301,7 @@ class WordSearchSingleTurnEnv(Env):
 
             placed = False
             directions = list(self.DIRECTIONS.items())
-            random.shuffle(directions)
+            self.py_random.shuffle(directions)
 
             for dir_name, direction in directions:
                 if placed:
@@ -313,7 +311,7 @@ class WordSearchSingleTurnEnv(Env):
                     for r in range(self._grid_size)
                     for c in range(self._grid_size)
                 ]
-                random.shuffle(positions)
+                self.py_random.shuffle(positions)
                 for start_row, start_col in positions:
                     if self._can_place_word(word, start_row, start_col, direction):
                         self._insert_word(word, start_row, start_col, direction)

@@ -435,7 +435,7 @@ class SpiderSolitaireQAEnv(Env):
         Card.circular = self.circular
 
         # Initialize piles
-        random.shuffle(self.deck)
+        self.py_random.shuffle(self.deck)
         self.stock = OneWayStack(False)  # Face-down
         self.foundations = [OneWayStack(True) for _ in range(8)]  # Face-up
         self.waste = [SelectableStack() for _ in range(self.num_waste)]
@@ -744,7 +744,7 @@ class SpiderSolitaireQAEnv(Env):
 
     def _generate_question_type_1(self) -> dict:
         """Which card is on the top of waste pile X?"""
-        pile_num = random.randint(0, self.num_waste - 1)
+        pile_num = self.py_random.randint(0, self.num_waste - 1)
 
         if not self.waste[pile_num].isEmpty():
             top_card = self.waste[pile_num][-1]
@@ -792,8 +792,8 @@ class SpiderSolitaireQAEnv(Env):
 
     def _generate_question_type_3(self) -> dict:
         """If I click the stockpile for X times, how many face-up cards will be in waste pile Y?"""
-        num1 = random.randint(0, 5)
-        pile_num = random.randint(0, self.num_waste - 1)
+        num1 = self.py_random.randint(0, 5)
+        pile_num = self.py_random.randint(0, self.num_waste - 1)
 
         # Calculate how many times we can actually deal
         possible_deals = min(num1, self._dealsLeft())
@@ -819,11 +819,11 @@ class SpiderSolitaireQAEnv(Env):
     def _generate_question_type_4(self) -> dict:
         """What will happen if I want to move card X from pile Y to pile Z? (MCQ)"""
         # Select source pile
-        source_pile_index = random.randint(0, self.num_waste - 1)
+        source_pile_index = self.py_random.randint(0, self.num_waste - 1)
         source_pile = self.waste[source_pile_index]
 
         # Determine whether to select a face-down card (20% probability)
-        if random.random() < 0.2:
+        if self.py_random.random() < 0.2:
             face_down_indices = [
                 i for i, card in enumerate(source_pile) if card.faceDown()
             ]
@@ -831,15 +831,15 @@ class SpiderSolitaireQAEnv(Env):
                 face_up_indices = [
                     i for i, card in enumerate(source_pile) if card.faceUp()
                 ]
-                card_index = random.choice(face_up_indices) if face_up_indices else -1
+                card_index = self.py_random.choice(face_up_indices) if face_up_indices else -1
             else:
-                card_index = random.choice(face_down_indices)
+                card_index = self.py_random.choice(face_down_indices)
         else:
             face_up_indices = [i for i, card in enumerate(source_pile) if card.faceUp()]
-            card_index = random.choice(face_up_indices) if face_up_indices else -1
+            card_index = self.py_random.choice(face_up_indices) if face_up_indices else -1
 
         # Select destination pile
-        if random.random() < 0.75:
+        if self.py_random.random() < 0.75:
             # 75% chance to select a potentially valid destination
             if card_index != -1 and card_index < len(source_pile):
                 card_to_move = source_pile[card_index]
@@ -851,20 +851,20 @@ class SpiderSolitaireQAEnv(Env):
                         possible_destinations.append(idx)
 
                 if possible_destinations:
-                    destination_pile_index = random.choice(possible_destinations)
+                    destination_pile_index = self.py_random.choice(possible_destinations)
                 else:
-                    destination_pile_index = random.randint(0, self.num_waste - 1)
+                    destination_pile_index = self.py_random.randint(0, self.num_waste - 1)
                     while destination_pile_index == source_pile_index:
-                        destination_pile_index = random.randint(0, self.num_waste - 1)
+                        destination_pile_index = self.py_random.randint(0, self.num_waste - 1)
             else:
-                destination_pile_index = random.randint(0, self.num_waste - 1)
+                destination_pile_index = self.py_random.randint(0, self.num_waste - 1)
                 while destination_pile_index == source_pile_index:
-                    destination_pile_index = random.randint(0, self.num_waste - 1)
+                    destination_pile_index = self.py_random.randint(0, self.num_waste - 1)
         else:
             # 25% chance to select completely random destination
-            destination_pile_index = random.randint(0, self.num_waste - 1)
+            destination_pile_index = self.py_random.randint(0, self.num_waste - 1)
             while destination_pile_index == source_pile_index:
-                destination_pile_index = random.randint(0, self.num_waste - 1)
+                destination_pile_index = self.py_random.randint(0, self.num_waste - 1)
 
         # Format the question
         question = f"{GAME_RULES}\n\n**Question:** What will happen if I want to move the number {card_index} card of pile {source_pile_index} to pile {destination_pile_index}?"
@@ -999,7 +999,7 @@ class SpiderSolitaireQAEnv(Env):
         ]
 
         if candidate_piles:
-            waste_pile_num = random.choice(candidate_piles)
+            waste_pile_num = self.py_random.choice(candidate_piles)
             correct_option = "A"
             analysis = (
                 f"The first face-down card in waste pile {waste_pile_num} is already at the top and should be face up. "
@@ -1009,11 +1009,11 @@ class SpiderSolitaireQAEnv(Env):
                 "A. No action is needed; there are no face-down cards in this pile.",
                 "B. There is no immediate way to reveal it; we should move cards from other piles first and wait for more information.",
             ] + [
-                f"{chr(67 + i)}. We should move the {random.randint(0, self.num_waste - 1)}-th card of pile {random.randint(0, self.num_waste - 1)} to pile {random.randint(0, self.num_waste - 1)}."
+                f"{chr(67 + i)}. We should move the {self.py_random.randint(0, self.num_waste - 1)}-th card of pile {self.py_random.randint(0, self.num_waste - 1)} to pile {self.py_random.randint(0, self.num_waste - 1)}."
                 for i in range(6)
             ]
         else:
-            waste_pile_num = random.randint(0, self.num_waste - 1)
+            waste_pile_num = self.py_random.randint(0, self.num_waste - 1)
             waste_pile = self.waste[waste_pile_num]
 
             has_face_down = any(card.faceDown() for card in waste_pile)
@@ -1030,14 +1030,14 @@ class SpiderSolitaireQAEnv(Env):
                 ]
 
                 if possible_targets:
-                    correct_option = random.choice(["C", "D", "E", "F", "G", "H"])
-                    correct_move_pile = random.choice(possible_targets)
+                    correct_option = self.py_random.choice(["C", "D", "E", "F", "G", "H"])
+                    correct_move_pile = self.py_random.choice(possible_targets)
 
                     options = [
                         "A. No action is needed; there are no face-down cards in this pile.",
                         "B. There is no immediate way to reveal it; we should move cards from other piles first and wait for more information.",
                     ] + [
-                        f"{chr(67 + i)}. We should move the {random.randint(0, self.num_waste - 1)}-th card of pile {random.randint(0, self.num_waste - 1)} to pile {random.randint(0, self.num_waste - 1)}."
+                        f"{chr(67 + i)}. We should move the {self.py_random.randint(0, self.num_waste - 1)}-th card of pile {self.py_random.randint(0, self.num_waste - 1)} to pile {self.py_random.randint(0, self.num_waste - 1)}."
                         for i in range(6)
                     ]
 
@@ -1063,7 +1063,7 @@ class SpiderSolitaireQAEnv(Env):
                         "A. No action is needed; there are no face-down cards in this pile.",
                         "B. There is no immediate way to reveal it; we should move cards from other piles first and wait for more information.",
                     ] + [
-                        f"{chr(67 + i)}. We should move the {random.randint(0, self.num_waste - 1)}-th card of pile {random.randint(0, self.num_waste - 1)} to pile {random.randint(0, self.num_waste - 1)}."
+                        f"{chr(67 + i)}. We should move the {self.py_random.randint(0, self.num_waste - 1)}-th card of pile {self.py_random.randint(0, self.num_waste - 1)} to pile {self.py_random.randint(0, self.num_waste - 1)}."
                         for i in range(6)
                     ]
             else:
@@ -1074,7 +1074,7 @@ class SpiderSolitaireQAEnv(Env):
                     "A. No action is needed; there are no face-down cards in this pile.",
                     "B. There is no immediate way to reveal it; we should move cards from other piles first and wait for more information.",
                 ] + [
-                    f"{chr(67 + i)}. We should move the {random.randint(1, 5)}-th card of pile {random.randint(0, self.num_waste - 1)} to pile {random.randint(0, self.num_waste - 1)}."
+                    f"{chr(67 + i)}. We should move the {self.py_random.randint(1, 5)}-th card of pile {self.py_random.randint(0, self.num_waste - 1)} to pile {self.py_random.randint(0, self.num_waste - 1)}."
                     for i in range(6)
                 ]
 
@@ -1138,7 +1138,7 @@ class SpiderSolitaireQAEnv(Env):
             analysis = "There are complete sequences available to move to the foundation piles. Moving them will help progress towards winning the game."
 
             options = [
-                f"{chr(65 + i)}. We should move the {random.randint(1, 5)}-th card of pile {random.randint(0, self.num_waste - 1)} to pile {random.randint(0, self.num_waste - 1)}."
+                f"{chr(65 + i)}. We should move the {self.py_random.randint(1, 5)}-th card of pile {self.py_random.randint(0, self.num_waste - 1)} to pile {self.py_random.randint(0, self.num_waste - 1)}."
                 for i in range(6)
             ] + [
                 "G. No cards can be moved; we should click the stockpile to deal cards.",
@@ -1147,7 +1147,7 @@ class SpiderSolitaireQAEnv(Env):
 
         elif can_form_descending_same_suit:
             source_pile_index, dest_pile_index, card_idx = best_move
-            correct_option_choice = random.choice(["A", "B", "C", "D", "E", "F"])
+            correct_option_choice = self.py_random.choice(["A", "B", "C", "D", "E", "F"])
             correct_option = correct_option_choice
 
             analysis = (
@@ -1157,11 +1157,11 @@ class SpiderSolitaireQAEnv(Env):
             )
 
             options = [
-                f"{chr(65 + i)}. We should move the {random.randint(1, 5)}-th card of pile {random.randint(0, self.num_waste - 1)} to pile {random.randint(0, self.num_waste - 1)}."
+                f"{chr(65 + i)}. We should move the {self.py_random.randint(1, 5)}-th card of pile {self.py_random.randint(0, self.num_waste - 1)} to pile {self.py_random.randint(0, self.num_waste - 1)}."
                 for i in range(6)
             ] + [
                 "G. No cards can be moved; we should click the stockpile to deal cards.",
-                f"H. We should move cards from pile {random.randint(0, self.num_waste - 1)} to the foundation piles.",
+                f"H. We should move cards from pile {self.py_random.randint(0, self.num_waste - 1)} to the foundation piles.",
             ]
 
             correct_option_idx = ord(correct_option) - ord("A")
@@ -1170,24 +1170,24 @@ class SpiderSolitaireQAEnv(Env):
             )
 
         elif can_utilize_empty_piles:
-            correct_option_choice = random.choice(["A", "B", "C", "D", "E", "F"])
+            correct_option_choice = self.py_random.choice(["A", "B", "C", "D", "E", "F"])
             correct_option = correct_option_choice
 
             empty_piles = [i for i, pile in enumerate(self.waste) if pile.isEmpty()]
-            target_pile = random.choice(empty_piles)
-            source_pile = random.randint(0, self.num_waste - 1)
+            target_pile = self.py_random.choice(empty_piles)
+            source_pile = self.py_random.randint(0, self.num_waste - 1)
             while len(self.waste[source_pile]) == 0:
-                source_pile = random.randint(0, self.num_waste - 1)
+                source_pile = self.py_random.randint(0, self.num_waste - 1)
             num_cards = len(self.waste[source_pile])
 
             analysis = f"There is an empty pile 'pile {target_pile}' from which we can move our cards to. Utilizing empty waste piles provides more flexibility in organizing cards and can help in creating more opportunities for valid moves."
 
             options = [
-                f"{chr(65 + i)}. We should move the {random.randint(1, 5)}-th card of pile {random.randint(0, self.num_waste - 1)} to pile {random.randint(0, self.num_waste - 1)}."
+                f"{chr(65 + i)}. We should move the {self.py_random.randint(1, 5)}-th card of pile {self.py_random.randint(0, self.num_waste - 1)} to pile {self.py_random.randint(0, self.num_waste - 1)}."
                 for i in range(6)
             ] + [
                 "G. No cards can be moved; we should click the stockpile to deal cards.",
-                f"H. We should move cards from pile {random.randint(0, self.num_waste - 1)} to the foundation piles.",
+                f"H. We should move cards from pile {self.py_random.randint(0, self.num_waste - 1)} to the foundation piles.",
             ]
 
             correct_option_idx = ord(correct_option) - ord("A")
@@ -1200,11 +1200,11 @@ class SpiderSolitaireQAEnv(Env):
             analysis = "In the current game, no move can form a descending card order. So no immediate moves are available. Dealing cards from the stockpile will uncover new cards and create new opportunities for moves."
 
             options = [
-                f"{chr(65 + i)}. We should move the {random.randint(1, 5)}-th card of pile {random.randint(0, self.num_waste - 1)} to pile {random.randint(0, self.num_waste - 1)}."
+                f"{chr(65 + i)}. We should move the {self.py_random.randint(1, 5)}-th card of pile {self.py_random.randint(0, self.num_waste - 1)} to pile {self.py_random.randint(0, self.num_waste - 1)}."
                 for i in range(6)
             ] + [
                 "G. No cards can be moved; we should click the stockpile to deal cards.",
-                f"H. We should move cards from pile {random.randint(0, self.num_waste - 1)} to the foundation piles.",
+                f"H. We should move cards from pile {self.py_random.randint(0, self.num_waste - 1)} to the foundation piles.",
             ]
 
         else:
@@ -1214,11 +1214,11 @@ class SpiderSolitaireQAEnv(Env):
             )
 
             options = [
-                f"{chr(65 + i)}. We should move the {random.randint(1, 5)}-th card of pile {random.randint(0, self.num_waste - 1)} to pile {random.randint(0, self.num_waste - 1)}."
+                f"{chr(65 + i)}. We should move the {self.py_random.randint(1, 5)}-th card of pile {self.py_random.randint(0, self.num_waste - 1)} to pile {self.py_random.randint(0, self.num_waste - 1)}."
                 for i in range(6)
             ] + [
                 "G. No cards can be moved; we should click the stockpile to deal cards.",
-                f"H. We should move cards from pile {random.randint(0, self.num_waste - 1)} to the foundation piles.",
+                f"H. We should move cards from pile {self.py_random.randint(0, self.num_waste - 1)} to the foundation piles.",
             ]
 
         question = f"{GAME_RULES}\n\n**Question:** Based on the current board state, what is the optimal strategy we should adopt?"

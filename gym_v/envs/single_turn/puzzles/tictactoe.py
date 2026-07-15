@@ -13,7 +13,6 @@ Source: /mnt/petrelfs/gujiawei/jiawei/env-v/Game-RL/src/tictactoe/
 
 from __future__ import annotations
 
-import random
 from textwrap import dedent
 from typing import Any
 
@@ -392,10 +391,10 @@ Grid (O=first player, X=second player, .=empty):
     def _generate_random_state(self):
         """Generate a random valid game state."""
         # Randomly decide how many moves to make (1-6 moves)
-        num_moves = random.randint(1, 6)
+        num_moves = self.py_random.randint(1, 6)
 
         available_positions = [(r, c) for r in range(3) for c in range(3)]
-        random.shuffle(available_positions)
+        self.py_random.shuffle(available_positions)
 
         for i in range(num_moves):
             if i < len(available_positions):
@@ -430,8 +429,8 @@ Grid (O=first player, X=second player, .=empty):
             Question dict with 3 color options (red/blue/white)
         """
         # Pick a random position
-        row = random.randint(0, 2)
-        col = random.randint(0, 2)
+        row = self.py_random.randint(0, 2)
+        col = self.py_random.randint(0, 2)
 
         cell_value = self._game.board[row][col]
 
@@ -472,7 +471,7 @@ C. white"""
 
         # Generate 8 random positions (including the best move if it exists)
         all_positions = [(r, c) for r in range(3) for c in range(3)]
-        random.shuffle(all_positions)
+        self.py_random.shuffle(all_positions)
 
         # Build options
         options = []
@@ -486,7 +485,7 @@ C. white"""
                 options.append((chr(66 + i), f"({pos[0]}, {pos[1]})"))
         else:
             # Place best move randomly in options
-            correct_option = chr(65 + random.randint(0, 7))
+            correct_option = chr(65 + self.py_random.randint(0, 7))
 
             for i in range(8):
                 opt_letter = chr(65 + i)
@@ -540,7 +539,7 @@ C. white"""
             opponent_response = None
             explanation = "The board is full, no moves available"
         else:
-            move_pos = random.choice(valid_moves)
+            move_pos = self.py_random.choice(valid_moves)
 
             # Simulate the move
             game_copy = self._game.copy()
@@ -551,7 +550,7 @@ C. white"""
 
         # Generate 8 random positions (including opponent's response if it exists)
         all_positions = [(r, c) for r in range(3) for c in range(3)]
-        random.shuffle(all_positions)
+        self.py_random.shuffle(all_positions)
 
         # Build options
         options = []
@@ -565,7 +564,7 @@ C. white"""
                 options.append((chr(66 + i), f"({pos[0]}, {pos[1]})"))
         else:
             # Place opponent's response randomly in options
-            correct_option = chr(65 + random.randint(0, 7))
+            correct_option = chr(65 + self.py_random.randint(0, 7))
 
             for i in range(8):
                 opt_letter = chr(65 + i)

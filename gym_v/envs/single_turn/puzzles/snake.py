@@ -184,9 +184,6 @@ Grid (H=head, B=body, F=food, .=empty):
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
 
-        if seed is not None:
-            random.seed(seed)
-
         # Generate game state
         self._generate_snake()
         self._generate_food()

@@ -220,8 +220,6 @@ Example output for a 5×5 puzzle:
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
         self._seed = seed
-        if seed is not None:
-            np.random.seed(seed)
 
         # 1. Generate Latin Square using generate_puzzle (official solver)
         # Empty board, no inequalities = Latin Square
@@ -241,7 +239,7 @@ Example output for a 5×5 puzzle:
         self._puzzle_board = [[0 for _ in range(self._size)] for _ in range(self._size)]
         num_hints = max(1, int(self._size * self._size * 0.2))
         cells = [(r, c) for r in range(self._size) for c in range(self._size)]
-        np.random.shuffle(cells)
+        self.np_random.shuffle(cells)
         for i in range(num_hints):
             r, c = cells[i]
             self._puzzle_board[r][c] = self._solution_board[r][c]
@@ -323,7 +321,7 @@ Example output for a 5×5 puzzle:
 
         for r in range(self._size):
             for c in range(self._size - 1):
-                if np.random.random() < density:
+                if self.np_random.random() < density:
                     if board[r][c] < board[r][c + 1]:
                         row_ineq[r][c] = "<"
                     else:
@@ -331,7 +329,7 @@ Example output for a 5×5 puzzle:
 
         for r in range(self._size - 1):
             for c in range(self._size):
-                if np.random.random() < density:
+                if self.np_random.random() < density:
                     if board[r][c] < board[r + 1][c]:
                         col_ineq[r][c] = (
                             "^"  # Top is smaller (standard notation?) or just use visual logic

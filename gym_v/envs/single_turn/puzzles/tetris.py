@@ -200,10 +200,6 @@ Grid (#=placed, *=falling, .=empty):
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
 
-        if seed is not None:
-            random.seed(seed)
-            np.random.seed(seed)
-
         # Generate game state
         self._generate_game_state()
 

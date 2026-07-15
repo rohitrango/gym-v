@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from importlib import resources
 import io
-import random
 from typing import Any
 
 import matplotlib.pyplot as plt
@@ -200,7 +199,7 @@ Coordinates are (row, column) with (0,0) at top-left."""
         q_type = self.QUESTION_TYPES[self._question_type_idx]
 
         # Generate question based on type
-        steps = random.randint(3, self._max_steps)
+        steps = self.py_random.randint(3, self._max_steps)
         if q_type["id"] == "position":
             result = self._generate_position_question(steps)
         elif q_type["id"] == "head_state":
@@ -368,22 +367,22 @@ Coordinates are (row, column) with (0,0) at top-left."""
         rows, cols = self._grid_size
 
         # Initialize grid with random symbols
-        self._grid = np.random.randint(
+        self._grid = self.np_random.integers(
             0, self._num_symbols, size=self._grid_size, dtype=np.int8
         )
 
         # Place head at random position
-        self._head_y = random.randint(0, rows - 1)
-        self._head_x = random.randint(0, cols - 1)
+        self._head_y = self.py_random.randint(0, rows - 1)
+        self._head_x = self.py_random.randint(0, cols - 1)
         self._current_state = 0
 
         # Generate transition rules
         self._rules = {}
         for state in range(self._num_states):
             for symbol in range(self._num_symbols):
-                new_symbol = random.randint(0, self._num_symbols - 1)
-                direction = random.randint(0, 3)
-                new_state = random.randint(0, self._num_states - 1)
+                new_symbol = self.py_random.randint(0, self._num_symbols - 1)
+                direction = self.py_random.randint(0, 3)
+                new_state = self.py_random.randint(0, self._num_states - 1)
                 self._rules[(state, symbol)] = (new_symbol, direction, new_state)
 
     def _simulate_steps(self, num_steps: int) -> list[tuple[int, int, int, int]]:
@@ -454,11 +453,11 @@ Coordinates are (row, column) with (0,0) at top-left."""
         options = [correct_answer]
         rows, cols = self._grid_size
         while len(options) < 8:
-            opt = (random.randint(0, rows - 1), random.randint(0, cols - 1))
+            opt = (self.py_random.randint(0, rows - 1), self.py_random.randint(0, cols - 1))
             if opt not in options:
                 options.append(opt)
 
-        random.shuffle(options)
+        self.py_random.shuffle(options)
         correct_idx = options.index(correct_answer) + 1
 
         rules_text = self._get_rules_description()
@@ -489,7 +488,7 @@ Options:
 
         # Generate options
         options = list(range(self._num_states))
-        random.shuffle(options)
+        self.py_random.shuffle(options)
         correct_idx = options.index(correct_answer) + 1
 
         rules_text = self._get_rules_description()
@@ -520,8 +519,8 @@ Options:
 
         # Pick a random position on the grid
         rows, cols = self._grid_size
-        target_y = random.randint(0, rows - 1)
-        target_x = random.randint(0, cols - 1)
+        target_y = self.py_random.randint(0, rows - 1)
+        target_x = self.py_random.randint(0, cols - 1)
 
         # Get final grid state
         saved_grid = self._grid.copy()
@@ -533,7 +532,7 @@ Options:
 
         # Generate options
         options = list(range(self._num_symbols))
-        random.shuffle(options)
+        self.py_random.shuffle(options)
         correct_idx = options.index(correct_answer) + 1
 
         rules_text = self._get_rules_description()
@@ -573,17 +572,17 @@ Options:
         if not possible_states:
             possible_states = list(state_entry_times.keys())
 
-        target_state = random.choice(possible_states)
+        target_state = self.py_random.choice(possible_states)
         correct_answer = state_entry_times[target_state]
 
         # Generate options
         options = [correct_answer]
         while len(options) < 8:
-            opt = random.randint(0, max(max_steps, 8))
+            opt = self.py_random.randint(0, max(max_steps, 8))
             if opt not in options:
                 options.append(opt)
 
-        random.shuffle(options)
+        self.py_random.shuffle(options)
         correct_idx = options.index(correct_answer) + 1
 
         rules_text = self._get_rules_description()

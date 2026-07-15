@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from importlib import resources
-import random
 from textwrap import dedent
 from typing import Any
 
@@ -164,7 +163,7 @@ class LangtonAntQAEnv(Env):
         if self._question_type_param is not None:
             q_type = self.QUESTION_TYPES[self._question_type_param]
         else:
-            q_type = random.choice(self.QUESTION_TYPES)
+            q_type = self.py_random.choice(self.QUESTION_TYPES)
 
         self._current_q_type = q_type
         self._difficulty = q_type["level"]
@@ -376,11 +375,11 @@ class LangtonAntQAEnv(Env):
         # Place ant at center
         self._ant_x = self._grid_size // 2
         self._ant_y = self._grid_size // 2
-        self._ant_direction = random.choice(self.DIRECTIONS)
+        self._ant_direction = self.py_random.choice(self.DIRECTIONS)
 
         # Run some steps to create interesting patterns
         init_steps_range = self.DIFFICULTIES[self._difficulty]["init_steps"]
-        num_steps = random.randint(*init_steps_range)
+        num_steps = self.py_random.randint(*init_steps_range)
         for _ in range(num_steps):
             self._execute_step()
 
@@ -422,9 +421,9 @@ class LangtonAntQAEnv(Env):
         distractors = []
         while len(distractors) < 3:
             # Random position
-            rand_y = random.randint(1, self._grid_size)
-            rand_x = random.randint(1, self._grid_size)
-            rand_dir = random.choice(self.DIRECTIONS)
+            rand_y = self.py_random.randint(1, self._grid_size)
+            rand_x = self.py_random.randint(1, self._grid_size)
+            rand_dir = self.py_random.choice(self.DIRECTIONS)
             distractor = f"({rand_y}, {rand_x}) facing {rand_dir}"
 
             if distractor != correct_answer and distractor not in distractors:
@@ -432,7 +431,7 @@ class LangtonAntQAEnv(Env):
 
         # Shuffle options
         options = [correct_answer] + distractors
-        random.shuffle(options)
+        self.py_random.shuffle(options)
         correct_idx = options.index(correct_answer)
         correct_letter = chr(65 + correct_idx)  # A, B, C, D
 
@@ -449,7 +448,7 @@ class LangtonAntQAEnv(Env):
         saved_dir = self._ant_direction
 
         # Simulate N steps
-        num_steps = random.randint(3, 7)
+        num_steps = self.py_random.randint(3, 7)
         for _ in range(num_steps):
             self._execute_step()
 
@@ -466,9 +465,9 @@ class LangtonAntQAEnv(Env):
         # Generate distractors
         distractors = []
         while len(distractors) < 3:
-            rand_y = random.randint(1, self._grid_size)
-            rand_x = random.randint(1, self._grid_size)
-            rand_dir = random.choice(self.DIRECTIONS)
+            rand_y = self.py_random.randint(1, self._grid_size)
+            rand_x = self.py_random.randint(1, self._grid_size)
+            rand_dir = self.py_random.choice(self.DIRECTIONS)
             distractor = f"({rand_y}, {rand_x}) facing {rand_dir}"
 
             if distractor != correct_answer and distractor not in distractors:
@@ -476,7 +475,7 @@ class LangtonAntQAEnv(Env):
 
         # Shuffle options
         options = [correct_answer] + distractors
-        random.shuffle(options)
+        self.py_random.shuffle(options)
         correct_idx = options.index(correct_answer)
         correct_letter = chr(65 + correct_idx)
 
@@ -488,8 +487,8 @@ class LangtonAntQAEnv(Env):
     def _generate_cell_changes_question(self) -> None:
         """Generate question about how many times a specific cell changes color (Hard, Fill-in)."""
         # Choose a random target cell
-        target_y = random.randint(0, self._grid_size - 1)
-        target_x = random.randint(0, self._grid_size - 1)
+        target_y = self.py_random.randint(0, self._grid_size - 1)
+        target_x = self.py_random.randint(0, self._grid_size - 1)
 
         # Save current state
         saved_grid = [row[:] for row in self._grid]
@@ -497,7 +496,7 @@ class LangtonAntQAEnv(Env):
         saved_dir = self._ant_direction
 
         # Simulate N steps and count changes
-        num_steps = random.randint(10, 20)
+        num_steps = self.py_random.randint(10, 20)
         change_count = 0
 
         for _ in range(num_steps):

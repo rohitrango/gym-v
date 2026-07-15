@@ -268,7 +268,7 @@ Please compute the **sum of the areas of all triangles** that can be formed by a
         n_triangles = min(3, len(self._points) // 3)
         triangle_colors = ["#FF6B6B", "#4ECDC4", "#FFD93D"]
 
-        rng_state = np.random.RandomState(42)
+        rng_state = np.random.default_rng(42)
         for i in range(n_triangles):
             # Select 3 random distinct points
             indices = rng_state.choice(len(self._points), size=3, replace=False)

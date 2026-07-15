@@ -6,7 +6,6 @@ Single-turn Q&A environment where the model answers questions about Game of Life
 from __future__ import annotations
 
 from importlib import resources
-import random
 from textwrap import dedent
 from typing import Any
 
@@ -167,9 +166,6 @@ Grid (#=alive, .=dead):
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
-
-        if seed is not None:
-            random.seed(seed)
 
         # Select question type
         if self._question_type_param is not None:
@@ -523,7 +519,7 @@ Grid (#=alive, .=dead):
 
         if not candidates:
             return None
-        return random.choice(candidates)
+        return self.py_random.choice(candidates)
 
     def _calculate_region_stability(
         self, row_start: int, col_start: int, region_size: int
@@ -603,8 +599,8 @@ Grid (#=alive, .=dead):
             max_val += 1
             candidates.append(max_val)
 
-        wrong_options = random.sample(candidates, min(num_options - 1, len(candidates)))
-        correct_index = random.randint(0, num_options - 1)
+        wrong_options = self.py_random.sample(candidates, min(num_options - 1, len(candidates)))
+        correct_index = self.py_random.randint(0, num_options - 1)
 
         options = wrong_options.copy()
         options.insert(correct_index, correct_answer)
@@ -621,8 +617,8 @@ Grid (#=alive, .=dead):
         while len(unique_sequences) < num_options:
             variant = correct_sequence.copy()
             # Flip 1-2 random positions
-            num_flips = random.randint(1, min(2, len(variant)))
-            positions = random.sample(range(len(variant)), num_flips)
+            num_flips = self.py_random.randint(1, min(2, len(variant)))
+            positions = self.py_random.sample(range(len(variant)), num_flips)
             for pos in positions:
                 variant[pos] = 1 - variant[pos]
             unique_sequences.add(tuple(variant))
@@ -632,7 +628,7 @@ Grid (#=alive, .=dead):
         ]
         sequences = sequences[: num_options - 1]
 
-        correct_index = random.randint(0, num_options - 1)
+        correct_index = self.py_random.randint(0, num_options - 1)
         sequences.insert(correct_index, correct_sequence)
 
         return sequences, correct_index

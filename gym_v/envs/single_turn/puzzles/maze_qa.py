@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from collections import deque
 from importlib import resources
-import random
 import re
 from textwrap import dedent
 from typing import Any
@@ -197,10 +196,6 @@ Grid (#=wall, .=path, P=player, G=goal):
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
-
-        if seed is not None:
-            random.seed(seed)
-            np.random.seed(seed)
 
         # Generate maze
         self._generate_maze()
@@ -652,7 +647,7 @@ Grid (#=wall, .=path, P=player, G=goal):
 
         # Random direction order
         directions = [(0, 2), (2, 0), (0, -2), (-2, 0)]
-        random.shuffle(directions)
+        self.py_random.shuffle(directions)
 
         for dr, dc in directions:
             new_row, new_col = row + dr, col + dc

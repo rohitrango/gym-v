@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import random
 from typing import TYPE_CHECKING, Any, SupportsFloat
 
 import numpy as np
@@ -69,6 +70,7 @@ class Env:
 
     _np_random: np.random.Generator | None = None
     _np_random_seed: int | None = None
+    _py_random: random.Random | None = None
 
     _agent_ids: set[str] = {"agent_0"}
 
@@ -141,6 +143,7 @@ class Env:
         self._current_episode_steps = 0
         if seed is not None:
             self._np_random, self._np_random_seed = np_random(seed)
+            self._py_random = random.Random(seed)
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Render the environment.
@@ -178,6 +181,13 @@ class Env:
         """Sets the environment's random number generator."""
         self._np_random = value
         self._np_random_seed = -1
+
+    @property
+    def py_random(self) -> random.Random:
+        """Returns the environment's Python random number generator."""
+        if self._py_random is None:
+            self._py_random = random.Random()
+        return self._py_random
 
     def __str__(self) -> str:
         """Returns a string of the environment with `spec` id's if `spec."""
@@ -394,6 +404,11 @@ class Wrapper(Env):
     @np_random.setter
     def np_random(self, value: np.random.Generator):
         self.env.np_random = value
+
+    @property
+    def py_random(self) -> random.Random:
+        """Returns the `Env` `py_random` attribute."""
+        return self.env.py_random
 
     @property
     def _np_random(self):

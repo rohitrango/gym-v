@@ -823,7 +823,7 @@ class PyramidChessQAEnv(Env):
         if not position_table:
             raise ValueError("Empty position table")
 
-        answer_item = random.choice(position_table)
+        answer_item = self.py_random.choice(position_table)
         level, position = answer_item.Level, answer_item.Position
 
         question = f"What is the status of the ball on Level {level}, which has coordinate {position}?"
@@ -856,11 +856,11 @@ class PyramidChessQAEnv(Env):
         if not position_table:
             raise ValueError("Empty position table")
 
-        answer_item = random.choice(position_table)
+        answer_item = self.py_random.choice(position_table)
         level, position = answer_item.Level, answer_item.Position
 
         COLOR = ["blue", "red"]
-        color_ind = random.choice([0, 1])
+        color_ind = self.py_random.choice([0, 1])
         color = COLOR[color_ind]
 
         question = f"Can a ball be placed at coordinate {position} on Level {level}? If a {color} ball is placed there, what would be the outcome?"
@@ -912,7 +912,7 @@ class PyramidChessQAEnv(Env):
         if not position_table:
             raise ValueError("Empty position table")
 
-        answer_item = random.choice(position_table)
+        answer_item = self.py_random.choice(position_table)
         level, position = answer_item.Level, answer_item.Position
 
         # Calculate steps needed
@@ -967,7 +967,7 @@ class PyramidChessQAEnv(Env):
                 break
 
         if best_pos is None:
-            best_pos = random.choice(legal_positions)
+            best_pos = self.py_random.choice(legal_positions)
 
         turn = self._game_gen.Turn
         PLAYER = ["PLAYER_0", "PLAYER_1"]
@@ -1008,7 +1008,7 @@ class PyramidChessQAEnv(Env):
         if not position_table:
             raise ValueError("Empty position table")
 
-        answer_item = random.choice(position_table)
+        answer_item = self.py_random.choice(position_table)
         level, position = answer_item.Level, answer_item.Position
 
         # Determine status

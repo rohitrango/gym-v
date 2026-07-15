@@ -208,8 +208,6 @@ Example output for a 9×9 puzzle:
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
         self._seed = seed
-        if seed is not None:
-            np.random.seed(seed)
 
         # 1. Generate Sudoku solution using generate_puzzle
         # Renzoku without hints is just a Latin Square (due to current factory constraints)
@@ -334,10 +332,8 @@ Example output for a 9×9 puzzle:
         def pattern(r, c):
             return (sub_size * (r % sub_size) + r // sub_size + c) % self._size
 
-        from random import sample
-
         def shuffle(s):
-            return sample(s, len(s))
+            return self.py_random.sample(s, len(s))
 
         rBase = range(sub_size)
         rows = [g * sub_size + r for g in shuffle(rBase) for r in shuffle(rBase)]

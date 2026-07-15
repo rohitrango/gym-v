@@ -5,13 +5,11 @@ from __future__ import annotations
 import io
 import json
 import logging
-import random
 from textwrap import dedent
 from typing import Any
 
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
-import numpy as np
 from PIL import Image, ImageFilter
 
 from gym_v import Env, Observation, get_logger
@@ -91,9 +89,6 @@ class TreeToTraversalEnv(Env):
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
         self._seed = seed
-        if seed is not None:
-            np.random.seed(seed)
-            random.seed(seed)
 
         self._generate_new_problem()
 
@@ -158,10 +153,10 @@ class TreeToTraversalEnv(Env):
 
     def _generate_new_problem(self):
         """Generate a random binary tree and render it."""
-        num_nodes = random.randint(self.min_nodes, self.max_nodes)
+        num_nodes = self.py_random.randint(self.min_nodes, self.max_nodes)
 
         # Generate unique values
-        values = random.sample(range(1, 100), num_nodes)
+        values = self.py_random.sample(range(1, 100), num_nodes)
 
         # Build random binary tree
         self._current_root = self._build_random_tree(values)
@@ -196,7 +191,7 @@ class TreeToTraversalEnv(Env):
         while queue:
             node = queue.pop(0)
             # Randomly choose to go left or right
-            if random.random() < 0.5:
+            if self.py_random.random() < 0.5:
                 if node.left is None:
                     node.left = TreeNode(val)
                     return
@@ -265,7 +260,7 @@ class TreeToTraversalEnv(Env):
         node_radius = 0.04
         for node in nodes:
             x, y = positions[id(node)]
-            color = random.choice(self._node_colors)
+            color = self.py_random.choice(self._node_colors)
 
             circle = mpatches.Circle(
                 (x, y),
@@ -290,7 +285,7 @@ class TreeToTraversalEnv(Env):
             )
 
         # Add title
-        if random.random() < 0.8:
+        if self.py_random.random() < 0.8:
             ax.set_title("Binary Tree", fontsize=14, fontweight="bold")
 
         ax.set_xlim(0, 1)
@@ -307,7 +302,7 @@ class TreeToTraversalEnv(Env):
         plt.close(fig)
 
         # Optional noise
-        if random.random() < 0.15:
+        if self.py_random.random() < 0.15:
             img = self._add_noise(img)
 
         return img
@@ -369,6 +364,6 @@ class TreeToTraversalEnv(Env):
 
     def _add_noise(self, img: Image.Image) -> Image.Image:
         """Add subtle noise or blur to the image."""
-        if random.random() < 0.5:
-            img = img.filter(ImageFilter.GaussianBlur(radius=random.uniform(0.3, 0.8)))
+        if self.py_random.random() < 0.5:
+            img = img.filter(ImageFilter.GaussianBlur(radius=self.py_random.uniform(0.3, 0.8)))
         return img

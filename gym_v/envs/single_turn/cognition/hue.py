@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import colorsys
 from importlib import resources
-import random
 from textwrap import dedent
 from typing import Any
 
@@ -79,9 +78,9 @@ class HueQAEnv(Env):
         super().__init__(**kwargs)
 
         self._board_size = (
-            board_size if board_size is not None else random.randint(5, 8)
+            board_size if board_size is not None else self.py_random.randint(5, 8)
         )
-        self._num_lines = num_lines if num_lines is not None else random.randint(3, 4)
+        self._num_lines = num_lines if num_lines is not None else self.py_random.randint(3, 4)
         self._cell_size = cell_size
         self._question_type_param = question_type
         self.num_players = num_players
@@ -469,8 +468,8 @@ class HueQAEnv(Env):
     def _add_gradient_line(self):
         """Add a row or column with color gradient."""
         for _ in range(10):  # Try multiple times
-            is_row = random.choice([True, False])
-            idx = random.randint(0, self._board_size - 1)
+            is_row = self.py_random.choice([True, False])
+            idx = self.py_random.randint(0, self._board_size - 1)
 
             # Check if adjacent parallel gradient exists
             has_adjacent = False
@@ -484,14 +483,14 @@ class HueQAEnv(Env):
                 continue
 
             # Generate gradient
-            start_idx = random.randint(0, 1)
-            end_idx = random.randint(self._board_size - 2, self._board_size - 1)
+            start_idx = self.py_random.randint(0, 1)
+            end_idx = self.py_random.randint(self._board_size - 2, self._board_size - 1)
 
             color1 = np.array(
-                [random.randint(0, 255) for _ in range(3)], dtype=np.uint8
+                [self.py_random.randint(0, 255) for _ in range(3)], dtype=np.uint8
             )
             color2 = np.array(
-                [random.randint(0, 255) for _ in range(3)], dtype=np.uint8
+                [self.py_random.randint(0, 255) for _ in range(3)], dtype=np.uint8
             )
 
             for i in range(start_idx, end_idx + 1):
@@ -529,7 +528,7 @@ class HueQAEnv(Env):
         if not valid_cells:
             return {"question": "No valid cells", "answer": "1", "options": ["N/A"]}
 
-        target_pos = random.choice(valid_cells)
+        target_pos = self.py_random.choice(valid_cells)
         target_color = tuple(self._board[target_pos])
         correct_description = self._get_color_name(target_color)
 
@@ -542,7 +541,7 @@ class HueQAEnv(Env):
                 wrong_descriptions.add(wrong_desc)
 
         options = list(wrong_descriptions) + [correct_description]
-        random.shuffle(options)
+        self.py_random.shuffle(options)
 
         question = f"What color is the cell at row {target_pos[0] + 1}, column {target_pos[1] + 1}?"
 
@@ -557,7 +556,7 @@ class HueQAEnv(Env):
         if not self._gradient_info:
             return {"question": "No gradients", "answer": "1", "options": ["N/A"]}
 
-        gradient = random.choice(self._gradient_info)
+        gradient = self.py_random.choice(self._gradient_info)
         correct_desc = self._describe_gradient(
             gradient["start_color"], gradient["end_color"]
         )
@@ -572,7 +571,7 @@ class HueQAEnv(Env):
                 wrong_descriptions.add(wrong_desc)
 
         options = list(wrong_descriptions) + [correct_desc]
-        random.shuffle(options)
+        self.py_random.shuffle(options)
 
         line_type = "row" if gradient["type"] == "row" else "column"
 
@@ -589,11 +588,11 @@ class HueQAEnv(Env):
     def _generate_color_matching_question(self) -> dict[str, Any]:
         """Generate a color matching question."""
         # Remove some colors
-        num_removed = random.randint(3, 6)
+        num_removed = self.py_random.randint(3, 6)
         if len(self._colored_cells) < num_removed:
             num_removed = len(self._colored_cells)
 
-        self._removed_positions = random.sample(list(self._colored_cells), num_removed)
+        self._removed_positions = self.py_random.sample(list(self._colored_cells), num_removed)
         removed_colors = []
         labels = list("ABCDEFGH")[:num_removed]
 
@@ -615,7 +614,7 @@ class HueQAEnv(Env):
         # Shuffle all colors
         all_colors = removed_colors + extra_options
         shuffled_indices = list(range(len(all_colors)))
-        random.shuffle(shuffled_indices)
+        self.py_random.shuffle(shuffled_indices)
 
         self._color_mapping = {i: shuffled_indices[i] for i in range(len(all_colors))}
         inverse_mapping = {v: k for k, v in self._color_mapping.items()}
@@ -624,7 +623,7 @@ class HueQAEnv(Env):
         ]
 
         # Select a target cell
-        target_pos = random.choice(self._removed_positions)
+        target_pos = self.py_random.choice(self._removed_positions)
         target_label = self._cells_to_fill[target_pos]
 
         original_idx = self._removed_positions.index(target_pos)
@@ -715,7 +714,7 @@ class HueQAEnv(Env):
         best_color = None
 
         for _ in range(100):
-            color = np.array([random.randint(0, 255) for _ in range(3)])
+            color = np.array([self.py_random.randint(0, 255) for _ in range(3)])
             if not existing_colors:
                 return color
 

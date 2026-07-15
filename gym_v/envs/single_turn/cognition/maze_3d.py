@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import random
 from textwrap import dedent
 from typing import Any
 
@@ -276,7 +275,7 @@ Goal: ({self._goal_pos.x if self._goal_pos else "N/A"}, {self._goal_pos.y if sel
         path_cubes = {start}
         all_cubes = existing_cubes | path_cubes
 
-        num_segments = random.randint(*seg_range)
+        num_segments = self.py_random.randint(*seg_range)
 
         for _ in range(num_segments):
             possible_moves = []
@@ -300,7 +299,7 @@ Goal: ({self._goal_pos.x if self._goal_pos else "N/A"}, {self._goal_pos.y if sel
             if not possible_moves:
                 break
 
-            move_type, delta = random.choice(possible_moves)
+            move_type, delta = self.py_random.choice(possible_moves)
             new_pos = current_pos + delta
 
             segment = PathSegment(current_pos, new_pos, move_type)
@@ -405,8 +404,8 @@ Goal: ({self._goal_pos.x if self._goal_pos else "N/A"}, {self._goal_pos.y if sel
             pos for pos in ordered_cubes[1:-3] if pos.x % 2 == 1 and pos.y % 2 == 1
         ]
 
-        num_branches = min(len(valid_branch_positions), random.randint(2, 3))
-        random.shuffle(valid_branch_positions)
+        num_branches = min(len(valid_branch_positions), self.py_random.randint(2, 3))
+        self.py_random.shuffle(valid_branch_positions)
         selected_positions = valid_branch_positions[:num_branches]
 
         for i, branch_pos in enumerate(selected_positions, 1):
@@ -431,13 +430,13 @@ Goal: ({self._goal_pos.x if self._goal_pos else "N/A"}, {self._goal_pos.y if sel
             wrong_path = ""
             for b in self._branches:
                 directions = ["left-forward", "right-forward", "up"]
-                direction = random.choice(directions)
+                direction = self.py_random.choice(directions)
                 wrong_path += f"{b.branch_id}-{direction}, "
             wrong_path = wrong_path[:-2]
             if wrong_path not in self._options:
                 self._options.append(wrong_path)
 
-        random.shuffle(self._options)
+        self.py_random.shuffle(self._options)
         correct_answer = self._options.index(correct_path) + 1
 
         self._question = "Which combination of path choices leads to the goal?"
@@ -487,8 +486,8 @@ Goal: ({self._goal_pos.x if self._goal_pos else "N/A"}, {self._goal_pos.y if sel
         ordered_cubes = self._get_ordered_path_cubes(main_path)
         valid_positions = ordered_cubes[1:-1]
 
-        num_labels = min(len(valid_positions), random.randint(3, 4))
-        selected_positions = random.sample(valid_positions, num_labels)
+        num_labels = min(len(valid_positions), self.py_random.randint(3, 4))
+        selected_positions = self.py_random.sample(valid_positions, num_labels)
 
         # Sort by order in path
         for pos in ordered_cubes:
@@ -513,7 +512,7 @@ Goal: ({self._goal_pos.x if self._goal_pos else "N/A"}, {self._goal_pos.y if sel
         while len(self._options) < 8 and attempts < max_attempts:
             attempts += 1
             shuffled_labels = labels.copy()
-            random.shuffle(shuffled_labels)
+            self.py_random.shuffle(shuffled_labels)
             wrong_sequence = (
                 "Start -> "
                 + " -> ".join(str(label) for label in shuffled_labels)
@@ -522,7 +521,7 @@ Goal: ({self._goal_pos.x if self._goal_pos else "N/A"}, {self._goal_pos.y if sel
             if wrong_sequence not in self._options:
                 self._options.append(wrong_sequence)
 
-        random.shuffle(self._options)
+        self.py_random.shuffle(self._options)
         correct_answer = self._options.index(correct_sequence) + 1
 
         self._question = "What is the correct sequence of numbered checkpoints when following the path from start to goal?"
@@ -550,7 +549,7 @@ Goal: ({self._goal_pos.x if self._goal_pos else "N/A"}, {self._goal_pos.y if sel
         valid_positions = ordered_cubes[1:-1]
 
         num_points = min(3, len(valid_positions))
-        selected_positions = random.sample(valid_positions, num_points)
+        selected_positions = self.py_random.sample(valid_positions, num_points)
 
         for i, pos in enumerate(selected_positions, 1):
             self._sequence_points.append(SequencePoint(pos, i))
@@ -581,11 +580,11 @@ Goal: ({self._goal_pos.x if self._goal_pos else "N/A"}, {self._goal_pos.y if sel
 
         self._options = [correct_relation]
         while len(self._options) < 8:
-            wrong_relation = random.choice(possible_relations)
+            wrong_relation = self.py_random.choice(possible_relations)
             if wrong_relation not in self._options:
                 self._options.append(wrong_relation)
 
-        random.shuffle(self._options)
+        self.py_random.shuffle(self._options)
         correct_answer = self._options.index(correct_relation) + 1
 
         self._question = (
@@ -640,8 +639,8 @@ Goal: ({self._goal_pos.x if self._goal_pos else "N/A"}, {self._goal_pos.y if sel
         ordered_cubes = self._get_ordered_path_cubes(main_path)
         all_cubes = list(self._cubes - {self._start_pos, self._goal_pos})
 
-        num_labels = min(len(all_cubes), random.randint(3, 4))
-        labeled_cubes = random.sample(all_cubes, num_labels)
+        num_labels = min(len(all_cubes), self.py_random.randint(3, 4))
+        labeled_cubes = self.py_random.sample(all_cubes, num_labels)
 
         main_path_labels = []
         side_path_labels = []
@@ -663,16 +662,16 @@ Goal: ({self._goal_pos.x if self._goal_pos else "N/A"}, {self._goal_pos.y if sel
         self._options = [correct_answer]
 
         while len(self._options) < 8:
-            num_choices = random.randint(0, len(all_labels))
+            num_choices = self.py_random.randint(0, len(all_labels))
             if num_choices == 0:
                 wrong_answer = "None"
             else:
-                wrong_labels = random.sample(all_labels, num_choices)
+                wrong_labels = self.py_random.sample(all_labels, num_choices)
                 wrong_answer = ", ".join(sorted(wrong_labels, key=int))
             if wrong_answer not in self._options:
                 self._options.append(wrong_answer)
 
-        random.shuffle(self._options)
+        self.py_random.shuffle(self._options)
         correct_option = self._options.index(correct_answer) + 1
 
         self._question = "Which numbered blocks are passed through when following the most direct path from start to goal?"

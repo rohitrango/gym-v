@@ -108,7 +108,7 @@ class RhythmGameQAEnv(Env):
         super().__init__(**kwargs)
 
         if difficulty is None:
-            difficulty = random.choice(["Easy", "Medium", "Hard"])
+            difficulty = self.py_random.choice(["Easy", "Medium", "Hard"])
         self._difficulty = difficulty
         self._grid_size = (
             grid_size if grid_size is not None else self.GRID_SIZES[difficulty]
@@ -424,8 +424,8 @@ class RhythmGameQAEnv(Env):
         """Add a single block (click or reverse)."""
         rows, cols = self._grid_size
         for _ in range(100):  # Try 100 times
-            col = random.randint(1, cols)
-            row = random.randint(1, rows)
+            col = self.py_random.randint(1, cols)
+            row = self.py_random.randint(1, rows)
             if (row, col) not in occupied:
                 occupied.add((row, col))
                 self._blocks.append(
@@ -436,11 +436,11 @@ class RhythmGameQAEnv(Env):
     def _add_snake_block(self, occupied: set):
         """Add a snake block."""
         rows, cols = self._grid_size
-        length = random.randint(2, 5)
+        length = self.py_random.randint(2, 5)
 
         for _ in range(100):  # Try 100 times
-            col = random.randint(1, cols)
-            start_row = random.randint(1, rows - length + 1)
+            col = self.py_random.randint(1, cols)
+            start_row = self.py_random.randint(1, rows - length + 1)
 
             # Check if all positions are free
             positions = [(start_row + i, col) for i in range(length)]
@@ -468,8 +468,8 @@ class RhythmGameQAEnv(Env):
     def _generate_block_type_question(self) -> dict[str, Any]:
         """Generate question about block type at a position."""
         rows, cols = self._grid_size
-        row = random.randint(1, rows)
-        col = random.randint(1, cols)
+        row = self.py_random.randint(1, rows)
+        col = self.py_random.randint(1, cols)
 
         # Find block at position
         block = next(
@@ -503,14 +503,14 @@ class RhythmGameQAEnv(Env):
             # Fallback to block_type question
             return self._generate_block_type_question()
 
-        head_block = random.choice(snake_heads)
+        head_block = self.py_random.choice(snake_heads)
         row_before, col = head_block["row"], head_block["col"]
 
         # Calculate snake length
         length = self._find_snake_length(row_before, col)
 
         # Random time
-        time_k = random.randint(1, row_before - 1)
+        time_k = self.py_random.randint(1, row_before - 1)
         row_after = row_before - time_k
 
         options = ["2", "3", "4", "5"]
@@ -523,7 +523,7 @@ class RhythmGameQAEnv(Env):
     def _generate_column_score_question(self) -> dict[str, Any]:
         """Generate question about total score for a column."""
         cols = self._grid_size[1]
-        col = random.randint(1, cols)
+        col = self.py_random.randint(1, cols)
 
         # Calculate score for this column
         score = self._calculate_column_score(col)

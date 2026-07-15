@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from collections import deque
 from importlib import resources
-import random
 import re
 from textwrap import dedent
 from typing import Any
@@ -260,9 +259,6 @@ class PacmanQAEnv(Env):
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
         super().reset(seed=seed)
-
-        if seed is not None:
-            random.seed(seed)
 
         self._score = 0
         self._direction = "RIGHT"
@@ -918,7 +914,7 @@ Grid (C=Pacman, P=Pinky, B=Blinky, *=bean, #=wall, .=empty):
             for col in range(1, self._grid_size - 1)
             if (row, col) not in self._walls
         ]
-        random.shuffle(available)
+        self.py_random.shuffle(available)
 
         internal_walls: set[tuple[int, int]] = set()
         for pos in available:
@@ -949,7 +945,7 @@ Grid (C=Pacman, P=Pinky, B=Blinky, *=bean, #=wall, .=empty):
             for col in range(self._grid_size)
             if (row, col) not in self._walls
         ]
-        return random.choice(available)
+        return self.py_random.choice(available)
 
     def _add_ghosts(self) -> None:
         """Add ghosts."""
@@ -963,7 +959,7 @@ Grid (C=Pacman, P=Pinky, B=Blinky, *=bean, #=wall, .=empty):
                 and all(g.position != (row, col) for g in self._ghosts)
             ]
             if available:
-                pos = random.choice(available)
+                pos = self.py_random.choice(available)
                 self._ghosts.append(Ghost(name, pos, self))
 
     def render(self) -> Image.Image | list[Image.Image] | None:

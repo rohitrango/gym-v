@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections import deque
-import random
 from textwrap import dedent
 from typing import Any
 
@@ -360,7 +359,7 @@ Grid (*=star, 1-{self._grid_size}=region number):
             cells = [
                 (r, c) for r in range(self._grid_size) for c in range(self._grid_size)
             ]
-            random.shuffle(cells)
+            self.py_random.shuffle(cells)
             regions = []
             unassigned_cells = set(cells)
 
@@ -375,7 +374,7 @@ Grid (*=star, 1-{self._grid_size}=region number):
 
             # Create exactly n regions
             while len(regions) < self._grid_size and unassigned_cells:
-                start_cell = random.choice(list(unassigned_cells))
+                start_cell = self.py_random.choice(list(unassigned_cells))
                 current_region = []
                 queue = deque([start_cell])
                 unassigned_cells.remove(start_cell)
@@ -386,7 +385,7 @@ Grid (*=star, 1-{self._grid_size}=region number):
                 while queue and len(current_region) < target_size:
                     cell = queue.popleft()
                     neighbors = get_neighbors(cell)
-                    random.shuffle(neighbors)
+                    self.py_random.shuffle(neighbors)
 
                     for neighbor in neighbors:
                         if neighbor in unassigned_cells:
@@ -410,7 +409,7 @@ Grid (*=star, 1-{self._grid_size}=region number):
                                 break
 
                     if adjacent_regions:
-                        region_idx = random.choice(adjacent_regions)
+                        region_idx = self.py_random.choice(adjacent_regions)
                         regions[region_idx].append(cell)
                     else:
                         unassigned_cells.add(cell)
@@ -474,7 +473,7 @@ Grid (*=star, 1-{self._grid_size}=region number):
 
         # Randomly select n-1 regions to keep their stars
         number = self._grid_size - 1
-        selected_regions = random.sample(range(self._grid_size), number)
+        selected_regions = self.py_random.sample(range(self._grid_size), number)
 
         for row in range(self._grid_size):
             for col in range(self._grid_size):
@@ -523,22 +522,22 @@ Where should the final star be placed?"""
         self._remove_random_stars()
 
         # Select a random region
-        region_idx = random.randint(0, self._grid_size - 1)
+        region_idx = self.py_random.randint(0, self._grid_size - 1)
         correct_cells = self._regions[region_idx]
-        correct_cell = random.choice(correct_cells)
+        correct_cell = self.py_random.choice(correct_cells)
 
         # Generate options (7 wrong + 1 correct)
         options = []
         while len(options) < 7:
-            distractor_region = random.randint(0, self._grid_size - 1)
+            distractor_region = self.py_random.randint(0, self._grid_size - 1)
             if distractor_region != region_idx:
-                distractor_cell = random.choice(self._regions[distractor_region])
+                distractor_cell = self.py_random.choice(self._regions[distractor_region])
                 option_str = f"({distractor_cell[0]},{distractor_cell[1]})"
                 if option_str not in options:
                     options.append(option_str)
 
         options.append(f"({correct_cell[0]},{correct_cell[1]})")
-        random.shuffle(options)
+        self.py_random.shuffle(options)
 
         # Find correct answer label
         correct_answer_label = None
@@ -588,7 +587,7 @@ Options:
         self._remove_random_stars()
 
         # Select a random region
-        region_idx = random.randint(0, self._grid_size - 1)
+        region_idx = self.py_random.randint(0, self._grid_size - 1)
         region_cells = self._regions[region_idx]
 
         # Find the star in this region
@@ -605,7 +604,7 @@ Options:
         # Generate options from the region
         options = [correct_answer]
         while len(options) < min(8, len(region_cells)):
-            random_cell = random.choice(region_cells)
+            random_cell = self.py_random.choice(region_cells)
             option_str = f"({random_cell[0]},{random_cell[1]})"
             if option_str not in options:
                 options.append(option_str)
@@ -618,12 +617,12 @@ Options:
                     remaining_cells.extend(region)
 
             while len(options) < 8:
-                random_cell = random.choice(remaining_cells)
+                random_cell = self.py_random.choice(remaining_cells)
                 option_str = f"({random_cell[0]},{random_cell[1]})"
                 if option_str not in options:
                     options.append(option_str)
 
-        random.shuffle(options)
+        self.py_random.shuffle(options)
 
         # Find correct answer label
         correct_answer_label = None
@@ -687,7 +686,7 @@ Options:
 
         # Select one correct answer and distractors
         if valid_cells:
-            correct_cell = random.choice(valid_cells)
+            correct_cell = self.py_random.choice(valid_cells)
             correct_answer = f"({correct_cell[0]},{correct_cell[1]})"
         else:
             correct_answer = "null"
@@ -696,11 +695,11 @@ Options:
 
         # Add distractors
         distractors_size = min(7, len(invalid_cells))
-        distractors = random.sample(invalid_cells, distractors_size)
+        distractors = self.py_random.sample(invalid_cells, distractors_size)
         for distractor in distractors:
             options.append(f"({distractor[0]},{distractor[1]})")
 
-        random.shuffle(options)
+        self.py_random.shuffle(options)
 
         # Find correct answer label
         correct_answer_label = None
@@ -746,8 +745,8 @@ Options:
 
     def _remove_random_stars(self):
         """Randomly remove some stars from the grid."""
-        number = random.randint(2, self._grid_size)
-        selected_regions = random.sample(range(self._grid_size), number)
+        number = self.py_random.randint(2, self._grid_size)
+        selected_regions = self.py_random.sample(range(self._grid_size), number)
 
         for row in range(self._grid_size):
             for col in range(self._grid_size):
