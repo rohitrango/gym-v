@@ -143,7 +143,7 @@ class KakurasuEnv(Env):
 
         obs = Observation(
             image=self.render(),
-            text=None,
+            text=self.description,
             metadata={
                 "state_text": board_text,
                 **self._metadata,

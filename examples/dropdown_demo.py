@@ -309,20 +309,28 @@ class EnvironmentViewer:
         )
 
         self.text_output = scrolledtext.ScrolledText(
-            main, height=8, wrap=tk.WORD, state=tk.DISABLED
+            main, height=6, wrap=tk.WORD, state=tk.DISABLED
         )
         self.text_output.grid(row=2, column=0, sticky=tk.EW, pady=(12, 0))
 
-        ttk.Label(main, text="Input prompt").grid(
+        ttk.Label(main, text="Observation text").grid(
             row=3, column=0, sticky=tk.W, pady=(12, 0)
         )
-        self.prompt_output = scrolledtext.ScrolledText(
+        self.obs_text_output = scrolledtext.ScrolledText(
             main, height=8, wrap=tk.WORD, state=tk.DISABLED
         )
-        self.prompt_output.grid(row=4, column=0, sticky=tk.EW, pady=(4, 0))
+        self.obs_text_output.grid(row=4, column=0, sticky=tk.EW, pady=(4, 0))
+
+        ttk.Label(main, text="Input prompt").grid(
+            row=5, column=0, sticky=tk.W, pady=(12, 0)
+        )
+        self.prompt_output = scrolledtext.ScrolledText(
+            main, height=6, wrap=tk.WORD, state=tk.DISABLED
+        )
+        self.prompt_output.grid(row=6, column=0, sticky=tk.EW, pady=(4, 0))
 
         ttk.Label(main, textvariable=self.status).grid(
-            row=5, column=0, sticky=tk.W, pady=(6, 0)
+            row=7, column=0, sticky=tk.W, pady=(6, 0)
         )
 
     def _select_env(self, *, load_env: bool = True) -> None:
@@ -420,6 +428,7 @@ class EnvironmentViewer:
         if self.current_obs is None:
             self._set_image(None)
             self._set_text("No observation returned.\n")
+            self._set_obs_text("")
             self._set_prompt_text("")
             return
 
@@ -430,14 +439,12 @@ class EnvironmentViewer:
         lines = [f"Current player: {self.current_agent_id}"]
         if reward is not None:
             lines.append(f"Reward: {reward}")
-        if getattr(self.current_obs, "text", None):
-            lines.append("")
-            lines.append(str(self.current_obs.text))
         if info:
-            lines.append("")
             lines.append(f"Info: {info}")
 
         self._set_text("\n".join(lines) + "\n")
+        obs_text = getattr(self.current_obs, "text", None)
+        self._set_obs_text(str(obs_text) if obs_text is not None else "")
         self._set_prompt_text(str(text_prompt) if text_prompt else "")
 
     def _set_image(self, image: Image.Image | list[Image.Image] | None) -> None:
@@ -460,6 +467,12 @@ class EnvironmentViewer:
         self.text_output.insert(tk.END, text)
         self.text_output.configure(state=tk.DISABLED)
 
+    def _set_obs_text(self, text: str) -> None:
+        self.obs_text_output.configure(state=tk.NORMAL)
+        self.obs_text_output.delete("1.0", tk.END)
+        self.obs_text_output.insert(tk.END, text)
+        self.obs_text_output.configure(state=tk.DISABLED)
+
     def _set_prompt_text(self, text: str) -> None:
         self.prompt_output.configure(state=tk.NORMAL)
         self.prompt_output.delete("1.0", tk.END)
@@ -474,6 +487,7 @@ class EnvironmentViewer:
 
     def _clear_output(self) -> None:
         self._set_text("")
+        self._set_obs_text("")
         self._set_prompt_text("")
 
     def _close_env(self) -> None:

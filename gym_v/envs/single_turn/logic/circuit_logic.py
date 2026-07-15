@@ -125,10 +125,12 @@ class CircuitLogicEnv(Env):
         if self._assignments:
             text += "\n\nInputs: "
             text += ", ".join(f"{k}={v}" for k, v in sorted(self._assignments.items()))
+        
+        text_prompt = "The image shows a randomly generated logic circuit. What is the final output?"
 
         obs = Observation(
             image=self.render(),
-            text=None,
+            text=text_prompt,
             metadata={
                 "state_text": text,
                 **self._metadata,

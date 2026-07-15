@@ -296,7 +296,7 @@ e e e e e
 
         obs = Observation(
             image=self.render(),
-            text=None,
+            text=self.description,
             metadata={
                 "text_prompt": None,
                 "state_text": None,
