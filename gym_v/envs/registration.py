@@ -17,7 +17,7 @@ from typing import Any, Protocol
 
 from gym_v import Env
 from gym_v.logger import get_logger
-from gym_v.wrappers import OrderEnforcing, PassiveEnvChecker
+from gym_v.wrappers import DisableTextFeedback, OrderEnforcing, PassiveEnvChecker
 
 logger = get_logger()
 
@@ -570,6 +570,7 @@ def make(
     id: str | EnvSpec,
     max_episode_steps: int | None = None,
     disable_env_checker: bool | None = None,
+    disable_text_feedback: bool = False,
     **kwargs: Any,
 ) -> Env:
     """Creates an environment previously registered with `gym_v.register` or a `EnvSpec`.
@@ -582,6 +583,8 @@ def make(
         max_episode_steps: Maximum length of an episode.
         disable_env_checker: If to add `gym_v.wrappers.PassiveEnvChecker`, ``None`` will default to the
             `EnvSpec` ``disable_env_checker`` value otherwise use this value will be used.
+        disable_text_feedback: If ``True``, strip textual observations returned by
+            ``step()`` while preserving reset observations and rendered images.
         kwargs: Additional arguments to pass to the environment constructor.
 
     Returns:
@@ -680,7 +683,8 @@ def make(
 
         env = load_env_creator(wrapper_spec.entry_point)(env=env, **wrapper_spec.kwargs)
 
-    return env
+    if disable_text_feedback:
+        env = DisableTextFeedback(env)
 
     return env
 

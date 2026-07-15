@@ -21,6 +21,40 @@ if TYPE_CHECKING:
 logger = get_logger()
 
 
+class DisableTextFeedback(Wrapper, RecordConstructorArgs):
+    """Strip textual observations returned after environment steps."""
+
+    def __init__(self, env: Env):
+        RecordConstructorArgs.__init__(self)
+        Wrapper.__init__(self, env)
+
+    def step(
+        self, action: dict[str, str]
+    ) -> tuple[
+        dict[str, Observation],
+        dict[str, float],
+        dict[str, bool],
+        dict[str, bool],
+        dict[str, Any],
+    ]:
+        obs_dict, reward, terminated, truncated, info = self.env.step(action)
+        return (
+            {
+                agent_id: self._without_text_feedback(obs)
+                for agent_id, obs in obs_dict.items()
+            },
+            reward,
+            terminated,
+            truncated,
+            info,
+        )
+
+    @staticmethod
+    def _without_text_feedback(obs: Observation) -> Observation:
+        text = None if obs.image is not None else ""
+        return Observation(image=obs.image, text=text, metadata=obs.metadata)
+
+
 class PassiveEnvChecker(Wrapper, RecordConstructorArgs):
     """A passive wrapper that surrounds the ``step``, ``reset`` and ``render`` functions to check they follow Gymnasium's API.
 

@@ -59,6 +59,15 @@ obs, reward, terminated, truncated, info = env.step({"agent_0": "e2e4"})
 env.close()
 ```
 
+For visual-only rollouts, disable textual feedback returned after each turn:
+
+```python
+env = gym_v.make("Games/Chess-v0", disable_text_feedback=True)
+obs, info = env.reset(seed=0)  # reset text/instructions are preserved
+obs, reward, terminated, truncated, info = env.step({"agent_0": "e2e4"})
+# obs["player_1"].text is None when an image is available
+```
+
 ### Interactive Demo
 
 ```bash
