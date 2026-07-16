@@ -9,6 +9,7 @@ from gym_v import Env, Observation, Wrapper
 from gym_v.logger import get_logger
 from gym_v.utils import (
     RecordConstructorArgs,
+    ensure_writable_image,
     env_render_passive_checker,
     env_reset_passive_checker,
     env_step_passive_checker,
@@ -100,9 +101,10 @@ class PassiveEnvChecker(Wrapper, RecordConstructorArgs):
         """Renders the environment that on the first call will run the `passive_env_render_check`."""
         if self.checked_render is False:
             self.checked_render = True
-            return env_render_passive_checker(self.env)
+            img = env_render_passive_checker(self.env)
         else:
-            return self.env.render()
+            img = self.env.render()
+        return ensure_writable_image(img)
 
     @property
     def spec(self) -> EnvSpec | None:

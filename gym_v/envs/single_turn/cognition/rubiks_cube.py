@@ -291,31 +291,32 @@ class RubiksCubeQAEnv(Env):
 
         # Create figure with improved size ratio
         fig = plt.figure(figsize=(12, 9))
+        try:
+            # Create grid with better proportions - left side split into 70% top, 30% bottom
+            grid = plt.GridSpec(10, 2, width_ratios=[2, 1], hspace=0.3, wspace=0.15)
 
-        # Create grid with better proportions - left side split into 70% top, 30% bottom
-        grid = plt.GridSpec(10, 2, width_ratios=[2, 1], hspace=0.3, wspace=0.15)
+            # Draw main unfolded cube (top left, larger size)
+            ax_main = fig.add_subplot(grid[0:7, 0])  # Takes up first 7 units vertically
+            self._draw_unfolded_cube_improved(ax_main)
 
-        # Draw main unfolded cube (top left, larger size)
-        ax_main = fig.add_subplot(grid[0:7, 0])  # Takes up first 7 units vertically
-        self._draw_unfolded_cube_improved(ax_main)
+            # Draw coordinate reference (bottom left)
+            ax_coord = fig.add_subplot(grid[7:, 0])  # Takes up remaining 3 units vertically
+            self._draw_coordinate_reference(ax_coord)
 
-        # Draw coordinate reference (bottom left)
-        ax_coord = fig.add_subplot(grid[7:, 0])  # Takes up remaining 3 units vertically
-        self._draw_coordinate_reference(ax_coord)
+            # Draw 3D views (right column)
+            ax_front = fig.add_subplot(grid[0:5, 1], projection="3d")
+            self._draw_3d_cube_improved(ax_front, angle_front=30, angle_side=45)
+            ax_front.set_title("Front view (F, R, U faces)", pad=8, fontsize=16)
 
-        # Draw 3D views (right column)
-        ax_front = fig.add_subplot(grid[0:5, 1], projection="3d")
-        self._draw_3d_cube_improved(ax_front, angle_front=30, angle_side=45)
-        ax_front.set_title("Front view (F, R, U faces)", pad=8, fontsize=16)
+            ax_back = fig.add_subplot(grid[5:, 1], projection="3d")
+            self._draw_3d_cube_improved(ax_back, angle_front=-30, angle_side=225)
+            ax_back.set_title("Back view (L, D, B faces)", pad=8, fontsize=16)
 
-        ax_back = fig.add_subplot(grid[5:, 1], projection="3d")
-        self._draw_3d_cube_improved(ax_back, angle_front=-30, angle_side=225)
-        ax_back.set_title("Back view (L, D, B faces)", pad=8, fontsize=16)
-
-        # Save with higher resolution
-        buf = io.BytesIO()
-        plt.savefig(buf, format="PNG", bbox_inches="tight", dpi=65)
-        plt.close(fig)
+            # Save with higher resolution
+            buf = io.BytesIO()
+            plt.savefig(buf, format="PNG", bbox_inches="tight", dpi=65)
+        finally:
+            plt.close(fig)
         buf.seek(0)
 
         return Image.open(buf).convert("RGB")

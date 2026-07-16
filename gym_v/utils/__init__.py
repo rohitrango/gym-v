@@ -1,3 +1,4 @@
+from gym_v.utils.image import ensure_writable_image
 from gym_v.utils.passive_env_checker import (
     env_render_passive_checker,
     env_reset_passive_checker,
@@ -12,4 +13,5 @@ __all__ = [
     "env_step_passive_checker",
     "env_reset_passive_checker",
     "env_render_passive_checker",
+    "ensure_writable_image",
 ]

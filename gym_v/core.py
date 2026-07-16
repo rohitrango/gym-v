@@ -11,6 +11,7 @@ from PIL import Image
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from gym_v.logger import get_logger
+from gym_v.utils.image import ensure_writable_image
 from gym_v.utils.record_constructor import RecordConstructorArgs
 from gym_v.utils.seeding import np_random
 
@@ -42,10 +43,16 @@ class Observation(BaseModel):
     @field_validator("image", mode="before")
     @classmethod
     def convert_image(cls, v: Any) -> Image.Image:
-        """Convert numpy array to PIL Image if needed."""
+        """Convert numpy array to PIL Image if needed and ensure writability.
+
+        Downstream VLM processors call ``torch.from_numpy(np.asarray(img))``;
+        images backed by read-only buffers (PIL images from ``Image.open(buf)``,
+        matplotlib canvas RGBA buffers, Ray-deserialized ndarrays, etc.) would
+        otherwise trigger a PyTorch ``UserWarning`` about non-writable tensors.
+        """
         if isinstance(v, np.ndarray):
-            return Image.fromarray(v)
-        return v
+            v = Image.fromarray(v)
+        return ensure_writable_image(v)
 
     @model_validator(mode="after")
     def _require_content(self) -> Observation:
@@ -264,7 +271,7 @@ class Wrapper(Env):
 
     def render(self) -> Image.Image | list[Image.Image] | None:
         """Uses the `render` of the `env` that can be overwritten to change the returned data."""
-        return self.env.render()
+        return ensure_writable_image(self.env.render())
 
     def close(self) -> None:
         """Closes the wrapper and `env`."""

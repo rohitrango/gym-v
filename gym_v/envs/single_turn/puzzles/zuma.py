@@ -965,157 +965,159 @@ Hole position: ({self._hole_pos["x"]:.2f}, {self._hole_pos["y"]:.2f})"""
         curve_x, curve_y = self._track_data
 
         fig, ax = plt.subplots()
-        ax.set_aspect("equal")
-        ax.axis("off")
+        try:
+            ax.set_aspect("equal")
+            ax.axis("off")
 
-        # Draw track using PathPatch
-        dx = np.gradient(curve_x)
-        dy = np.gradient(curve_y)
-        normal_x = -dy / np.sqrt(dx**2 + dy**2)
-        normal_y = dx / np.sqrt(dx**2 + dy**2)
-        left_x = curve_x + normal_x * (2 * self._ball_radius) / 2
-        left_y = curve_y + normal_y * (2 * self._ball_radius) / 2
-        right_x = curve_x - normal_x * (2 * self._ball_radius) / 2
-        right_y = curve_y - normal_y * (2 * self._ball_radius) / 2
+            # Draw track using PathPatch
+            dx = np.gradient(curve_x)
+            dy = np.gradient(curve_y)
+            normal_x = -dy / np.sqrt(dx**2 + dy**2)
+            normal_y = dx / np.sqrt(dx**2 + dy**2)
+            left_x = curve_x + normal_x * (2 * self._ball_radius) / 2
+            left_y = curve_y + normal_y * (2 * self._ball_radius) / 2
+            right_x = curve_x - normal_x * (2 * self._ball_radius) / 2
+            right_y = curve_y - normal_y * (2 * self._ball_radius) / 2
 
-        path_data = [
-            (mpath.Path.MOVETO, (left_x[0], left_y[0])),
-            *[
-                (mpath.Path.LINETO, (lx, ly))
-                for lx, ly in zip(left_x[1:], left_y[1:], strict=False)
-            ],
-            (mpath.Path.LINETO, (right_x[-1], right_y[-1])),
-            *[
-                (mpath.Path.LINETO, (rx, ry))
-                for rx, ry in zip(
-                    right_x[:-1][::-1],
-                    right_y[:-1][::-1],
-                    strict=False,
-                )
-            ],
-            (mpath.Path.CLOSEPOLY, (left_x[0], left_y[0])),
-        ]
-        codes, verts = zip(*path_data, strict=False)
-        path = mpath.Path(verts, codes)
-        track_patch = patches.PathPatch(
-            path,
-            facecolor="lightgray",
-            edgecolor="black",
-            linewidth=1,
-        )
-        ax.add_patch(track_patch)
-
-        # Draw direction dividers (dashed lines)
-        direction_angles = [22.5, -22.5, 67.5, -67.5, 112.5, -112.5, 157.5, -157.5]
-        line_length = 20
-        for angle in direction_angles:
-            rad = math.radians(angle)
-            end_x = self._frog_pos["x"] + line_length * math.cos(rad)
-            end_y = self._frog_pos["y"] + line_length * math.sin(rad)
-            ax.plot(
-                [self._frog_pos["x"], end_x],
-                [self._frog_pos["y"], end_y],
-                "k--",
-                alpha=0.3,
+            path_data = [
+                (mpath.Path.MOVETO, (left_x[0], left_y[0])),
+                *[
+                    (mpath.Path.LINETO, (lx, ly))
+                    for lx, ly in zip(left_x[1:], left_y[1:], strict=False)
+                ],
+                (mpath.Path.LINETO, (right_x[-1], right_y[-1])),
+                *[
+                    (mpath.Path.LINETO, (rx, ry))
+                    for rx, ry in zip(
+                        right_x[:-1][::-1],
+                        right_y[:-1][::-1],
+                        strict=False,
+                    )
+                ],
+                (mpath.Path.CLOSEPOLY, (left_x[0], left_y[0])),
+            ]
+            codes, verts = zip(*path_data, strict=False)
+            path = mpath.Path(verts, codes)
+            track_patch = patches.PathPatch(
+                path,
+                facecolor="lightgray",
+                edgecolor="black",
+                linewidth=1,
             )
+            ax.add_patch(track_patch)
 
-        # Draw hole
-        hole = patches.Circle(
-            (self._hole_pos["x"], self._hole_pos["y"]),
-            2 * self._ball_radius,
-            facecolor="black",
-            edgecolor="black",
-        )
-        ax.add_patch(hole)
+            # Draw direction dividers (dashed lines)
+            direction_angles = [22.5, -22.5, 67.5, -67.5, 112.5, -112.5, 157.5, -157.5]
+            line_length = 20
+            for angle in direction_angles:
+                rad = math.radians(angle)
+                end_x = self._frog_pos["x"] + line_length * math.cos(rad)
+                end_y = self._frog_pos["y"] + line_length * math.sin(rad)
+                ax.plot(
+                    [self._frog_pos["x"], end_x],
+                    [self._frog_pos["y"], end_y],
+                    "k--",
+                    alpha=0.3,
+                )
 
-        # Draw balls
-        for ball in self._balls:
-            circle = patches.Circle(
-                (ball["position"]["x"], ball["position"]["y"]),
-                self._ball_radius,
-                facecolor=ball["color"],
+            # Draw hole
+            hole = patches.Circle(
+                (self._hole_pos["x"], self._hole_pos["y"]),
+                2 * self._ball_radius,
+                facecolor="black",
                 edgecolor="black",
             )
-            ax.add_patch(circle)
+            ax.add_patch(hole)
 
-        # Draw frog (white triangle)
-        angle_rad = math.radians(self._frog_angle)
-        base = 4 * self._ball_radius
-        height = 6 * self._ball_radius
-        top_point = (
-            self._frog_pos["x"] + height * 2 / 3 * math.cos(angle_rad),
-            self._frog_pos["y"] + height * 2 / 3 * math.sin(angle_rad),
-        )
-        left_point = (
-            self._frog_pos["x"]
-            - base / 2 * math.cos(angle_rad - math.pi / 2)
-            - height * 1 / 3 * math.cos(angle_rad),
-            self._frog_pos["y"]
-            - base / 2 * math.sin(angle_rad - math.pi / 2)
-            - height * 1 / 3 * math.sin(angle_rad),
-        )
-        right_point = (
-            self._frog_pos["x"]
-            + base / 2 * math.cos(angle_rad - math.pi / 2)
-            - height * 1 / 3 * math.cos(angle_rad),
-            self._frog_pos["y"]
-            + base / 2 * math.sin(angle_rad - math.pi / 2)
-            - height * 1 / 3 * math.sin(angle_rad),
-        )
-        triangle = patches.Polygon(
-            [top_point, left_point, right_point],
-            facecolor="white",
-            edgecolor="black",
-        )
-        ax.add_patch(triangle)
+            # Draw balls
+            for ball in self._balls:
+                circle = patches.Circle(
+                    (ball["position"]["x"], ball["position"]["y"]),
+                    self._ball_radius,
+                    facecolor=ball["color"],
+                    edgecolor="black",
+                )
+                ax.add_patch(circle)
 
-        # Draw frog's next ball color
-        frog_ball = patches.Circle(
-            (self._frog_pos["x"], self._frog_pos["y"]),
-            self._ball_radius,
-            facecolor=self._frog_color,
-            edgecolor="black",
-        )
-        ax.add_patch(frog_ball)
+            # Draw frog (white triangle)
+            angle_rad = math.radians(self._frog_angle)
+            base = 4 * self._ball_radius
+            height = 6 * self._ball_radius
+            top_point = (
+                self._frog_pos["x"] + height * 2 / 3 * math.cos(angle_rad),
+                self._frog_pos["y"] + height * 2 / 3 * math.sin(angle_rad),
+            )
+            left_point = (
+                self._frog_pos["x"]
+                - base / 2 * math.cos(angle_rad - math.pi / 2)
+                - height * 1 / 3 * math.cos(angle_rad),
+                self._frog_pos["y"]
+                - base / 2 * math.sin(angle_rad - math.pi / 2)
+                - height * 1 / 3 * math.sin(angle_rad),
+            )
+            right_point = (
+                self._frog_pos["x"]
+                + base / 2 * math.cos(angle_rad - math.pi / 2)
+                - height * 1 / 3 * math.cos(angle_rad),
+                self._frog_pos["y"]
+                + base / 2 * math.sin(angle_rad - math.pi / 2)
+                - height * 1 / 3 * math.sin(angle_rad),
+            )
+            triangle = patches.Polygon(
+                [top_point, left_point, right_point],
+                facecolor="white",
+                edgecolor="black",
+            )
+            ax.add_patch(triangle)
 
-        margin = 1.5 * self._ball_radius
-        x_vals = [
-            float(curve_x.min()),
-            float(curve_x.max()),
-            self._hole_pos["x"] - 2 * self._ball_radius,
-            self._hole_pos["x"] + 2 * self._ball_radius,
-            top_point[0],
-            left_point[0],
-            right_point[0],
-            self._frog_pos["x"] - self._ball_radius,
-            self._frog_pos["x"] + self._ball_radius,
-        ]
-        y_vals = [
-            float(curve_y.min()),
-            float(curve_y.max()),
-            self._hole_pos["y"] - 2 * self._ball_radius,
-            self._hole_pos["y"] + 2 * self._ball_radius,
-            top_point[1],
-            left_point[1],
-            right_point[1],
-            self._frog_pos["y"] - self._ball_radius,
-            self._frog_pos["y"] + self._ball_radius,
-        ]
-        if self._balls:
-            ball_x = [ball["position"]["x"] for ball in self._balls]
-            ball_y = [ball["position"]["y"] for ball in self._balls]
-            x_vals.extend([min(ball_x), max(ball_x)])
-            y_vals.extend([min(ball_y), max(ball_y)])
+            # Draw frog's next ball color
+            frog_ball = patches.Circle(
+                (self._frog_pos["x"], self._frog_pos["y"]),
+                self._ball_radius,
+                facecolor=self._frog_color,
+                edgecolor="black",
+            )
+            ax.add_patch(frog_ball)
 
-        min_x = min(x_vals)
-        max_x = max(x_vals)
-        min_y = min(y_vals)
-        max_y = max(y_vals)
-        ax.set_xlim(min_x - margin, max_x + margin)
-        ax.set_ylim(min_y - margin, max_y + margin)
+            margin = 1.5 * self._ball_radius
+            x_vals = [
+                float(curve_x.min()),
+                float(curve_x.max()),
+                self._hole_pos["x"] - 2 * self._ball_radius,
+                self._hole_pos["x"] + 2 * self._ball_radius,
+                top_point[0],
+                left_point[0],
+                right_point[0],
+                self._frog_pos["x"] - self._ball_radius,
+                self._frog_pos["x"] + self._ball_radius,
+            ]
+            y_vals = [
+                float(curve_y.min()),
+                float(curve_y.max()),
+                self._hole_pos["y"] - 2 * self._ball_radius,
+                self._hole_pos["y"] + 2 * self._ball_radius,
+                top_point[1],
+                left_point[1],
+                right_point[1],
+                self._frog_pos["y"] - self._ball_radius,
+                self._frog_pos["y"] + self._ball_radius,
+            ]
+            if self._balls:
+                ball_x = [ball["position"]["x"] for ball in self._balls]
+                ball_y = [ball["position"]["y"] for ball in self._balls]
+                x_vals.extend([min(ball_x), max(ball_x)])
+                y_vals.extend([min(ball_y), max(ball_y)])
 
-        fig.canvas.draw()
-        buffer = np.asarray(fig.canvas.buffer_rgba())
-        image = buffer[:, :, :3].copy()
-        plt.close(fig)
+            min_x = min(x_vals)
+            max_x = max(x_vals)
+            min_y = min(y_vals)
+            max_y = max(y_vals)
+            ax.set_xlim(min_x - margin, max_x + margin)
+            ax.set_ylim(min_y - margin, max_y + margin)
+
+            fig.canvas.draw()
+            buffer = np.asarray(fig.canvas.buffer_rgba())
+            image = buffer[:, :, :3].copy()
+        finally:
+            plt.close(fig)
         return image

@@ -364,70 +364,71 @@ $x$ and $y$ represent the center of the circle, and $r$ represents the radius of
             raise RuntimeError("No points or circle generated")
 
         fig, ax = plt.subplots(figsize=(8, 8), dpi=100)
+        try:
+            # Extract coordinates
+            xs = [p[0] for p in self._points]
+            ys = [p[1] for p in self._points]
 
-        # Extract coordinates
-        xs = [p[0] for p in self._points]
-        ys = [p[1] for p in self._points]
+            # Plot points
+            ax.scatter(
+                xs, ys, color="#2E86DE", s=100, zorder=3, alpha=0.8, edgecolors="black"
+            )
 
-        # Plot points
-        ax.scatter(
-            xs, ys, color="#2E86DE", s=100, zorder=3, alpha=0.8, edgecolors="black"
-        )
+            # Draw the optimal circle
+            circle = MplCircle(
+                self._optimal_center,
+                self._optimal_radius,
+                color="#EE5A6F",
+                fill=False,
+                linewidth=2.5,
+                linestyle="-",
+                label="Minimum Enclosing Circle",
+                zorder=2,
+            )
+            ax.add_patch(circle)
 
-        # Draw the optimal circle
-        circle = MplCircle(
-            self._optimal_center,
-            self._optimal_radius,
-            color="#EE5A6F",
-            fill=False,
-            linewidth=2.5,
-            linestyle="-",
-            label="Minimum Enclosing Circle",
-            zorder=2,
-        )
-        ax.add_patch(circle)
+            # Mark the center
+            ax.scatter(
+                [self._optimal_center[0]],
+                [self._optimal_center[1]],
+                color="#EE5A6F",
+                s=150,
+                marker="x",
+                linewidths=3,
+                zorder=4,
+                label="Center",
+            )
 
-        # Mark the center
-        ax.scatter(
-            [self._optimal_center[0]],
-            [self._optimal_center[1]],
-            color="#EE5A6F",
-            s=150,
-            marker="x",
-            linewidths=3,
-            zorder=4,
-            label="Center",
-        )
+            # Set up axes
+            margin = max(self._optimal_radius * 0.2, 1.0)
+            x_min = self._optimal_center[0] - self._optimal_radius - margin
+            x_max = self._optimal_center[0] + self._optimal_radius + margin
+            y_min = self._optimal_center[1] - self._optimal_radius - margin
+            y_max = self._optimal_center[1] + self._optimal_radius + margin
 
-        # Set up axes
-        margin = max(self._optimal_radius * 0.2, 1.0)
-        x_min = self._optimal_center[0] - self._optimal_radius - margin
-        x_max = self._optimal_center[0] + self._optimal_radius + margin
-        y_min = self._optimal_center[1] - self._optimal_radius - margin
-        y_max = self._optimal_center[1] + self._optimal_radius + margin
+            ax.set_xlim(x_min, x_max)
+            ax.set_ylim(y_min, y_max)
+            ax.set_aspect("equal", adjustable="box")
 
-        ax.set_xlim(x_min, x_max)
-        ax.set_ylim(y_min, y_max)
-        ax.set_aspect("equal", adjustable="box")
+            # Grid and styling
+            ax.grid(True, alpha=0.3, linestyle="--", linewidth=0.5)
+            ax.axhline(y=0, color="k", linewidth=0.8, alpha=0.3)
+            ax.axvline(x=0, color="k", linewidth=0.8, alpha=0.3)
+            ax.set_xlabel("x", fontsize=12)
+            ax.set_ylabel("y", fontsize=12)
+            ax.set_title(
+                f"Smallest Circle Problem ({len(self._points)} points)", fontsize=14
+            )
+            ax.legend(loc="upper right", fontsize=10)
 
-        # Grid and styling
-        ax.grid(True, alpha=0.3, linestyle="--", linewidth=0.5)
-        ax.axhline(y=0, color="k", linewidth=0.8, alpha=0.3)
-        ax.axvline(x=0, color="k", linewidth=0.8, alpha=0.3)
-        ax.set_xlabel("x", fontsize=12)
-        ax.set_ylabel("y", fontsize=12)
-        ax.set_title(
-            f"Smallest Circle Problem ({len(self._points)} points)", fontsize=14
-        )
-        ax.legend(loc="upper right", fontsize=10)
+            # Convert to PIL Image
+            fig.canvas.draw()
+            img = fig.canvas.buffer_rgba()
+            width, height = fig.canvas.get_width_height()
+            from PIL import Image
 
-        # Convert to PIL Image
-        fig.canvas.draw()
-        img = fig.canvas.buffer_rgba()
-        width, height = fig.canvas.get_width_height()
-        from PIL import Image
-
-        pil_img = Image.frombytes("RGBA", (width, height), img).convert("RGB")
-        plt.close(fig)
+            pil_img = Image.frombytes("RGBA", (width, height), img).convert("RGB")
+        finally:
+            plt.close(fig)
 
         return pil_img

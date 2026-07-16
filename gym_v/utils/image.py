@@ -7,9 +7,73 @@ from __future__ import annotations
 
 import io
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 from PIL import Image
+
+
+class _WritableImage(Image.Image):
+    """PIL Image subclass whose ``__array_interface__`` points to a writable ndarray.
+
+    Modern Pillow (>=10) returns ``data`` as immutable bytes in the standard
+    ``__array_interface__``, so ``np.asarray(pil_image)`` is always read-only.
+    That, in turn, makes ``torch.from_numpy`` in downstream VLM processors emit
+    a non-writable-tensor ``UserWarning``. This subclass overrides the
+    interface to expose a lazily-materialized writable buffer while preserving
+    every PIL operation (mode/size/convert/resize/etc.). Laziness matters for
+    Ray/pickle: after deserialization the buffer is re-materialized on first
+    array access instead of being dropped.
+    """
+
+    _writable_arr: np.ndarray | None = None
+
+    @property
+    def __array_interface__(self) -> dict:  # type: ignore[override]
+        if self._writable_arr is None:
+            # Materialize once via the parent's (read-only) interface;
+            # np.array with copy=True yields a fresh writable buffer.
+            base = np.array(super().__array_interface__["data"], copy=False)
+            shape = super().__array_interface__["shape"]
+            typestr = super().__array_interface__["typestr"]
+            arr = np.frombuffer(bytes(base), dtype=np.dtype(typestr)).reshape(shape).copy()
+            self._writable_arr = arr
+        return self._writable_arr.__array_interface__
+
+
+def _wrap_writable_pil(img: Image.Image) -> Image.Image:
+    """Return a PIL image whose ``np.asarray`` view is writable."""
+    wrapped = _WritableImage()
+    wrapped.__dict__.update(img.__dict__)
+    # Eagerly materialize; subsequent pickling drops it and lazy path re-fills.
+    wrapped._writable_arr = np.array(img)
+    return wrapped
+
+
+def ensure_writable_image(img: Any) -> Any:
+    """Return an image whose backing buffer is writable.
+
+    Downstream VLM processors call ``torch.from_numpy(np.asarray(img))``; when
+    ``img`` is a PIL Image lazily loaded from a PNG buffer, or a NumPy array
+    that came out of ``matplotlib``'s canvas / Ray's object store / any
+    ``np.frombuffer`` path, the buffer is read-only and PyTorch emits a
+    ``UserWarning: The given NumPy array is not writable``.
+
+    Idempotent: already-writable inputs are returned unchanged.
+    """
+    if img is None:
+        return None
+    if isinstance(img, list | tuple):
+        return type(img)(ensure_writable_image(x) for x in img)
+    if isinstance(img, np.ndarray):
+        if img.flags.writeable and img.flags.owndata:
+            return img
+        return np.array(img)
+    if isinstance(img, _WritableImage):
+        return img
+    if isinstance(img, Image.Image):
+        return _wrap_writable_pil(img)
+    return img
 
 
 def _to_uint8(array):

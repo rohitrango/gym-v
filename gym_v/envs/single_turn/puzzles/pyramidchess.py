@@ -386,49 +386,51 @@ def draw_pyramid_2d(layers: dict, plot_level: str) -> Image.Image:
     num_levels = PLOT_LEVEL_MAP[plot_level]
 
     fig, axs = plt.subplots(1, num_levels, figsize=(25, 6))
-    if num_levels == 1:
-        axs = [axs]
+    try:
+        if num_levels == 1:
+            axs = [axs]
 
-    # Define color mapping
-    color_map = {"P0": "blue", "P1": "red", "--": "none"}
+        # Define color mapping
+        color_map = {"P0": "blue", "P1": "red", "--": "none"}
 
-    # Draw each layer
-    for i, (layer_id, layer_data) in enumerate(layers.items()):
-        if i >= num_levels:
-            break
-        ax = axs[i]
-        ax.set_title(f"Level {layer_id}", fontsize=40)
+        # Draw each layer
+        for i, (layer_id, layer_data) in enumerate(layers.items()):
+            if i >= num_levels:
+                break
+            ax = axs[i]
+            ax.set_title(f"Level {layer_id}", fontsize=40)
 
-        # Set axis range
-        ax.set_xlim(-0.5, len(layer_data[0]) - 0.5)
-        ax.set_ylim(-0.5, len(layer_data) - 0.5)
+            # Set axis range
+            ax.set_xlim(-0.5, len(layer_data[0]) - 0.5)
+            ax.set_ylim(-0.5, len(layer_data) - 0.5)
 
-        # Set axis ticks
-        ax.set_xticks(np.arange(len(layer_data[0])))
-        ax.set_yticks(np.arange(len(layer_data)))
-        ax.set_xticklabels([str(x) for x in range(len(layer_data[0]))], fontsize=40)
-        ax.set_yticklabels([str(y) for y in range(len(layer_data))], fontsize=40)
+            # Set axis ticks
+            ax.set_xticks(np.arange(len(layer_data[0])))
+            ax.set_yticks(np.arange(len(layer_data)))
+            ax.set_xticklabels([str(x) for x in range(len(layer_data[0]))], fontsize=40)
+            ax.set_yticklabels([str(y) for y in range(len(layer_data))], fontsize=40)
 
-        ax.invert_xaxis()
-        ax.set_xlabel("x-axis", fontsize=30)
-        ax.set_ylabel("y-axis", fontsize=30)
-        ax.yaxis.set_ticks_position("right")
-        ax.yaxis.set_label_position("right")
+            ax.invert_xaxis()
+            ax.set_xlabel("x-axis", fontsize=30)
+            ax.set_ylabel("y-axis", fontsize=30)
+            ax.yaxis.set_ticks_position("right")
+            ax.yaxis.set_label_position("right")
 
-        # Draw circles
-        for x, row in enumerate(layer_data):
-            for y, cell in enumerate(row):
-                if cell != "--":
-                    ax.scatter(
-                        x, y, s=2000, c=color_map[cell], marker="o", edgecolor="black"
-                    )
+            # Draw circles
+            for x, row in enumerate(layer_data):
+                for y, cell in enumerate(row):
+                    if cell != "--":
+                        ax.scatter(
+                            x, y, s=2000, c=color_map[cell], marker="o", edgecolor="black"
+                        )
 
-    # Adjust spacing
-    plt.subplots_adjust(left=0.05, right=0.95, top=0.9, bottom=0.2, wspace=0.3)
+        # Adjust spacing
+        plt.subplots_adjust(left=0.05, right=0.95, top=0.9, bottom=0.2, wspace=0.3)
 
-    buf = io.BytesIO()
-    plt.savefig(buf, format="PNG")
-    plt.close(fig)
+        buf = io.BytesIO()
+        plt.savefig(buf, format="PNG")
+    finally:
+        plt.close(fig)
     buf.seek(0)
 
     return Image.open(buf)
@@ -448,78 +450,80 @@ def draw_pyramid_3d(layers: dict, plot_level: str) -> Image.Image:
     color_map = {"P0": "blue", "P1": "red", "--": None}
 
     fig = plt.figure(figsize=(12, 12))
-    ax = fig.add_subplot(111, projection="3d")
+    try:
+        ax = fig.add_subplot(111, projection="3d")
 
-    ball_radius = 0.6  # Radius of the balls
+        ball_radius = 0.6  # Radius of the balls
 
-    # Draw each layer in 3D
-    for level, grid in layers.items():
-        if level >= num_levels:
-            break
-        for i, row in enumerate(grid):
-            for j, cell in enumerate(row):
-                if cell != "--":
-                    # Calculate positions to align higher layers' balls on the center of lower layers
-                    x = i + level * 0.5
-                    y = j + level * 0.5
-                    z = level
+        # Draw each layer in 3D
+        for level, grid in layers.items():
+            if level >= num_levels:
+                break
+            for i, row in enumerate(grid):
+                for j, cell in enumerate(row):
+                    if cell != "--":
+                        # Calculate positions to align higher layers' balls on the center of lower layers
+                        x = i + level * 0.5
+                        y = j + level * 0.5
+                        z = level
 
-                    # Draw a sphere to represent the ball
-                    u, v = np.mgrid[0 : 2 * np.pi : 20j, 0 : np.pi : 10j]
-                    sphere_x = ball_radius * np.cos(u) * np.sin(v) + x
-                    sphere_y = ball_radius * np.sin(u) * np.sin(v) + y
-                    sphere_z = ball_radius * np.cos(v) + z
-                    ax.plot_surface(
-                        sphere_x,
-                        sphere_y,
-                        sphere_z,
-                        color=color_map[cell],
-                        edgecolor="k",
-                        linewidth=0.5,
-                    )
+                        # Draw a sphere to represent the ball
+                        u, v = np.mgrid[0 : 2 * np.pi : 20j, 0 : np.pi : 10j]
+                        sphere_x = ball_radius * np.cos(u) * np.sin(v) + x
+                        sphere_y = ball_radius * np.sin(u) * np.sin(v) + y
+                        sphere_z = ball_radius * np.cos(v) + z
+                        ax.plot_surface(
+                            sphere_x,
+                            sphere_y,
+                            sphere_z,
+                            color=color_map[cell],
+                            edgecolor="k",
+                            linewidth=0.5,
+                        )
 
-    # Add legend
-    legend_elements = [
-        plt.Line2D(
-            [0],
-            [0],
-            marker="o",
-            color="w",
-            markerfacecolor="blue",
-            markersize=15,
-            label="PLAYER_0",
-        ),
-        plt.Line2D(
-            [0],
-            [0],
-            marker="o",
-            color="w",
-            markerfacecolor="red",
-            markersize=15,
-            label="PLAYER_1",
-        ),
-    ]
-    ax.legend(
-        handles=legend_elements, loc="upper left", prop={"size": 20}, markerscale=2.0
-    )
+        # Add legend
+        legend_elements = [
+            plt.Line2D(
+                [0],
+                [0],
+                marker="o",
+                color="w",
+                markerfacecolor="blue",
+                markersize=15,
+                label="PLAYER_0",
+            ),
+            plt.Line2D(
+                [0],
+                [0],
+                marker="o",
+                color="w",
+                markerfacecolor="red",
+                markersize=15,
+                label="PLAYER_1",
+            ),
+        ]
+        ax.legend(
+            handles=legend_elements, loc="upper left", prop={"size": 20}, markerscale=2.0
+        )
 
-    # Set axis limits (matching original: X-axis inverted, Y-axis normal)
-    ax.set_xlim(num_levels, -1)  # X-axis: from large to small (inverted)
-    ax.set_ylim(-1, num_levels)  # Y-axis: from small to large (normal)
-    ax.set_zlim(-0.5, num_levels)
-    ax.set_xlabel("X-axis", fontsize=15)
-    ax.set_ylabel("Y-axis", fontsize=15)
-    ax.set_zlabel("Z-axis", fontsize=15)
-    ax.set_xticks(range(0, num_levels))
-    ax.set_yticks(range(0, num_levels))
-    ax.set_zticks(range(0, num_levels))
-    ax.tick_params(axis="x", labelsize=15)
-    ax.tick_params(axis="y", labelsize=15)
-    ax.tick_params(axis="z", labelsize=15)
+        # Set axis limits (matching original: X-axis inverted, Y-axis normal)
+        ax.set_xlim(num_levels, -1)  # X-axis: from large to small (inverted)
+        ax.set_ylim(-1, num_levels)  # Y-axis: from small to large (normal)
+        ax.set_zlim(-0.5, num_levels)
+        ax.set_xlabel("X-axis", fontsize=15)
+        ax.set_ylabel("Y-axis", fontsize=15)
+        ax.set_zlabel("Z-axis", fontsize=15)
+        ax.set_xticks(range(0, num_levels))
+        ax.set_yticks(range(0, num_levels))
+        ax.set_zticks(range(0, num_levels))
+        ax.tick_params(axis="x", labelsize=15)
+        ax.tick_params(axis="y", labelsize=15)
+        ax.tick_params(axis="z", labelsize=15)
 
-    buf = io.BytesIO()
-    plt.savefig(buf, format="PNG")
-    plt.close(fig)
+        buf = io.BytesIO()
+        plt.savefig(buf, format="PNG")
+    finally:
+        plt.close(fig)
     buf.seek(0)
 
     return Image.open(buf)
