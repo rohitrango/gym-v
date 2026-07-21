@@ -25,6 +25,15 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 include = ["gym_v", "gym_v.*"]
 
+[tool.setuptools.package-data]
+gym_v = [
+    "envs/assets/**/*.png",
+    "envs/assets/**/*.jpg",
+    "envs/assets/**/*.ttf",
+    "envs/assets/**/*.otf",
+]
+
+
 [project.optional-dependencies]
 vlmeval = [
     "vlmeval @ git+https://github.com/open-compass/VLMEvalKit.git@v0.2",
